@@ -75,11 +75,11 @@ export function SnapshotCard({ snapshot }: { snapshot: Snapshot }) {
 
         {languages.length > 0 ? (
           <div className="flex flex-wrap items-center gap-1.5">
-            {languages.map(([language, bytes]) => (
+            {languages.map(([language, share]) => (
               <Badge key={language} variant="muted">
                 {language}
                 <span className="text-muted-foreground/70">
-                  {(bytes / 1024).toFixed(0)}k
+                  {share.toFixed(0)}%
                 </span>
               </Badge>
             ))}

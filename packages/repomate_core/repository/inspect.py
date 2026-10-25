@@ -43,6 +43,7 @@ def inspect_repository(
     ws: RepoWorkspace, *, owner: str, name: str, url: str
 ) -> RepositorySnapshot:
     files = ws.ls_files()
+    lowered = {f.lower(): f for f in files}
     return RepositorySnapshot(
         owner=owner,
         name=name,
@@ -52,9 +53,10 @@ def inspect_repository(
         license=detect_license(ws, files),
         languages=language_census(files),
         file_count=len(files),
-        readme_path=_find_first(files, ("README.md", "README.rst", "README.txt", "README")),
+        readme_path=_find_first(lowered, ("readme.md", "readme.rst", "readme.txt", "readme")),
         contributing_path=_find_first(
-            files, ("CONTRIBUTING.md", "CONTRIBUTING.rst", "CONTRIBUTING", ".github/CONTRIBUTING.md")
+            lowered,
+            ("contributing.md", "contributing.rst", "contributing", ".github/contributing.md"),
         ),
         entry_points=find_entry_points(ws, files),
     )
@@ -77,10 +79,42 @@ def detect_license(ws: RepoWorkspace, files: list[str]) -> LicenseInfo:
                 file_path=candidate,
                 note="license file present but not recognized; review manually",
             )
+    declared = _declared_license(ws, files)
+    if declared:
+        return LicenseInfo(
+            status=LicenseStatus.RECOGNIZED,
+            spdx_id=declared,
+            note="declared by the package manifest; no standalone license file present",
+        )
     return LicenseInfo(
         status=LicenseStatus.ABSENT,
         note="no license file found; the repository may not permit reuse",
     )
+
+
+def _declared_license(ws: RepoWorkspace, files: list[str]) -> str | None:
+    """SPDX id declared in package.json / pyproject.toml, if any."""
+    if "package.json" in files:
+        try:
+            pkg = json.loads(ws.read_text("package.json", max_chars=100_000))
+        except (ValueError, OSError):
+            pkg = {}
+        declared = pkg.get("license")
+        if isinstance(declared, str) and declared.strip():
+            return declared.strip()
+    if "pyproject.toml" in files:
+        try:
+            import tomllib
+        except ImportError:
+            return None
+        try:
+            data = tomllib.loads(ws.read_text("pyproject.toml", max_chars=100_000))
+        except (ValueError, OSError):
+            return None
+        expression = (data.get("project") or {}).get("license")
+        if isinstance(expression, str) and expression.strip():
+            return expression.strip()
+    return None
 
 
 def language_census(files: list[str], top: int = 8) -> dict[str, float]:
@@ -140,8 +174,9 @@ def _toml_project_scripts(ws: RepoWorkspace) -> list[str]:
     return [str(k) for k in scripts]
 
 
-def _find_first(files: list[str], candidates: tuple[str, ...]) -> str | None:
+def _find_first(files: dict[str, str], candidates: tuple[str, ...]) -> str | None:
+    """Case-insensitive lookup over a ``{lowered: actual}`` file map."""
     for candidate in candidates:
         if candidate in files:
-            return candidate
+            return files[candidate]
     return None
