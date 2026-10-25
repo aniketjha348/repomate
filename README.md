@@ -19,7 +19,7 @@ first; enterprise capabilities exist to make that workflow reliable and secure.
 | 1 | Contracts + architecture | done |
 | 2 | Working Python core + vertical slice (docs task → real diff → receipt) | done |
 | 3 | Web experience (Next.js workspace) | in progress (frontend delivered in this push) |
-| 4 | Disposable verification sandbox | not started |
+| 4 | Verification sandbox (process backend: wall-time/CPU/memory limits, env scrubbing) | done |
 | 5 | Celery/Redis workers, PostgreSQL, monitoring | not started |
 | 6 | PS04 evaluation matrix | pending slice hardening |
 

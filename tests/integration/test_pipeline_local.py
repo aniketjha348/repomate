@@ -48,8 +48,11 @@ def test_docs_task_completes_end_to_end(tmp_path, local_repo, docs_task_input):
     by_name = {c.name: c for c in record.receipt.checks}
     assert by_name["patch-applies-on-pinned-commit"].status.value == "PASSED"
     assert by_name["patch-path-policy"].status.value == "PASSED"
-    not_run = by_name["repository-test-suite"]
-    assert not_run.status.value == "NOT_RUN" and "sandbox" in not_run.reason
+    # Phase 4: the fixture's pytest suite executes in the process sandbox.
+    suite = by_name["repository-test-suite"]
+    assert suite.status.value == "PASSED"
+    assert suite.exit_code == 0
+    assert "pytest" in suite.command
 
     stages = [e.stage.value for e in events if e.status == "COMPLETED"]
     assert stages == [
@@ -127,3 +130,63 @@ def test_cancellation_between_stages(tmp_path, local_repo, docs_task_input):
         workspace_factory=factory,
     )
     assert record.status is RunStatus.CANCELLED
+
+
+def test_sandbox_disabled_reports_honest_not_run(tmp_path, local_repo, docs_task_input):
+    config = PipelineConfig(runs_root=tmp_path / "runs", sandbox_enabled=False)
+    record = run_pipeline(
+        docs_task_input, config=config, workspace_factory=_factory(local_repo)
+    )
+    assert record.status is RunStatus.COMPLETED
+    suite = next(
+        c for c in record.receipt.checks if c.name == "repository-test-suite"
+    )
+    assert suite.status.value == "NOT_RUN"
+    assert "disabled" in suite.reason
+
+
+def test_failing_repo_suite_completes_run_with_honest_receipt(
+    tmp_path, local_repo, docs_task_input
+):
+    # Break the fixture's suite: the artifact must still be delivered and
+    # the run COMPLETED — a failing repository test suite is an honest
+    # receipt outcome, not a RepoMate failure.
+    test_file = local_repo / "tests" / "test_core.py"
+    test_file.write_text(
+        "from fixture.core import process\n\n"
+        "def test_broken():\n    assert process(['x']) == ['impossible']\n",
+        encoding="utf-8", newline="\n",
+    )
+    workspace = RepoWorkspace.from_local(local_repo)
+    workspace.git("add", "-A")
+    workspace.git("-c", "user.name=T", "-c", "user.email=t@t.invalid",
+                  "commit", "-m", "break suite")
+
+    record = run_pipeline(
+        docs_task_input, config=_config(tmp_path), workspace_factory=_factory(local_repo)
+    )
+    workspace.git("reset", "--hard", "HEAD~1")
+
+    assert record.status is RunStatus.COMPLETED
+    assert record.artifact is not None
+    suite = next(
+        c for c in record.receipt.checks if c.name == "repository-test-suite"
+    )
+    assert suite.status.value == "FAILED"
+    assert suite.exit_code not in (0, None)
+    assert record.error is None
+
+
+def test_artifact_rejection_fails_run(tmp_path, local_repo, docs_task_input, monkeypatch):
+    # A patch-level failure (policy/apply) IS a run failure.
+    from repomate_core.verification import runner as runner_module
+
+    def broken_apply(ws, patch):
+        return False, 1, "error: patch does not apply"
+
+    monkeypatch.setattr(runner_module.RepoWorkspace, "apply_check", broken_apply)
+    record = run_pipeline(
+        docs_task_input, config=_config(tmp_path), workspace_factory=_factory(local_repo)
+    )
+    assert record.status is RunStatus.FAILED
+    assert record.error is not None

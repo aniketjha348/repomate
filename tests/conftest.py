@@ -98,7 +98,8 @@ def local_repo(tmp_path: Path) -> Path:
     (repo / "LICENSE").write_text(MIT_LICENSE, encoding="utf-8", newline="\n")
     (repo / "pyproject.toml").write_text(
         "[project]\nname = 'fixture-project'\nversion = '0.1.0'\n\n"
-        "[project.scripts]\nfixture = 'fixture.cli:main'\n",
+        "[project.scripts]\nfixture = 'fixture.cli:main'\n\n"
+        "[tool.pytest.ini_options]\npythonpath = ['src']\n",
         encoding="utf-8", newline="\n",
     )
     (repo / "src" / "fixture" / "__init__.py").write_text("", encoding="utf-8")

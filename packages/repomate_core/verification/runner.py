@@ -5,10 +5,12 @@ Honesty rules (product-level contract):
 - ``PASSED``/``FAILED`` may only come from a check that actually ran —
   a real subprocess with a captured exit code, or a deterministic policy
   evaluation over the artifact bytes.
-- ``NOT_RUN`` requires an explicit human-readable reason. The MVP does not
-  execute repository test suites: untrusted commands only ever run inside
-  the Phase 4 disposable sandbox, so until that lands the check is
-  reported as ``NOT_RUN`` — never silently skipped, never faked.
+- ``NOT_RUN`` requires an explicit human-readable reason.
+
+Phase 4: the repository test suite now executes inside the disposable
+process sandbox (wall-time/CPU/memory limits, scrubbed environment) when
+a supported toolchain is detected; otherwise it is reported ``NOT_RUN``
+with the precise reason.
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ from repomate_core.contracts import (
     VerificationStatus,
 )
 from repomate_core.repository.workspace import RepoWorkspace
+from repomate_core.verification.sandbox import SandboxLimits, run_test_suite_check
 
 _OUTPUT_TAIL = 800
 
@@ -31,6 +34,9 @@ def run_verification(
     ws: RepoWorkspace,
     artifact: ContributionArtifact,
     policy: PatchPolicy,
+    *,
+    sandbox_enabled: bool = True,
+    limits: SandboxLimits | None = None,
 ) -> VerificationReceipt:
     checks: list[VerificationCheck] = []
 
@@ -58,29 +64,37 @@ def run_verification(
         )
     )
 
-    # 3) Repository test suite — deliberately not executed yet.
-    checks.append(
-        VerificationCheck(
-            name="repository-test-suite",
-            command=None,
-            status=VerificationStatus.NOT_RUN,
-            reason=(
-                "Untrusted repository commands require the Phase 4 disposable "
-                "execution sandbox (CPU/memory/time-limited worker); they are "
-                "never executed on the API host."
-            ),
-        )
-    )
+    # 3) Repository test suite inside the disposable sandbox.
+    checks.append(_test_suite_check(ws, sandbox_enabled=sandbox_enabled, limits=limits))
 
     return VerificationReceipt(
         checks=checks,
         overall=_overall(checks),
-        environment=f"in-process verifier on {platform.system()}/{platform.machine()} (Phase 4 sandbox pending)",
+        environment=(
+            f"process sandbox (wall/cpu/memory limits, scrubbed env) "
+            f"on {platform.system()}/{platform.machine()}"
+        ),
         limitations=[
-            "Test-suite execution lands with the Phase 4 sandbox; patch-level checks only.",
-            "Verification runs on the orchestrator host, not an isolated worker.",
+            "The process sandbox does not isolate network egress; a container-per-run "
+            "backend is planned for untrusted-network toolchains.",
         ],
     )
+
+
+def _test_suite_check(
+    ws: RepoWorkspace,
+    *,
+    sandbox_enabled: bool,
+    limits: SandboxLimits | None,
+) -> VerificationCheck:
+    if not sandbox_enabled:
+        return VerificationCheck(
+            name="repository-test-suite",
+            command=None,
+            status=VerificationStatus.NOT_RUN,
+            reason="sandbox execution disabled by REPOMATE_SANDBOX_ENABLED configuration",
+        )
+    return run_test_suite_check(ws, limits=limits)
 
 
 def _overall(checks: list[VerificationCheck]) -> VerificationStatus:

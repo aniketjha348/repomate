@@ -17,6 +17,7 @@ dependencies = [
 api = [
     "fastapi>=0.110",
     "uvicorn>=0.29",
+    "pytest>=8", # the verification sandbox executes repo suites via pytest
 ]
 dev = [
     "pytest>=8",

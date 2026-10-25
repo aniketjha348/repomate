@@ -129,13 +129,33 @@ def stage_generate_artifact(
 def stage_verify(
     ctx: RunContext, workspace: RepoWorkspace, artifact: ContributionArtifact
 ) -> tuple[VerificationReceipt, list[str]]:
-    """Returns (receipt, failed_check_names)."""
+    """Returns (receipt, failed_artifact_checks).
+
+    Only artifact-level failures (patch policy / patch application) fail
+    the run. A failing repository test suite is an honest receipt
+    outcome — the environment or the repository is broken, not the
+    artifact — so the run completes and the receipt carries the FAILED
+    check with its captured output.
+    """
     from repomate_core.artifacts.patch import DOCS_PATCH_POLICY
 
     ctx.emit(StageName.VERIFY, "STARTED", "Running verification checks")
-    receipt = run_verification(workspace, artifact, DOCS_PATCH_POLICY)
+    receipt = run_verification(
+        workspace, artifact, DOCS_PATCH_POLICY, sandbox_enabled=ctx.config.sandbox_enabled
+    )
     ctx.record.receipt = receipt
-    failed = [c.name for c in receipt.checks if c.status.value == "FAILED"]
+    failed = [
+        check.name
+        for check in receipt.checks
+        if check.status.value == "FAILED" and check.name != "repository-test-suite"
+    ]
+    suite = next((c for c in receipt.checks if c.name == "repository-test-suite"), None)
+    if suite is not None and suite.status.value == "FAILED":
+        ctx.emit(
+            StageName.VERIFY, "INFO",
+            f"Repository test suite FAILED (exit {suite.exit_code}); "
+            "run completes with an honest receipt",
+        )
     ctx.emit(
         StageName.VERIFY,
         "COMPLETED" if not failed else "FAILED",

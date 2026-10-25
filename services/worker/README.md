@@ -1,17 +1,16 @@
-# Worker service (Phase 4/5)
+# Worker service
 
-This directory will host the Celery worker entry point that executes
-pipeline runs and the disposable verification sandbox.
+Phase 4 delivered the verification sandbox itself
+(`repomate_core.verification.sandbox`) — the API executes it in-process
+today: untrusted repository test commands run with wall-time/CPU/memory
+limits and a scrubbed environment, or report an honest `NOT_RUN`.
 
-Planned responsibilities (tracked in `docs/architecture.md`):
+This directory hosts the **Phase 5** Celery worker that takes run
+execution off the API process entirely:
 
-- **Phase 4** — sandboxed check execution: untrusted repository commands
-  run inside a disposable environment with CPU / memory / disk / wall-time
-  limits; results are captured as `VerificationCheck` records.
-- **Phase 5** — durable job execution: Celery + Redis take over run
-  dispatch from the API's in-process executor, with retries, concurrency
-  limits and stale-workspace cleanup.
+- durable job dispatch via Redis (`REPOMATE_EXECUTION=celery`)
+- bounded retries, per-worker concurrency limits
+- stale-workspace sweeps
 
-Nothing here is wired into the API yet, deliberately: the MVP executes
-runs in-process and reports the test suite as `NOT_RUN` with an explicit
-reason instead of pretending to have a sandbox.
+See `docs/architecture.md` for the execution-model seam that makes this
+a drop-in replacement rather than a rewrite.

@@ -24,4 +24,7 @@ class PipelineConfig:
     max_run_seconds: float = field(
         default_factory=lambda: float(os.environ.get("REPOMATE_MAX_RUN_SECONDS", "900"))
     )
+    sandbox_enabled: bool = field(
+        default_factory=lambda: os.environ.get("REPOMATE_SANDBOX_ENABLED", "1") == "1"
+    )
     planner: Optional[Planner] = None  # None => resolve from env/model config

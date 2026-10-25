@@ -31,12 +31,25 @@ refuses redirects and non-https URLs.
 
 ## Execution isolation
 
-**Untrusted repository commands never run on the API host.** Today that means
-the repository test suite is reported `NOT_RUN` with an explicit reason — an
-honest gap, not a hidden one. Phase 4 introduces a disposable sandbox with
-CPU/memory/disk/wall-time limits; the git operations RepoMate itself performs
-(apply --check, diff, reset) operate on its own clone with bounded timeouts
-and `GIT_TERMINAL_PROMPT=0` so git can never hang on credentials.
+Untrusted repository commands run only through the **process sandbox**
+(`repomate_core.verification.sandbox`), never bare on the host:
+
+- wall-time kill: the child process group is SIGKILLed on timeout
+- CPU budget via `RLIMIT_CPU`; memory budget via `RLIMIT_AS`; file-size
+  cap via `RLIMIT_FSIZE`
+- environment scrubbing: only PATH/HOME/locale reach the child — model
+  keys and tokens never do (regression-tested)
+- stdout/stderr captured and tailed to a fixed size
+- permitted toolchains are an explicit allowlist (pytest via RepoMate's
+  own interpreter, make); Node toolchains wait for the container backend
+
+Honest limitations: network egress is not yet isolated, and
+`RLIMIT_NPROC` is deliberately unused (it is per-UID and would break the
+host session). Production containers (the Render Docker service) add
+namespace isolation around this backend; a container-per-run backend is
+the follow-up. RepoMate's own git operations (apply --check, diff,
+reset) run on its private clone with bounded timeouts and
+`GIT_TERMINAL_PROMPT=0`.
 
 ## Secrets
 
