@@ -53,7 +53,8 @@ reset) run on its private clone with bounded timeouts and
 
 ## Secrets
 
-- `VYCE_API_KEY` and `GITHUB_TOKEN` live in server-side environment
+- `OPENAI_API_KEY` (legacy `VYCE_API_KEY` still honoured) and
+  `GITHUB_TOKEN` live in server-side environment
   variables only; they are never returned by any API route, never written
   into run records/events, and redacted from git error paths
 - `GET /api/health` reports only *whether* a model is configured, never the key

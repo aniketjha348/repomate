@@ -25,6 +25,11 @@ captured output, per the verification contract.
 
 ## Interpretation
 
+> The `model:vyce/*` planner labels below are the historical records of
+> these runs; the adapter has since been renamed `OpenAIProvider`
+> (`model:openai/*` in new runs) because the gateway speaks the standard
+> OpenAI chat-completions protocol.
+
 - **deepseek-v4.1** is the recommended default: fastest correct run and
   the most precise plan.
 - **deepseek-v4-flash** failed schema adherence on this prompt: it

@@ -15,9 +15,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      VYCE_API_KEY: ${VYCE_API_KEY:-}
-      VYCE_BASE_URL: ${VYCE_BASE_URL:-https://api.vyce.ai/v1}
-      VYCE_MODEL: ${VYCE_MODEL:-deepseek-chat}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://vyceai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-deepseek-v4.1}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
       REPOMATE_MAX_RUN_SECONDS: ${REPOMATE_MAX_RUN_SECONDS:-900}
@@ -37,7 +37,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       REPOMATE_DATABASE_URL: ${REPOMATE_DATABASE_URL:-}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
-      VYCE_API_KEY: ${VYCE_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       REPOMATE_WORKER_CONCURRENCY: ${REPOMATE_WORKER_CONCURRENCY:-2}
     volumes:
       - repomate-runs:/var/lib/repomate

@@ -13,8 +13,14 @@ router = APIRouter()
 
 @router.get("/api/health")
 def health() -> dict:
+    import os
+
+    model_configured = bool(
+        os.environ.get("OPENAI_API_KEY", "").strip()
+        or os.environ.get("VYCE_API_KEY", "").strip()
+    )
     return {
         "status": "ok",
         "planner": resolve_planner().name,
-        "model_configured": bool(os.environ.get("VYCE_API_KEY")),
+        "model_configured": model_configured,
     }

@@ -12,7 +12,7 @@ from repomate_core.contracts import (
     TaskType,
 )
 from repomate_core.models import ModelError, ModelProvider, parse_model_json
-from repomate_core.models.vyce import model_timeout_from_env
+from repomate_core.models.openai import model_timeout_from_env
 
 _SYSTEM_PROMPT = (
     "You are RepoMate's contribution planner. You plan a small, bounded "

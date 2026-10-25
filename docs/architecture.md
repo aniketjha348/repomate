@@ -60,12 +60,13 @@ and a wall-clock budget (`REPOMATE_MAX_RUN_SECONDS`).
 
 ## Provider independence
 
-`models.provider.ModelProvider` is a small protocol (one `complete`
-method). `VyceProvider` speaks the OpenAI-compatible `/chat/completions`
-dialect; the exact gateway endpoint/model IDs are configured purely via
-environment (`VYCE_BASE_URL`, `VYCE_MODEL`) and must be verified at
-integration time. Swapping providers is a config + adapter change — the
-pipeline, planner contract and tests are untouched.
+`models.base.ModelProvider` is a small protocol (one `complete`
+method). `OpenAIProvider` (in `models/openai.py`, previously shipped as
+`VyceProvider`) speaks the standard OpenAI `/chat/completions` dialect —
+verified live against the Vyce AI gateway; configuration is purely
+environment-driven (`OPENAI_BASE_URL`, `OPENAI_MODEL`; legacy `VYCE_*`
+names still work as fallbacks). Swapping gateways is a config change —
+the pipeline, planner contract and tests are untouched.
 
 When no key is configured the `HeuristicPlanner` runs and every artifact
 carries `planned_by: heuristic-v1`, surfaced in the API and receipts.

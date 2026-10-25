@@ -9,7 +9,8 @@ from repomate_core.repository.workspace import RepoWorkspace
 
 def _client(tmp_path: Path, local_repo: Path, monkeypatch):
     monkeypatch.setenv("REPOMATE_RUNS_ROOT", str(tmp_path / "runs"))
-    monkeypatch.setenv("VYCE_API_KEY", "")  # heuristic planner, honestly labelled
+    monkeypatch.setenv("OPENAI_API_KEY", "")   # heuristic planner, honestly labelled
+    monkeypatch.setenv("VYCE_API_KEY", "")     # legacy name cleared too
 
     from repomate_core.orchestration import pipeline as pipeline_module
     from services.api import main as api_module

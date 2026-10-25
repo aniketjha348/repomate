@@ -224,7 +224,7 @@ def scenario_rate_limited(root: Path, monkeypatch_fetch):
 
 def scenario_model_failure(root: Path):
     class ExplodingPlanner:
-        name = "model:vyce/deepseek-chat"
+        name = "model:openai/deepseek-v4.1"
 
         def plan(self, task_text, snapshot, evidence):
             raise ModelError("gateway 503 after retries")

@@ -27,7 +27,7 @@ backend runs as a long-lived Docker web service on Render.
 3. Set the secret environment variables when prompted, or later under the
    service's **Environment** tab (the blueprint deliberately does not carry
    them — `sync: false`):
-   - `VYCE_API_KEY` — **optional**. Without it the deterministic heuristic
+   - `OPENAI_API_KEY` — **optional**. Without it the deterministic heuristic
      planner runs and **every artifact is labelled with the planner identity**,
      so reports never overstate what produced them.
    - `GITHUB_TOKEN` — **recommended**. Render's egress IPs are shared and share
@@ -65,7 +65,7 @@ demo — this app is a small SSR surface with no meaningful traffic.
 
 1. `curl https://<render-service>.onrender.com/api/health` — expect
    `{"status": "ok", ..., "planner": "..."}`. The `planner` field is the
-   planner identity (e.g. `heuristic-v1` without a `VYCE_API_KEY`, the
+   planner identity (e.g. `heuristic-v1` without an `OPENAI_API_KEY`, the
    model-backed planner with one); the same identity is stamped into every
    artifact.
 2. Open the Vercel URL and submit a small docs task:
@@ -83,13 +83,15 @@ demo — this app is a small SSR surface with no meaningful traffic.
 | Browser console shows CORS errors | `ALLOWED_ORIGINS` on Render must **exactly** match the Vercel origin — including `https://`, correct subdomain, and no trailing slash (`https://x.vercel.app` ≠ `https://x.vercel.app/`). Fix it in the Render Environment tab; the service restarts itself. |
 | GitHub API returns 403 rate-limit errors | Set `GITHUB_TOKEN` on Render. Shared Render egress IPs share the 60 req/h unauthenticated REST budget. |
 | First request hangs for ~30 s or more | Render free-tier cold start after spin-down. Wait it out and retry. Don't add keep-alive pingers — they burn the free hours. |
-| Plans look deterministic / `planner` is `heuristic-v1` | Either `VYCE_API_KEY` is unset (fine — artifacts are labelled honestly) or the gateway call failed; check `model_configured` in `/api/health` and the Render logs. |
+| Plans look deterministic / `planner` is `heuristic-v1` | Either `OPENAI_API_KEY` is unset (fine — artifacts are labelled honestly) or the gateway call failed; check `model_configured` in `/api/health` and the Render logs. |
 
-**Vyce gateway note (honesty):** the Vyce AI gateway endpoint and model IDs
-(`VYCE_BASE_URL`, `VYCE_MODEL`) are env-driven and were never verified against
-a live key. If the gateway rejects them at runtime, the pipeline falls back to
-the heuristic planner (`heuristic-v1`) and says so in every artifact — it will
-not pretend a model produced the plan.
+**Gateway note (honesty):** the OpenAI-compatible gateway (Vyce AI,
+`https://vyceai.com/v1`) is verified live; `OPENAI_BASE_URL` /
+`OPENAI_MODEL` are env-driven (legacy `VYCE_*` names still honoured). If
+the gateway rejects a call at runtime, the run fails with a typed
+`MODEL_ERROR` and the reason in the logs — the heuristic fallback only
+applies when no key is configured at all, so a report never claims a
+model produced a plan that it did not.
 
 ## Local development
 

@@ -1,4 +1,4 @@
-"""Provider-independent AI model access."""
+"""Provider-independent AI model access (OpenAI-compatible protocol)."""
 
 from repomate_core.models.base import (
     ModelError,
@@ -7,10 +7,12 @@ from repomate_core.models.base import (
     ModelTimeoutError,
     parse_model_json,
 )
-from repomate_core.models.vyce import (
+from repomate_core.models.openai import (
     DEFAULT_BASE_URL,
     DEFAULT_MODEL,
+    OpenAIProvider,
     VyceProvider,
+    model_timeout_from_env,
     provider_from_env,
 )
 
@@ -21,7 +23,9 @@ __all__ = [
     "ModelProvider",
     "ModelResult",
     "ModelTimeoutError",
+    "OpenAIProvider",
     "VyceProvider",
+    "model_timeout_from_env",
     "parse_model_json",
     "provider_from_env",
 ]

@@ -63,6 +63,7 @@ def test_celery_task_executes_pipeline(tmp_path, local_repo, eager_celery, monke
 def test_api_with_sqlite_store_and_metrics(tmp_path, local_repo, monkeypatch):
     monkeypatch.setenv("REPOMATE_RUNS_ROOT", str(tmp_path / "runs"))
     monkeypatch.setenv("REPOMATE_DATABASE_URL", f"sqlite:///{tmp_path}/api.db")
+    monkeypatch.setenv("OPENAI_API_KEY", "")
     monkeypatch.setenv("VYCE_API_KEY", "")
 
     from repomate_core.orchestration import pipeline as pipeline_module

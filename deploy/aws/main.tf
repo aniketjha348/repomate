@@ -3,7 +3,7 @@
 # Topology:
 #   ALB (health: GET /api/health) -> ECS "api" service (Fargate, 0.5 vCPU/1GB)
 #   ECS "worker" service (Celery)  <- Redis (ElastiCache or the dev container)
-#   Secrets (VYCE_API_KEY, GITHUB_TOKEN) via AWS Secrets Manager — never in tfvars
+#   Secrets (OPENAI_API_KEY, GITHUB_TOKEN) via AWS Secrets Manager — never in tfvars
 #
 # Self-healing comes from three cooperating mechanisms:
 #   1. ALB health checks fail -> ECS replaces the task
@@ -40,8 +40,8 @@ data "aws_subnets" "public" {
 
 # ---- secrets (create once, out-of-band; only references live here) ----
 
-data "aws_secretsmanager_secret" "vyce_key" {
-  name = "${var.project}/vyce-api-key"
+data "aws_secretsmanager_secret" "openai_key" {
+  name = "${var.project}/openai-api-key"
 }
 
 data "aws_secretsmanager_secret" "github_token" {
@@ -168,7 +168,7 @@ resource "aws_iam_role_policy" "execution_read_secrets" {
       Effect   = "Allow"
       Action   = ["secretsmanager:GetSecretValue"]
       Resource = [
-        data.aws_secretsmanager_secret.vyce_key.arn,
+        data.aws_secretsmanager_secret.openai_key.arn,
         data.aws_secretsmanager_secret.github_token.arn,
       ]
     }]
@@ -179,16 +179,16 @@ resource "aws_iam_role_policy" "execution_read_secrets" {
 
 locals {
   shared_env = [
-    { name = "VYCE_BASE_URL", value = "https://vyceai.com/v1" },
-    { name = "VYCE_MODEL", value = "deepseek-v4.1" },
-    { name = "VYCE_TIMEOUT_SECONDS", value = "240" },
+    { name = "OPENAI_BASE_URL", value = "https://vyceai.com/v1" },
+    { name = "OPENAI_MODEL", value = "deepseek-v4.1" },
+    { name = "OPENAI_TIMEOUT_SECONDS", value = "240" },
     { name = "REPOMATE_SANDBOX_ENABLED", value = "1" },
     { name = "REPOMATE_MAX_RUN_SECONDS", value = "900" },
     { name = "REDIS_URL", value = "redis://redis:6379/0" },
     { name = "ALLOWED_ORIGINS", value = var.allowed_origins },
   ]
   secrets = [
-    { name = "VYCE_API_KEY", valueFrom = data.aws_secretsmanager_secret.vyce_key.arn },
+    { name = "OPENAI_API_KEY", valueFrom = data.aws_secretsmanager_secret.openai_key.arn },
     { name = "GITHUB_TOKEN", valueFrom = data.aws_secretsmanager_secret.github_token.arn },
   ]
 }

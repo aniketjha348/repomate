@@ -27,7 +27,7 @@ redirect and `/api/health` health checks (15s interval, 3 failures →
 task replaced), API service (2 tasks baseline, scales 1→8 on 60% CPU and
 500 req/target/min), Celery worker service (1–2 vCPU/2GB for the
 verification sandbox), CloudWatch logs (30-day retention), Secrets
-Manager references for `VYCE_API_KEY` / `GITHUB_TOKEN` (values never in
+Manager references for `OPENAI_API_KEY` / `GITHUB_TOKEN` (values never in
 code or tfvars), and IAM execution roles scoped to exactly those secrets.
 
 Self-healing layers (deliberately redundant):
@@ -45,7 +45,7 @@ Self-healing layers (deliberately redundant):
 cd deploy/aws
 
 # 1) Secrets (once) — values stay out of the repo
-aws secretsmanager create-secret --name repomate/vyce-api-key \
+aws secretsmanager create-secret --name repomate/openai-api-key \
   --secret-string 'sk-...'
 aws secretsmanager create-secret --name repomate/github-token \
   --secret-string 'ghp_...'   # or an empty-string secret if unused

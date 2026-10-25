@@ -1,5 +1,5 @@
-"""Model matrix evaluation: run one real open issue through every Vyce
-model and record outcomes in docs/model-matrix.md.
+"""Model matrix evaluation: run one real open issue through every
+OpenAI-compatible gateway model and record outcomes in docs/model-matrix.md.
 
 Usage (env from .env):
     set -a; source .env; set +a
@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "packages"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from repomate_core.contracts import RepositoryInput, RunStatus, TaskSource
-from repomate_core.models import VyceProvider
+from repomate_core.models import OpenAIProvider
 from repomate_core.orchestration.pipeline import run_pipeline
 from repomate_core.orchestration.pipeline_config import PipelineConfig
 from repomate_core.planning.model_planner import ModelPlanner
@@ -44,10 +44,14 @@ def main() -> int:
 
     import os
 
-    api_key = os.environ.get("VYCE_API_KEY", "")
-    base_url = os.environ.get("VYCE_BASE_URL", "https://vyceai.com/v1")
+    api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("VYCE_API_KEY", "")
+    base_url = (
+        os.environ.get("OPENAI_BASE_URL")
+        or os.environ.get("VYCE_BASE_URL")
+        or "https://vyceai.com/v1"
+    )
     if not api_key:
-        print("VYCE_API_KEY not set", file=sys.stderr)
+        print("OPENAI_API_KEY not set", file=sys.stderr)
         return 2
 
     run_input = RepositoryInput(
@@ -65,7 +69,7 @@ def main() -> int:
 
         for model in MODELS:
             started = time.monotonic()
-            provider = VyceProvider(api_key, base_url=base_url, model=model)
+            provider = OpenAIProvider(api_key, base_url=base_url, model=model)
             config = PipelineConfig(
                 runs_root=root / "runs",
                 planner=ModelPlanner(provider),

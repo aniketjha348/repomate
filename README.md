@@ -23,8 +23,9 @@ first; enterprise capabilities exist to make that workflow reliable and secure.
 | 5 | Durable execution: SQL run store (SQLite→PostgreSQL), Celery worker + Redis, metrics, stale-workspace sweeps | done (in-process mode remains the default) |
 | 6 | PS04 evaluation matrix | done — `scripts/evaluate.py`, 10/10 scenarios in docs/evaluation-results.md |
 
-The AI planner is provider-independent. With `VYCE_API_KEY` set, plans come
-from the Vyce AI gateway (`https://vyceai.com/v1` — verified live against
+The AI planner is provider-independent and speaks the **OpenAI-compatible**
+chat-completions protocol. With `OPENAI_API_KEY` set, plans come
+from the configured gateway (`https://vyceai.com/v1` — verified live against
 deepseek-v4.1, deepseek-v4-flash, glm-5.3-flash, beam-1.0 and
 nemotron-3.5-super-vl; see docs/model-matrix.md); without it, a
 deterministic heuristic planner runs and **every artifact is labelled with
@@ -43,7 +44,7 @@ Two platforms, one repository:
 - **Backend** — the FastAPI service on **Render** (Docker image
   `deploy/Dockerfile.api`, blueprint `render.yaml`): it shells out to `git`
   for shallow clones, which serverless platforms cannot do — hence Render.
-- Secrets (`VYCE_API_KEY`, `GITHUB_TOKEN`, `ALLOWED_ORIGINS`) are set in the
+- Secrets (`OPENAI_API_KEY`, `GITHUB_TOKEN`, `ALLOWED_ORIGINS`) are set in the
   Render dashboard; `ALLOWED_ORIGINS` must exactly match the Vercel origin.
 
 Full runbook: [docs/deployment.md](docs/deployment.md).

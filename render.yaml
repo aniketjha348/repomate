@@ -14,15 +14,16 @@ services:
     plan: free
     autoDeploy: true
     envVars:
-      # Vyce AI gateway key. Optional: without it the deterministic heuristic
-      # planner runs and every artifact is labelled with the planner identity.
-      - key: VYCE_API_KEY
+      # OpenAI-compatible gateway key (Vyce AI). Optional: without it the
+      # deterministic heuristic planner runs and every artifact is labelled
+      # with the planner identity.
+      - key: OPENAI_API_KEY
         sync: false
-      - key: VYCE_BASE_URL
+      - key: OPENAI_BASE_URL
         value: https://vyceai.com/v1
-      - key: VYCE_MODEL
+      - key: OPENAI_MODEL
         value: deepseek-v4.1
-      - key: VYCE_TIMEOUT_SECONDS
+      - key: OPENAI_TIMEOUT_SECONDS
         value: "240"
       # Optional PAT. Recommended: Render egress IPs are shared and share
       # GitHub's 60 req/h unauthenticated REST budget.
