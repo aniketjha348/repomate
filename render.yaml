@@ -1,0 +1,35 @@
+# Render Blueprint — provisions the RepoMate API service.
+# Spec: https://render.com/docs/blueprint-spec  |  Runbook: docs/deployment.md
+#
+# The Docker build context is the repo root (Render's default), which is what
+# deploy/Dockerfile.api expects (it COPYs pyproject.toml, packages/, services/).
+# sync:false env vars are secrets the operator sets in the Render dashboard
+# when the blueprint is applied.
+services:
+  - type: web
+    name: repomate-api
+    runtime: docker
+    dockerfilePath: ./deploy/Dockerfile.api
+    healthCheckPath: /api/health
+    plan: free
+    autoDeploy: true
+    envVars:
+      # Vyce AI gateway key. Optional: without it the deterministic heuristic
+      # planner runs and every artifact is labelled with the planner identity.
+      - key: VYCE_API_KEY
+        sync: false
+      - key: VYCE_BASE_URL
+        value: https://api.vyce.ai/v1
+      - key: VYCE_MODEL
+        value: deepseek-chat
+      # Optional PAT. Recommended: Render egress IPs are shared and share
+      # GitHub's 60 req/h unauthenticated REST budget.
+      - key: GITHUB_TOKEN
+        sync: false
+      # Comma-separated CORS origins for the API. Set to your Vercel frontend
+      # URL, e.g. https://repomate.vercel.app (exact match, including https).
+      - key: ALLOWED_ORIGINS
+        sync: false
+      # Hard wall-clock budget for one pipeline run, in seconds.
+      - key: REPOMATE_MAX_RUN_SECONDS
+        value: "900"

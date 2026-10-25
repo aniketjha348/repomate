@@ -1,0 +1,45 @@
+# RepoMate local deployment.
+#
+# Phase 1-2 scope: only the API runs for real. The infrastructure services
+# below are intentionally commented out — they belong to Phase 5 (durable
+# jobs via Celery/Redis, PostgreSQL as the system of record) and are kept
+# here visible so the target topology is explicit. Nothing is started that
+# the code does not actually use yet.
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      # Secrets are injected by the operator (e.g. via a secrets manager),
+      # never committed to the repository.
+      VYCE_API_KEY: ${VYCE_API_KEY:-}
+      VYCE_BASE_URL: ${VYCE_BASE_URL:-https://api.vyce.ai/v1}
+      VYCE_MODEL: ${VYCE_MODEL:-deepseek-chat}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      REPOMATE_MAX_RUN_SECONDS: ${REPOMATE_MAX_RUN_SECONDS:-900}
+    volumes:
+      - repomate-runs:/var/lib/repomate
+
+  # ---- Phase 5 (durable execution), not yet wired ---------------------
+  # redis:
+  #   image: redis:7-alpine
+  # postgres:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_DB: repomate
+  #     POSTGRES_USER: repomate
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+  #   volumes:
+  #     - repomate-db:/var/lib/postgresql/data
+  # worker:
+  #   build:
+  #     context: ..
+  #     dockerfile: deploy/Dockerfile.worker   # Phase 4/5
+
+volumes:
+  repomate-runs:
+  # repomate-db:

@@ -1,0 +1,24 @@
+# RepoMate API service image
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml README.md ./
+COPY packages ./packages
+COPY services ./services
+
+RUN pip install --no-cache-dir ".[api]"
+
+# Run as a non-root user; writes go to the mounted runs volume.
+RUN useradd --create-home repomate && mkdir -p /var/lib/repomate && chown repomate /var/lib/repomate
+USER repomate
+ENV REPOMATE_RUNS_ROOT=/var/lib/repomate/runs
+VOLUME ["/var/lib/repomate"]
+
+EXPOSE 8000
+# Render injects PORT; honour it, defaulting to 8000 for local container runs.
+CMD sh -c "uvicorn services.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"
