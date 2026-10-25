@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Runtime state (run records, cloned workspaces, artifacts)
+var/
+*.log
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Node (apps/web — Phase 3)
+node_modules/
+.next/
+out/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
