@@ -76,7 +76,12 @@ def _issue_record(issue: GitHubIssue) -> EvidenceRecord:
 
 
 def _scored_files(ws: RepoWorkspace, snapshot: RepositorySnapshot, keywords: list[str]):
-    """Rank readable files by weighted keyword coverage."""
+    """Rank readable files by weighted keyword coverage.
+
+    Matches count both in file content and in the path itself (tokenized
+    segments), so an issue naming "slugify" surfaces ``slugify.py`` even
+    when the body never mentions it.
+    """
     scored = []
     for f in ws.ls_files():
         path = PurePosixPath(f)
@@ -88,11 +93,12 @@ def _scored_files(ws: RepoWorkspace, snapshot: RepositorySnapshot, keywords: lis
             text = ws.read_text(f, max_chars=250_000)
         except Exception:
             continue
-        hits = [kw for kw in keywords if kw in text.lower()]
-        if not hits:
+        content_hits = sum(1 for kw in keywords if kw in text.lower())
+        path_hits = sum(1 for kw in keywords if kw in path.stem.lower())
+        if content_hits == 0 and path_hits == 0:
             continue
         weight = _file_weight(path, snapshot)
-        scored.append((weight * len(hits), f, _file_kind(path)))
+        scored.append(((content_hits + 0.8 * path_hits) * weight, f, _file_kind(path)))
     scored.sort(key=lambda item: (-item[0], item[1]))
     return scored
 

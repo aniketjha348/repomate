@@ -21,6 +21,12 @@ from repomate_core.contracts.enums import (
     VerificationStatus,
 )
 from repomate_core.contracts.input import GitHubIssue, RepositoryInput
+from repomate_core.contracts.insights import (
+    KeyPath,
+    Orientation,
+    RelevantTest,
+    TestGuidance,
+)
 from repomate_core.contracts.plan import ContributionPlan, PlannedChange, ProposedEdit
 from repomate_core.contracts.run_event import RunError, RunEvent
 from repomate_core.contracts.run_record import RunRecord
@@ -40,10 +46,13 @@ __all__ = [
     "EvidenceKind",
     "EvidenceRecord",
     "GitHubIssue",
+    "KeyPath",
     "LicenseInfo",
     "LicenseStatus",
     "PlannedChange",
     "ProposedEdit",
+    "Orientation",
+    "RelevantTest",
     "RepositoryInput",
     "RepositorySnapshot",
     "RunError",
@@ -53,6 +62,7 @@ __all__ = [
     "StageName",
     "TaskSource",
     "TaskType",
+    "TestGuidance",
     "VerificationCheck",
     "VerificationReceipt",
     "VerificationStatus",

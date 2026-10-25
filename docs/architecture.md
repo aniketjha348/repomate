@@ -58,6 +58,38 @@ emitting `RunEvent`s (persisted to `events.jsonl`, replayed over SSE):
 Between every stage the pipeline checks a cooperative cancellation marker
 and a wall-clock budget (`REPOMATE_MAX_RUN_SECONDS`).
 
+## Agentic RAG without the frameworks
+
+RepoMate's loop *is* agentic RAG, deliberately without LangChain or
+LangGraph:
+
+```
+retrieve evidence ──► plan ──► act (anchored edits / drafted content)
+        ▲                          │
+        └── retrieval widens ◄─────┘   (path-token matching, NEED_MORE_INFO)
+                                       act is verified ──► honest receipt
+```
+
+The reasoning for staying framework-free:
+
+- the whole control flow is ~150 lines of typed Python
+  (`orchestration/pipeline.py` + `stages.py`) — a graph framework would
+  add a dependency and an abstraction layer to code that already reads
+  linearly;
+- every state transition is a persisted `RunEvent` and a Pydantic model,
+  which is what replayability and the SSE frontend actually need;
+- model access is one protocol (`ModelProvider`) with retries, JSON
+  mode and corrective re-parsing — the parts agent frameworks sell, at
+  ~200 lines we fully control and test (131+ tests);
+- retrieval is keyword + path-token scoring over a pinned snapshot:
+  deterministic, citable, and debuggable — swapping in embeddings later
+  is a change inside `evidence/collector.py`, not an architecture
+  change.
+
+If multi-step autonomous iteration (search → edit → run tests → self-
+correct across many turns) becomes a requirement, a graph runtime starts
+paying for itself; until then it would be ceremony, not capability.
+
 ## Provider independence
 
 `models.base.ModelProvider` is a small protocol (one `complete`

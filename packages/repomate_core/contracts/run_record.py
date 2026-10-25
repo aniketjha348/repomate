@@ -13,6 +13,7 @@ from repomate_core.contracts._time import utcnow
 from repomate_core.contracts.artifact import ContributionArtifact
 from repomate_core.contracts.evidence import EvidenceRecord
 from repomate_core.contracts.enums import RunStatus
+from repomate_core.contracts.insights import Orientation, TestGuidance
 from repomate_core.contracts.input import GitHubIssue, RepositoryInput
 from repomate_core.contracts.plan import ContributionPlan
 from repomate_core.contracts.run_event import RunError, RunEvent
@@ -29,6 +30,8 @@ class RunRecord(BaseModel):
     snapshot: RepositorySnapshot | None = None
     issue: GitHubIssue | None = None
     evidence: list[EvidenceRecord] = []
+    orientation: Orientation | None = None
+    test_guidance: TestGuidance | None = None
     plan: ContributionPlan | None = None
     artifact: ContributionArtifact | None = None
     receipt: VerificationReceipt | None = None

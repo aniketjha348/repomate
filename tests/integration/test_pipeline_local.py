@@ -37,6 +37,12 @@ def test_docs_task_completes_end_to_end(tmp_path, local_repo, docs_task_input):
     assert record.status is RunStatus.COMPLETED
     assert record.planner == "heuristic-v1"
     assert record.snapshot.commit_sha and record.snapshot.license.spdx_id == "MIT"
+    # PS04 background insights: newcomer orientation + which tests to run.
+    assert record.orientation is not None
+    assert "fixture-project" in record.orientation.summary
+    assert record.test_guidance is not None
+    assert record.test_guidance.run_command == "python -m pytest -q"
+    assert any(t.path == "tests/test_core.py" for t in record.test_guidance.relevant_tests)
     assert record.evidence, "documentation runs must cite evidence"
     assert record.artifact is not None
     assert record.artifact.affected_paths == ["README.md"]

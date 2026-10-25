@@ -9,10 +9,12 @@ import { buttonClasses } from "@/components/ui/button";
 import { ErrorBanner } from "./error-banner";
 import { EventsFeed } from "./events-feed";
 import { EvidencePanel } from "./evidence-panel";
+import { OrientationCard } from "./orientation-card";
 import { PlanPanel } from "./plan-panel";
 import { RunHeader } from "./run-header";
 import { Section } from "./section";
 import { SnapshotCard } from "./snapshot-card";
+import { TestGuidancePanel } from "./test-guidance";
 import { DiffViewer } from "./diff-viewer";
 import { VerificationPanel } from "./verification-panel";
 
@@ -90,6 +92,12 @@ export function RunWorkspace({ runId }: { runId: string }) {
       <RunHeader record={record} />
       {record.error ? <ErrorBanner error={record.error} /> : null}
       {record.snapshot ? <SnapshotCard snapshot={record.snapshot} /> : null}
+      {record.orientation ? (
+        <OrientationCard orientation={record.orientation} />
+      ) : null}
+      {record.test_guidance ? (
+        <TestGuidancePanel guidance={record.test_guidance} />
+      ) : null}
       <EventsFeed events={events} defaultOpen={active} />
       <Section title={`Evidence (${record.evidence.length})`}>
         <EvidencePanel evidence={record.evidence} />

@@ -1,5 +1,29 @@
 # Product Requirements
 
+## Problem background (PS04)
+
+New contributors often struggle to understand an unfamiliar repository,
+connect an issue to relevant files, and determine which tests to run.
+Maintainers also face repetitive questions and low-quality proposed
+fixes that are difficult to review. An evidence-backed assistant can
+reduce this friction without claiming that automated code suggestions
+have already been verified.
+
+RepoMate addresses each half of that background explicitly:
+
+- **Understanding an unfamiliar repository** — every run carries a
+  snapshot-derived *repository orientation* (summary, key paths with
+  reasons, languages, entry points), all traceable to the pinned commit.
+- **Connecting an issue to relevant files** — the evidence browser cites
+  paths, line ranges and snippets with per-record rationale.
+- **Determining which tests to run** — *test guidance* lists the
+  evidence-matched test files, a focused command to start with, and the
+  authoritative full-suite command (which the verification stage actually
+  executed).
+- **Reviewable, honest suggestions** — patches are anchored to verbatim
+  snapshot text, verified against the pinned commit, and executed in the
+  sandbox; planner identity and every NOT_RUN reason are disclosed.
+
 ## Product
 
 RepoMate is an evidence-first open-source contribution agent. A developer

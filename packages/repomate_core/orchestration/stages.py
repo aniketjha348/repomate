@@ -24,6 +24,7 @@ from repomate_core.contracts import (
     VerificationReceipt,
 )
 from repomate_core.evidence.collector import collect_evidence
+from repomate_core.insights import build_orientation, build_test_guidance
 from repomate_core.orchestration.context import RunContext
 from repomate_core.orchestration.errors import PipelineError
 from repomate_core.orchestration.pipeline_config import PipelineConfig
@@ -81,6 +82,11 @@ def stage_retrieve_evidence(
         f"Collected {len(evidence)} evidence record(s)"
         + ("" if evidence else " — none matched the task"),
     )
+
+    # Newcomer orientation + which-tests-to-run guidance (PS04 background):
+    # deterministic, snapshot/evidence-derived, never overstated.
+    ctx.record.orientation = build_orientation(workspace, ctx.record.snapshot, evidence)
+    ctx.record.test_guidance = build_test_guidance(workspace, ctx.record.snapshot, evidence)
     return task_text, evidence
 
 

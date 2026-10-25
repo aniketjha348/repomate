@@ -118,6 +118,31 @@ export interface GitHubIssue {
   author: string;
 }
 
+export interface KeyPath {
+  path: string;
+  role: string;
+}
+
+export interface Orientation {
+  summary: string;
+  key_paths: KeyPath[];
+  languages: Record<string, number>;
+  entry_points: KeyPath[];
+  generated_by: string;
+}
+
+export interface RelevantTest {
+  path: string;
+  reason: string;
+}
+
+export interface TestGuidance {
+  run_command?: string | null;
+  focused_command?: string | null;
+  relevant_tests: RelevantTest[];
+  note: string;
+}
+
 export interface RunRecord {
   run_id: string;
   status: RunStatus;
@@ -132,6 +157,8 @@ export interface RunRecord {
   snapshot?: Snapshot | null;
   issue?: GitHubIssue | null;
   evidence: Evidence[];
+  orientation?: Orientation | null;
+  test_guidance?: TestGuidance | null;
   plan?: Plan | null;
   artifact?: Artifact | null;
   receipt?: Receipt | null;
