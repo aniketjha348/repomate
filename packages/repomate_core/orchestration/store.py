@@ -118,3 +118,32 @@ class RunStore:
 
     def dump_json(self, value) -> str:
         return json.dumps(value, indent=2, default=str)
+
+    # -- uniform surface shared with SqlRunStore --------------------------------
+
+    def read_artifact(self, run_id: str) -> Optional[str]:
+        path = self.artifact_path(run_id)
+        if path is None:
+            return None
+        return path.read_text(encoding="utf-8")
+
+    def status_counts(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for run_id in self.list_run_ids():
+            record = self.load_run(run_id)
+            if record:
+                counts[record.status.value] = counts.get(record.status.value, 0) + 1
+        return counts
+
+    def sweep_stale_workspaces(self, *, max_age_hours: float = 24.0) -> list[str]:
+        """Delete workspace directories of terminal runs older than the cap."""
+        import time
+
+        removed: list[str] = []
+        cutoff = time.time() - max_age_hours * 3600
+        for run_id in self.list_run_ids():
+            workspace = self.workspace_dir(run_id) / "workspace"
+            if workspace.exists() and workspace.stat().st_mtime < cutoff:
+                self.cleanup_workspace(run_id)
+                removed.append(run_id)
+        return removed

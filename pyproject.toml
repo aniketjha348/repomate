@@ -19,10 +19,14 @@ api = [
     "uvicorn>=0.29",
     "pytest>=8", # the verification sandbox executes repo suites via pytest
 ]
+worker = [
+    "celery>=5.4",
+]
 dev = [
     "pytest>=8",
     "fastapi>=0.110",
     "httpx>=0.27",
+    "celery>=5.4",
 ]
 
 [tool.setuptools.packages.find]

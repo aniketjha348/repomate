@@ -1,5 +1,5 @@
 """API route modules."""
 
-from services.api.routes import artifacts, events, health, runs
+from services.api.routes import artifacts, events, health, metrics, runs
 
-__all__ = ["artifacts", "events", "health", "runs"]
+__all__ = ["artifacts", "events", "health", "metrics", "runs"]

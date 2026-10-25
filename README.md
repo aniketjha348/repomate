@@ -20,7 +20,7 @@ first; enterprise capabilities exist to make that workflow reliable and secure.
 | 2 | Working Python core + vertical slice (docs task → real diff → receipt) | done |
 | 3 | Web experience (Next.js workspace) | in progress (frontend delivered in this push) |
 | 4 | Verification sandbox (process backend: wall-time/CPU/memory limits, env scrubbing) | done |
-| 5 | Celery/Redis workers, PostgreSQL, monitoring | not started |
+| 5 | Durable execution: SQL run store (SQLite→PostgreSQL), Celery worker + Redis, metrics, stale-workspace sweeps | done (in-process mode remains the default) |
 | 6 | PS04 evaluation matrix | pending slice hardening |
 
 The AI planner is provider-independent. With `VYCE_API_KEY` set, plans come

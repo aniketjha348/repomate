@@ -27,4 +27,7 @@ class PipelineConfig:
     sandbox_enabled: bool = field(
         default_factory=lambda: os.environ.get("REPOMATE_SANDBOX_ENABLED", "1") == "1"
     )
+    database_url: Optional[str] = field(
+        default_factory=lambda: os.environ.get("REPOMATE_DATABASE_URL") or None
+    )
     planner: Optional[Planner] = None  # None => resolve from env/model config

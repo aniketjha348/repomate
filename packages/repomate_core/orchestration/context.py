@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 from repomate_core.contracts import (
     RepositoryInput,
@@ -23,7 +23,13 @@ from repomate_core.contracts import (
 )
 from repomate_core.orchestration.errors import RunCancelled
 from repomate_core.orchestration.pipeline_config import PipelineConfig
-from repomate_core.orchestration.store import RunStore
+from repomate_core.orchestration.store_factory import build_store
+
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    from repomate_core.orchestration.store import RunStore
+    from repomate_core.orchestration.store_sql import SqlRunStore
+
+    StoreLike = "RunStore | SqlRunStore"
 
 EventCallback = Callable[[RunEvent], None]
 
@@ -31,7 +37,7 @@ EventCallback = Callable[[RunEvent], None]
 @dataclass
 class RunContext:
     record: RunRecord
-    store: RunStore
+    store: "StoreLike"
     config: PipelineConfig
     started: float = field(default_factory=time.monotonic)
     event_cb: Optional[EventCallback] = None
@@ -50,7 +56,7 @@ class RunContext:
             input=run_input,
             status=RunStatus.RUNNING,
         )
-        store = RunStore(config.runs_root)
+        store = build_store(config.runs_root, config.database_url)
         store.save_run(record)
         return cls(record=record, store=store, config=config, event_cb=event_cb)
 

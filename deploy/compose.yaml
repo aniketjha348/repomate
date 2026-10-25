@@ -1,10 +1,11 @@
-# RepoMate local deployment.
+# RepoMate local deployment (Phase 5 topology).
 #
-# Phase 1-2 scope: only the API runs for real. The infrastructure services
-# below are intentionally commented out — they belong to Phase 5 (durable
-# jobs via Celery/Redis, PostgreSQL as the system of record) and are kept
-# here visible so the target topology is explicit. Nothing is started that
-# the code does not actually use yet.
+# - api:      FastAPI service; dispatches runs to the worker when
+#             REPOMATE_EXECUTION=celery, otherwise executes in-process
+# - worker:   Celery worker running the pipeline + verification sandbox
+# - redis:    Celery broker
+# - postgres: system of record when REPOMATE_DATABASE_URL points here
+#             (omit it to use the built-in SQLite/file store instead)
 
 services:
   api:
@@ -14,32 +15,49 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # Secrets are injected by the operator (e.g. via a secrets manager),
-      # never committed to the repository.
       VYCE_API_KEY: ${VYCE_API_KEY:-}
       VYCE_BASE_URL: ${VYCE_BASE_URL:-https://api.vyce.ai/v1}
       VYCE_MODEL: ${VYCE_MODEL:-deepseek-chat}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
       REPOMATE_MAX_RUN_SECONDS: ${REPOMATE_MAX_RUN_SECONDS:-900}
+      REPOMATE_EXECUTION: ${REPOMATE_EXECUTION:-inproc}
+      REDIS_URL: redis://redis:6379/0
+      REPOMATE_DATABASE_URL: ${REPOMATE_DATABASE_URL:-}
     volumes:
       - repomate-runs:/var/lib/repomate
+    depends_on:
+      - redis
 
-  # ---- Phase 5 (durable execution), not yet wired ---------------------
-  # redis:
-  #   image: redis:7-alpine
-  # postgres:
-  #   image: postgres:16-alpine
-  #   environment:
-  #     POSTGRES_DB: repomate
-  #     POSTGRES_USER: repomate
-  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
-  #   volumes:
-  #     - repomate-db:/var/lib/postgresql/data
-  # worker:
-  #   build:
-  #     context: ..
-  #     dockerfile: deploy/Dockerfile.worker   # Phase 4/5
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.worker
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      REPOMATE_DATABASE_URL: ${REPOMATE_DATABASE_URL:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      VYCE_API_KEY: ${VYCE_API_KEY:-}
+      REPOMATE_WORKER_CONCURRENCY: ${REPOMATE_WORKER_CONCURRENCY:-2}
+    volumes:
+      - repomate-runs:/var/lib/repomate
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: repomate
+      POSTGRES_USER: repomate
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - repomate-db:/var/lib/postgresql/data
+    # Point services at PostgreSQL with:
+    #   REPOMATE_DATABASE_URL=postgresql://repomate:${POSTGRES_PASSWORD}@postgres:5432/repomate
 
 volumes:
   repomate-runs:
-  # repomate-db:
+  repomate-db:

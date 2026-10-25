@@ -74,10 +74,10 @@ carries `planned_by: heuristic-v1`, surfaced in the API and receipts.
 
 | Concern | Today (Phase 1–2) | Target (Phase 4–5) |
 |---|---|---|
-| Run execution | in-process worker thread | Celery workers via Redis |
+| Run execution | in-process worker thread (default) or Celery via Redis () | Celery workers via Redis |
 | System of record | JSON files under `var/runs/` | PostgreSQL |
 | Check execution | `git apply --check` + policy checks only | disposable sandbox (CPU/RAM/disk/time-limited) with real test suites |
-| Cancellation | cooperative marker file | task revocation + sandbox kill |
+| Cancellation | cooperative marker (file or DB row, seen cross-process) | task revocation + sandbox kill |
 | Artifacts | local disk | object storage |
 
 The seams (`RunStore`, `PipelineConfig`, `VerificationCheck`) were chosen so

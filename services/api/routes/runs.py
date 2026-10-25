@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-
 from fastapi import APIRouter, BackgroundTasks
 
 from repomate_core.contracts import (
@@ -14,8 +12,7 @@ from repomate_core.contracts import (
     TaskSource,
     new_run_id,
 )
-from repomate_core.orchestration.pipeline import run_pipeline
-from repomate_core.orchestration.store import RunStore
+from repomate_core.orchestration.store_factory import build_store
 from repomate_core.safety.url_guard import UnsafeInputError, parse_github_url
 from services.api.config import Settings, read_settings
 from services.api.errors import api_error
@@ -30,14 +27,13 @@ async def create_run(body: CreateRunRequest, background: BackgroundTasks) -> Run
     _validate_urls(run_input)
 
     settings = read_settings()
-    store = RunStore(settings.runs_root)
+    store = build_store(settings.runs_root, settings.database_url)
     run_id = new_run_id()
     store.save_run(RunRecord(run_id=run_id, input=run_input, status=RunStatus.PENDING))
 
-    background.add_task(
-        asyncio.to_thread, run_pipeline, run_input,
-        config=_pipeline_config(settings), run_id=run_id,
-    )
+    from services.api.dispatch import dispatch_run
+
+    dispatch_run(background, run_input, _pipeline_config(settings), run_id)
 
     base = f"/api/runs/{run_id}"
     return RunCreatedResponse(
@@ -49,7 +45,7 @@ async def create_run(body: CreateRunRequest, background: BackgroundTasks) -> Run
 
 @router.get("")
 def list_runs() -> list[dict]:
-    store = RunStore(read_settings().runs_root)
+    store = build_store(read_settings().runs_root, read_settings().database_url)
     summaries = []
     for run_id in store.list_run_ids()[-50:]:
         record = store.load_run(run_id)
@@ -67,7 +63,7 @@ def list_runs() -> list[dict]:
 
 @router.get("/{run_id}")
 def get_run(run_id: str) -> RunRecord:
-    record = RunStore(read_settings().runs_root).load_run(run_id)
+    record = build_store(read_settings().runs_root, read_settings().database_url).load_run(run_id)
     if record is None:
         raise api_error(404, ErrorCode.INVALID_INPUT, f"unknown run: {run_id}")
     return record
@@ -75,7 +71,7 @@ def get_run(run_id: str) -> RunRecord:
 
 @router.post("/{run_id}/cancel", status_code=202, response_model=CancelledResponse)
 def cancel_run(run_id: str) -> CancelledResponse:
-    store = RunStore(read_settings().runs_root)
+    store = build_store(read_settings().runs_root, read_settings().database_url)
     if store.load_run(run_id) is None:
         raise api_error(404, ErrorCode.INVALID_INPUT, f"unknown run: {run_id}")
     if not store.cancel_requested(run_id):
@@ -115,7 +111,9 @@ def _pipeline_config(settings: Settings):
 
     return PipelineConfig(
         runs_root=settings.runs_root,
+        database_url=settings.database_url,
         github_token=settings.github_token,
         keep_workspace=settings.keep_workspace,
         max_run_seconds=settings.max_run_seconds,
+        sandbox_enabled=settings.sandbox_enabled,
     )

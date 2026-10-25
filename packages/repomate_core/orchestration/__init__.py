@@ -9,6 +9,8 @@ from repomate_core.orchestration.pipeline import (
 )
 from repomate_core.orchestration.pipeline_config import PipelineConfig
 from repomate_core.orchestration.store import RunStore
+from repomate_core.orchestration.store_factory import build_store
+from repomate_core.orchestration.store_sql import SqlRunStore
 
 __all__ = [
     "EventCallback",
@@ -17,6 +19,8 @@ __all__ = [
     "RunCancelled",
     "RunContext",
     "RunStore",
+    "SqlRunStore",
+    "build_store",
     "github_workspace_factory",
     "resolve_planner",
     "run_pipeline",
