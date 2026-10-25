@@ -19,9 +19,11 @@ services:
       - key: VYCE_API_KEY
         sync: false
       - key: VYCE_BASE_URL
-        value: https://api.vyce.ai/v1
+        value: https://vyceai.com/v1
       - key: VYCE_MODEL
-        value: deepseek-chat
+        value: deepseek-v4.1
+      - key: VYCE_TIMEOUT_SECONDS
+        value: "240"
       # Optional PAT. Recommended: Render egress IPs are shared and share
       # GitHub's 60 req/h unauthenticated REST budget.
       - key: GITHUB_TOKEN

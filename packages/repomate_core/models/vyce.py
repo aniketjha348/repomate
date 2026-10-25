@@ -16,15 +16,29 @@ import httpx
 
 from repomate_core.models.base import ModelError, ModelResult
 
-DEFAULT_BASE_URL = "https://api.vyce.ai/v1"
-DEFAULT_MODEL = "deepseek-chat"
+DEFAULT_BASE_URL = "https://vyceai.com/v1"
+DEFAULT_MODEL = "deepseek-v4.1"
 _MAX_RETRIES = 2
 
 
+def model_timeout_from_env(default: float = 240.0) -> float:
+    """Wall-time budget per gateway call. Evidence-heavy planner prompts on
+    reasoning models can legitimately exceed a minute, so the default is
+    generous and tunable via ``VYCE_TIMEOUT_SECONDS``."""
+    raw = os.environ.get("VYCE_TIMEOUT_SECONDS", "").strip()
+    try:
+        return float(raw) if raw else default
+    except ValueError:
+        return default
+
+
 class VyceProvider:
-    """The exact endpoint format and model IDs are to be verified at
-    integration time (see docs/architecture.md); configuration is entirely
-    environment-driven so the swap is a config change, not a code change.
+    """OpenAI-compatible adapter for the Vyce AI gateway.
+
+    Endpoint verified live against ``https://vyceai.com/v1`` (models list
+    + chat completions); configuration stays environment-driven
+    (``VYCE_BASE_URL`` / ``VYCE_MODEL``) so switching models is a config
+    change, not a code change.
     """
 
     def __init__(
@@ -33,6 +47,7 @@ class VyceProvider:
         *,
         base_url: Optional[str] = None,
         model: Optional[str] = None,
+        client: Optional[httpx.Client] = None,
     ) -> None:
         if not api_key:
             raise ModelError("VyceProvider requires an API key")
@@ -41,6 +56,7 @@ class VyceProvider:
         self.model_id = model or os.environ.get("VYCE_MODEL") or DEFAULT_MODEL
         if not self.base_url.startswith("https://"):
             raise ModelError("VYCE_BASE_URL must be https")
+        self._injected_client = client
 
     @property
     def name(self) -> str:
@@ -69,7 +85,11 @@ class VyceProvider:
         }
 
         last_error = ""
-        with httpx.Client(timeout=timeout, follow_redirects=False) as client:
+        owns_client = self._injected_client is None
+        client = self._injected_client or httpx.Client(
+            timeout=timeout, follow_redirects=False
+        )
+        try:
             for attempt in range(_MAX_RETRIES + 1):
                 result = _post_once(client, self.base_url, payload, headers)
                 if isinstance(result, ModelResult):
@@ -79,7 +99,10 @@ class VyceProvider:
                     time.sleep(min(2.0 * (attempt + 1), 5.0))
                     continue
                 raise ModelError(result.error)
-        raise ModelError(f"model gateway error after retries: {last_error}")
+            raise ModelError(f"model gateway error after retries: {last_error}")
+        finally:
+            if owns_client:
+                client.close()
 
 
 class _Attempt:

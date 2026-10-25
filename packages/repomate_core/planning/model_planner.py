@@ -12,6 +12,7 @@ from repomate_core.contracts import (
     TaskType,
 )
 from repomate_core.models import ModelError, ModelProvider, parse_model_json
+from repomate_core.models.vyce import model_timeout_from_env
 
 _SYSTEM_PROMPT = (
     "You are RepoMate's contribution planner. You plan a small, bounded "
@@ -42,21 +43,26 @@ class ModelPlanner:
         raw = self._provider.complete(
             system=_SYSTEM_PROMPT,
             user=json.dumps(_build_context(task_text, snapshot, evidence), indent=2),
-            max_output_tokens=2048,
+            max_output_tokens=4096,
+            timeout=model_timeout_from_env(),
         )
         data = parse_model_json(raw.text)
+        need_more_info = bool(data.get("need_more_info", False))
+        changes = _coerce_changes(data.get("planned_changes") or [])
+        if not changes and not need_more_info:
+            raise ModelError(
+                "model plan did not match the contract: no usable planned_changes "
+                "(entries must be objects with at least a path)"
+            )
         try:
             plan = ContributionPlan(
                 task_type=TaskType(data.get("task_type", "UNKNOWN")),
                 summary=str(data.get("summary", ""))[:1000],
-                planned_changes=[
-                    PlannedChange(**change)
-                    for change in (data.get("planned_changes") or [])[:5]
-                ],
+                planned_changes=changes,
                 acceptance_criteria=[str(c) for c in (data.get("acceptance_criteria") or [])[:8]],
                 evidence_ids=[str(i) for i in (data.get("evidence_ids") or [])[:8]],
                 limitations=[str(l) for l in (data.get("limitations") or [])[:8]],
-                need_more_info=bool(data.get("need_more_info", False)),
+                need_more_info=need_more_info,
                 questions=[str(q) for q in (data.get("questions") or [])[:5]],
                 planned_by=self.name,
             )
@@ -66,6 +72,34 @@ class ModelPlanner:
         if not plan.summary:
             raise ModelError("model plan had an empty summary")
         return plan
+
+
+def _coerce_changes(raw_entries: list) -> list[PlannedChange]:
+    """Keep structurally valid entries; skip the rest.
+
+    Some gateway models emit ``planned_changes`` as plain strings or
+    partial objects (observed live with deepseek-v4-flash). Partial
+    compliance is used rather than discarded, and zero usable entries is
+    surfaced as a typed ModelError by the caller.
+    """
+    changes: list[PlannedChange] = []
+    for entry in raw_entries:
+        if not isinstance(entry, dict):
+            continue
+        path = entry.get("path")
+        if not path or not isinstance(path, str):
+            continue
+        change_type = entry.get("change_type", "MODIFY")
+        if change_type not in ("MODIFY", "CREATE"):
+            change_type = "MODIFY"
+        changes.append(
+            PlannedChange(
+                path=path,
+                change_type=change_type,
+                rationale=str(entry.get("rationale", ""))[:500],
+            )
+        )
+    return changes[:5]
 
 
 def _build_context(
