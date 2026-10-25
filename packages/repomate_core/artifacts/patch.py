@@ -50,6 +50,18 @@ DOCS_PATCH_POLICY = PatchPolicy(
     ],
 )
 
+# Code fixes may touch source files, but never CI, secrets-like files,
+# lockfiles or vendored trees.
+CODE_FIX_PATCH_POLICY = PatchPolicy(
+    artifact_kind=ArtifactKind.PATCH_DIFF,
+    allow=["**"],
+    deny=[
+        ".github/**", ".git*", "**/.git*", "**/*.lock", "**/package-lock.json",
+        "**/.env*", "**/secrets/**", "**/id_rsa*", "**/*.pem", "**/*.key",
+        "node_modules/**", "vendor/**",
+    ],
+)
+
 
 def _matches(posix_path: str, pattern: str) -> bool:
     if pattern.endswith("/**"):

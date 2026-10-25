@@ -117,6 +117,10 @@ class RepoWorkspace:
         result = run_git("apply", "--check", "-", cwd=self.root, check=False, input_text=patch)
         return result.returncode == 0, result.returncode, result.stderr.strip()
 
+    def apply(self, patch: str) -> None:
+        """Apply a patch to the working tree (assumes it was checked)."""
+        run_git("apply", "-", cwd=self.root, input_text=patch)
+
     def reset_hard(self) -> None:
         run_git("reset", "--hard", "HEAD", cwd=self.root)
         # Remove untracked leftovers so the snapshot is truly clean.

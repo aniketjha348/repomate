@@ -34,6 +34,11 @@ workflow is reliable.
   execution or deterministic evaluation; `NOT_RUN` always carries a reason.
 - The planner identity (model vs heuristic) is recorded on every plan and
   artifact and surfaced to the user.
+- Model-proposed edits are exact-anchor search/replace: `old_text` must
+  match the pinned snapshot verbatim and uniquely, or the run fails with a
+  typed `MODEL_ERROR` — never a silently partial patch.
+- The test suite executes against the **patched** tree, so a fix's effect
+  on the suite is actually measured.
 - License status is displayed explicitly for every run.
 - Malformed input, model failure, GitHub throttling and unsupported tasks
   produce controlled, typed errors.

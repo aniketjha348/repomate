@@ -18,7 +18,7 @@ first; enterprise capabilities exist to make that workflow reliable and secure.
 |---|---|---|
 | 1 | Contracts + architecture | done |
 | 2 | Working Python core + vertical slice (docs task → real diff → receipt) | done |
-| 3 | Web experience (Next.js workspace) | in progress (frontend delivered in this push) |
+| 3 | Web experience (Next.js workspace) | done |
 | 4 | Verification sandbox (process backend: wall-time/CPU/memory limits, env scrubbing) | done |
 | 5 | Durable execution: SQL run store (SQLite→PostgreSQL), Celery worker + Redis, metrics, stale-workspace sweeps | done (in-process mode remains the default) |
 | 6 | PS04 evaluation matrix | done — `scripts/evaluate.py`, 10/10 scenarios in docs/evaluation-results.md |

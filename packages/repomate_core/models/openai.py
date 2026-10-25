@@ -83,6 +83,7 @@ class OpenAIProvider:
         user: str,
         max_output_tokens: int = 2048,
         timeout: float = 60.0,
+        json_mode: bool = False,
     ) -> ModelResult:
         payload = {
             "model": self.model_id,
@@ -93,6 +94,10 @@ class OpenAIProvider:
             "temperature": 0.2,
             "max_tokens": max_output_tokens,
         }
+        if json_mode:
+            # Ask the gateway to enforce a JSON object; models writing
+            # markdown bodies otherwise break their own JSON strings.
+            payload["response_format"] = {"type": "json_object"}
         headers = {
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
@@ -112,6 +117,10 @@ class OpenAIProvider:
                     last_error = result.error
                     time.sleep(min(2.0 * (attempt + 1), 5.0))
                     continue
+                if result.drop_response_format and "response_format" in payload:
+                    # Gateway rejects JSON mode — fall back to prompting only.
+                    payload.pop("response_format")
+                    continue
                 raise ModelError(result.error)
             raise ModelError(f"model gateway error after retries: {last_error}")
         finally:
@@ -127,9 +136,10 @@ VyceProvider = OpenAIProvider
 class _Attempt:
     """Internal outcome of one HTTP attempt."""
 
-    def __init__(self, error: str, *, retryable: bool) -> None:
+    def __init__(self, error: str, *, retryable: bool, drop_response_format: bool = False) -> None:
         self.error = error
         self.retryable = retryable
+        self.drop_response_format = drop_response_format
 
 
 def _post_once(client: httpx.Client, base_url: str, payload: dict, headers: dict):
@@ -155,10 +165,17 @@ def _post_once(client: httpx.Client, base_url: str, payload: dict, headers: dict
             model=payload["model"],
             usage=body.get("usage"),
         )
-    retryable = response.status_code in (429, 500, 502, 503, 504)
+    # 524 is Cloudflare's "origin timeout" — the gateway is still working
+    # but the edge gave up; a retry often lands on a faster response.
+    retryable = response.status_code in (429, 500, 502, 503, 504, 524)
+    body_snippet = response.text[:300]
+    drop_json_mode = (
+        response.status_code == 400 and "response_format" in body_snippet
+    )
     return _Attempt(
-        f"model gateway error (status {response.status_code}): {response.text[:300]}",
+        f"model gateway error (status {response.status_code}): {body_snippet}",
         retryable=retryable,
+        drop_response_format=drop_json_mode,
     )
 
 

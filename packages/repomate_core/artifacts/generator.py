@@ -44,7 +44,16 @@ def generate_docs_artifact(
         # Refuse duplicate sections — idempotence guard for re-runs.
         raise ValueError(f"section {title!r} already exists in {change.path}")
 
-    section = _build_section(title, task_text, evidence, is_rst=change.path.endswith(".rst"))
+    if plan.content_draft:
+        # Model-written content, used verbatim (bounded and fence-stripped
+        # by the planner). When the draft opens with its own markdown
+        # heading it becomes the section heading; otherwise RepoMate's
+        # title is prepended for consistent structure.
+        draft = plan.content_draft.strip()
+        section = draft if draft.startswith("#") else f"## {title}\n\n{draft}\n"
+        section = "\n".join(section.splitlines()[:_MAX_SECTION_LINES])
+    else:
+        section = _build_section(title, task_text, evidence, is_rst=change.path.endswith(".rst"))
     if change.change_type == "MODIFY":
         ws.write_text(change.path, original.rstrip() + "\n\n" + section + "\n")
     else:

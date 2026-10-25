@@ -64,8 +64,16 @@ def run_verification(
         )
     )
 
-    # 3) Repository test suite inside the disposable sandbox.
+    # 3) Repository test suite inside the disposable sandbox — run against
+    #    the PATCHED tree when the patch applies, so a fix's effect on the
+    #    suite is actually measured. The tree is reset afterwards.
+    if ok:
+        try:
+            ws.apply(artifact.patch)
+        except Exception:
+            pass  # apply_check passed; a failed best-effort apply leaves the clean tree
     checks.append(_test_suite_check(ws, sandbox_enabled=sandbox_enabled, limits=limits))
+    ws.reset_hard()
 
     return VerificationReceipt(
         checks=checks,

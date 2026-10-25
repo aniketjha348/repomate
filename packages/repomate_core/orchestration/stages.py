@@ -110,13 +110,28 @@ def stage_generate_artifact(
     task_text: str,
     evidence: list[EvidenceRecord],
 ) -> ContributionArtifact:
-    ctx.emit(StageName.GENERATE_ARTIFACT, "STARTED", "Generating documentation artifact")
-    if plan.task_type.value != "DOCUMENTATION":
+    ctx.emit(StageName.GENERATE_ARTIFACT, "STARTED", "Generating contribution artifact")
+    if plan.task_type.value == "DOCUMENTATION":
+        artifact = generate_docs_artifact(workspace, plan, task_text, evidence)
+    elif plan.proposed_edits:
+        # Model-proposed search/replace edits: bug fixes, tests, small
+        # features — anything expressible as anchored edits.
+        from repomate_core.artifacts.codefix import EditAnchorError, apply_proposed_edits
+
+        try:
+            artifact = apply_proposed_edits(workspace, plan)
+        except EditAnchorError as exc:
+            raise PipelineError(
+                ErrorCode.MODEL,
+                "model edit did not anchor to the pinned snapshot",
+                detail=str(exc),
+            ) from exc
+    else:
         raise PipelineError(
             ErrorCode.UNSUPPORTED_INPUT,
-            f"artifact generation for {plan.task_type.value} tasks is not enabled in the MVP",
+            f"artifact generation for {plan.task_type.value} tasks requires "
+            "model-proposed edits; the heuristic planner supports documentation only",
         )
-    artifact = generate_docs_artifact(workspace, plan, task_text, evidence)
     ctx.record.artifact = artifact
     ctx.emit(
         StageName.GENERATE_ARTIFACT,
@@ -137,11 +152,19 @@ def stage_verify(
     artifact — so the run completes and the receipt carries the FAILED
     check with its captured output.
     """
-    from repomate_core.artifacts.patch import DOCS_PATCH_POLICY
+    from repomate_core.artifacts.patch import (
+        CODE_FIX_PATCH_POLICY,
+        DOCS_PATCH_POLICY,
+    )
 
     ctx.emit(StageName.VERIFY, "STARTED", "Running verification checks")
+    policy = (
+        DOCS_PATCH_POLICY
+        if artifact.kind.value == "DOCS_DIFF"
+        else CODE_FIX_PATCH_POLICY
+    )
     receipt = run_verification(
-        workspace, artifact, DOCS_PATCH_POLICY, sandbox_enabled=ctx.config.sandbox_enabled
+        workspace, artifact, policy, sandbox_enabled=ctx.config.sandbox_enabled
     )
     ctx.record.receipt = receipt
     failed = [

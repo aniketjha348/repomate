@@ -21,7 +21,7 @@ from repomate_core.contracts.enums import (
     VerificationStatus,
 )
 from repomate_core.contracts.input import GitHubIssue, RepositoryInput
-from repomate_core.contracts.plan import ContributionPlan, PlannedChange
+from repomate_core.contracts.plan import ContributionPlan, PlannedChange, ProposedEdit
 from repomate_core.contracts.run_event import RunError, RunEvent
 from repomate_core.contracts.run_record import RunRecord
 from repomate_core.contracts.snapshot import (
@@ -43,6 +43,7 @@ __all__ = [
     "LicenseInfo",
     "LicenseStatus",
     "PlannedChange",
+    "ProposedEdit",
     "RepositoryInput",
     "RepositorySnapshot",
     "RunError",
