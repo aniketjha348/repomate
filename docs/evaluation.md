@@ -31,10 +31,12 @@ Each row is one recorded run; the harness is `scripts/run_task.py`
 | 9 | Rate-limit window exhausted | `RATE_LIMITED` (typed, not a crash) |
 | 10 | Model gateway failure / timeout | `MODEL_ERROR` |
 
-Current state: rows 1–3 and 5–8 are covered by automated tests
-(`tests/integration`, `tests/unit`); rows 1–2 additionally by the opt-in
-live e2e (`pytest -m network`). Rows 4, 9, 10 gain purpose-built harnesses
-as the slice hardens.
+Current state: every row is automated. `scripts/evaluate.py` runs the
+deterministic matrix (including simulated rate-limit and model failures)
+and writes docs/evaluation-results.md — all scenarios passing as of the
+latest run. Rows 1–2 are additionally covered by the opt-in live e2e
+(`pytest -m network tests/e2e/test_live_github.py`) and by the recorded
+browser walkthrough of the full stack.
 
 ## Honesty scoring
 
