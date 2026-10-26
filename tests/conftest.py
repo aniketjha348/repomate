@@ -115,6 +115,12 @@ def _reset_fair_use_state():
 
 
 @pytest.fixture
+def git_cli():
+    """The shared git runner, so tests never import each other's helpers."""
+    return _git
+
+
+@pytest.fixture
 def local_repo(tmp_path: Path) -> Path:
     repo = tmp_path / "fixture-project"
     (repo / "docs").mkdir(parents=True)

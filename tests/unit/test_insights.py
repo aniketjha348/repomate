@@ -51,15 +51,13 @@ def test_test_guidance_names_relevant_tests_and_commands(local_workspace):
     assert "receipt" in guidance.note
 
 
-def test_test_guidance_honest_without_toolchain(tmp_path):
-    from tests.unit.test_inspect import _git  # reuse helper
-
+def test_test_guidance_honest_without_toolchain(tmp_path, git_cli):
     repo = tmp_path / "bare"
     repo.mkdir()
     (repo / "readme.md").write_text("# bare\n", encoding="utf-8")
-    _git(repo, "init", "-b", "main")
-    _git(repo, "add", "-A")
-    _git(repo, "commit", "-m", "init")
+    git_cli(repo, "init", "-b", "main")
+    git_cli(repo, "add", "-A")
+    git_cli(repo, "commit", "-m", "init")
 
     from repomate_core.repository.workspace import RepoWorkspace
 
