@@ -1,7 +1,9 @@
 # RepoMate on AWS ECS Fargate — autoscaling + self-healing.
 #
 # Topology:
-#   ALB (health: GET /api/health) -> ECS "api" service (Fargate, 0.5 vCPU/1GB)
+#   ALB -> "/api/*" to the ECS "api" service (Fargate, 0.5 vCPU/1GB),
+#         everything else to the ECS "web" service (Next.js, when image_web is
+#         set) — one origin, so the browser never crosses schemes.
 #   ECS "worker" service (Celery)  <- ElastiCache Redis (provisioned below)
 #   API + worker share run storage on EFS
 #   Secrets (OLLAMA_API_KEY, GITHUB_TOKEN) via AWS Secrets Manager — never in tfvars
@@ -585,6 +587,77 @@ resource "aws_ecs_service" "worker" {
   ]
 }
 
+# ---- Frontend service (Next.js server; talks to the API through the ALB) ----
+#
+# NEXT_PUBLIC_API_URL is empty on purpose: the bundle then uses relative /api/*
+# paths, which the same ALB resolves, so there is no cross-origin call to make
+# and no mixed-content risk.
+
+resource "aws_ecs_task_definition" "web" {
+  count                    = local.web_enabled ? 1 : 0
+  family                   = "${var.project}-web"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 512
+  memory                   = 1024
+  execution_role_arn       = aws_iam_role.task_execution.arn
+
+  container_definitions = jsonencode([{
+    name         = "web"
+    image        = var.image_web
+    essential    = true
+    portMappings = [{ containerPort = 3000, protocol = "tcp" }]
+    environment = [
+      { name = "NEXT_PUBLIC_API_URL", value = "" },
+      { name = "PORT", value = "3000" },
+    ]
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        awslogs-group         = aws_cloudwatch_log_group.main.name
+        awslogs-region        = var.aws_region
+        awslogs-stream-prefix = "web"
+      }
+    }
+  }])
+}
+
+resource "aws_ecs_service" "web" {
+  count           = local.web_enabled ? 1 : 0
+  name            = "${var.project}-web"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.web[0].arn
+  desired_count   = var.web_desired_count
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = data.aws_subnets.public.ids
+    security_groups  = [aws_security_group.services.id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.web[0].arn
+    container_name   = "web"
+    container_port   = 3000
+  }
+
+  health_check_grace_period_seconds = 30
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
+  deployment_minimum_healthy_percent = 100
+  deployment_maximum_percent         = 200
+
+  # The /api/* rule has to exist before the web service claims the listener
+  # default action, otherwise a first boot would route everything to Next.js.
+  depends_on = [aws_lb_listener_rule.api, aws_lb_listener.http]
+}
+
 # ---- observability ------------------------------------------------------------
 
 resource "aws_cloudwatch_log_group" "main" {
@@ -594,6 +667,11 @@ resource "aws_cloudwatch_log_group" "main" {
 
 output "api_url" {
   value = var.certificate_arn == "" ? "http://${aws_lb.api.dns_name}" : "https://${aws_lb.api.dns_name}"
+}
+
+output "web_url" {
+  description = "Frontend origin (same ALB; only when image_web is set)"
+  value       = local.web_enabled ? (var.certificate_arn == "" ? "http://${aws_lb.api.dns_name}" : "https://${aws_lb.api.dns_name}") : null
 }
 
 output "redis_endpoint" {
