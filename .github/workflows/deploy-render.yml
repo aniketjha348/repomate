@@ -1,0 +1,91 @@
+# Deploys the FastAPI backend to Render through the service's deploy hook.
+#
+# One-time setup (see docs/deployment.md):
+#   1. Apply render.yaml as a Render Blueprint.
+#   2. Copy Services → repomate-api → Settings → Deploy Hooks → the hook URL.
+#   3. GitHub → Settings → Secrets and variables → Actions:
+#        secret   RENDER_DEPLOY_HOOK = the hook URL
+#        variable RENDER_SERVICE_URL = https://<service>.onrender.com
+name: Deploy backend (Render)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "packages/**"
+      - "services/**"
+      - "scripts/**"
+      - "deploy/**"
+      - "pyproject.toml"
+      - "render.yaml"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/deploy-render.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-render
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: CI gate
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Trigger Render deploy
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: render-production
+    steps:
+      - name: Require configuration
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "::error::Set the RENDER_DEPLOY_HOOK secret (Render → repomate-api → Settings → Deploy Hooks)."
+            exit 1
+          fi
+
+      - name: Invoke the deploy hook
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          response=$(curl --fail-with-body --silent --show-error \
+            --retry 5 --retry-delay 10 --retry-all-errors \
+            -X POST "$RENDER_DEPLOY_HOOK")
+          echo "Render queued: $response"
+
+      # Render builds the image, then the free plan can spend minutes in a cold
+      # start; ~15 minutes of retries covers both. This proves the process
+      # answers 2xx — /api/health does not currently check its dependencies, so
+      # it is a liveness gate, not a readiness one.
+      - name: Wait for the deployed API to report healthy
+        if: vars.RENDER_SERVICE_URL != ''
+        env:
+          RENDER_SERVICE_URL: ${{ vars.RENDER_SERVICE_URL }}
+        run: |
+          healthy=""
+          for _ in $(seq 1 90); do
+            if body=$(curl --fail --silent --show-error --max-time 20 \
+              "${RENDER_SERVICE_URL%/}/api/health"); then
+              echo "$body"
+              healthy=1
+              break
+            fi
+            echo "not ready yet; retrying in 10s"
+            sleep 10
+          done
+          if [ -z "$healthy" ]; then
+            echo "::error::/api/health never answered at ${RENDER_SERVICE_URL}"
+            exit 1
+          fi
+
+      - name: Report an unconfigured service URL
+        if: vars.RENDER_SERVICE_URL == ''
+        run: |
+          echo "::warning::Set the RENDER_SERVICE_URL repository variable to enable the post-deploy health gate."

@@ -1,0 +1,99 @@
+# Test gate for every push/PR, and the reusable workflow that the
+# deploy-render / deploy-vercel pipelines call before deploying.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      # Without OLLAMA_API_KEY the deterministic heuristic planner runs, which
+      # is what the suite asserts on. tests/conftest.py also clears the model
+      # environment, so an ambient key can never make CI depend on a provider.
+      - name: Run unit + integration tests
+        run: pytest -q tests/unit tests/integration
+
+  egress:
+    name: Sandbox egress boundary
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Install bubblewrap and probe namespace support
+        id: probe
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bubblewrap
+          if bwrap --ro-bind / / --dev /dev --unshare-all /bin/true; then
+            echo "usable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "usable=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::This runner cannot create user namespaces; the live egress probe is skipped."
+          fi
+
+      - name: Verify the live egress boundary
+        if: steps.probe.outputs.usable == 'true'
+        run: |
+          python scripts/verify_egress.py
+          pytest -q tests/unit/test_egress_isolation.py \
+                   tests/integration/test_egress_isolation_pipeline.py
+
+      - name: Verify fail-closed behaviour where no backend is usable
+        if: steps.probe.outputs.usable != 'true'
+        run: pytest -q tests/unit/test_sandbox.py
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install
+        run: npm ci
+        working-directory: apps/web
+
+      - name: Build
+        env:
+          NEXT_PUBLIC_API_URL: https://repomate-api.onrender.com
+        run: npm run build
+        working-directory: apps/web

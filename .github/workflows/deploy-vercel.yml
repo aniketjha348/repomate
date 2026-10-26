@@ -1,0 +1,103 @@
+# Builds apps/web and publishes it to Vercel production from CI.
+#
+# One-time setup (see docs/deployment.md):
+#   1. Create the Vercel project from this repo with Root Directory = apps/web.
+#   2. Vercel → Account Settings → Integrations → API Tokens → create a token
+#      scoped to the account, e.g. an automated/CI token.
+#   3. Vercel → Project → Settings → General: copy Project ID and Team ID.
+#   4. GitHub → Settings → Secrets and variables → Actions:
+#        secret   VERCEL_TOKEN        = the API token
+#        secret   VERCEL_ORG_ID       = the Team ID
+#        secret   VERCEL_PROJECT_ID   = the Project ID
+#        variable NEXT_PUBLIC_API_URL = https://<render-service>.onrender.com
+#           (a variable, not a secret: it is inlined into the client bundle)
+#
+# If the backend origin changes, this workflow must re-run: NEXT_PUBLIC_*
+# values are baked in at build time, not read at request time.
+name: Deploy frontend (Vercel)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/deploy-vercel.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-vercel
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: CI gate
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Publish to Vercel production
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: vercel-production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Require configuration
+        run: |
+          missing=0
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Set $name in GitHub → Settings → Secrets and variables → Actions."
+              missing=1
+            fi
+          done
+          if [ -z "$NEXT_PUBLIC_API_URL" ]; then
+            echo "::error::Set the NEXT_PUBLIC_API_URL repository variable to the deployed API origin; without it the published UI would call http://localhost:8000."
+            missing=1
+          fi
+          exit $missing
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: apps/web
+
+      - name: Link the Vercel project
+        run: npx --yes vercel@latest link --yes --token "$VERCEL_TOKEN"
+        working-directory: apps/web
+
+      - name: Build for production
+        run: npx --yes vercel@latest build --prod --token "$VERCEL_TOKEN"
+        working-directory: apps/web
+
+      - name: Deploy the prebuilt output
+        run: |
+          npx --yes vercel@latest deploy --prod --prebuilt --token "$VERCEL_TOKEN" \
+            > /tmp/vercel.log 2>&1 || { cat /tmp/vercel.log; exit 1; }
+          cat /tmp/vercel.log
+        working-directory: apps/web
+
+      - name: Summarize
+        run: |
+          url=$(grep -Eo 'https://[A-Za-z0-9._/-]+' /tmp/vercel.log | tail -1)
+          {
+            echo "### Vercel production deploy"
+            echo
+            echo "- API origin: \`$NEXT_PUBLIC_API_URL\`"
+            echo "- URL: $url"
+          } >> "$GITHUB_STEP_SUMMARY"
