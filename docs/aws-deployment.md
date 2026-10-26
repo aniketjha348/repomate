@@ -22,13 +22,16 @@ change.
 
 ## What's in `deploy/aws/`
 
-Terraform for: ECS cluster (Container Insights on), ALB with HTTPS
-redirect and `/api/health` health checks (15s interval, 3 failures →
-task replaced), API service (2 tasks baseline, scales 1→8 on 60% CPU and
-500 req/target/min), Celery worker service (1–2 vCPU/2GB for the
-verification sandbox), CloudWatch logs (30-day retention), Secrets
-Manager references for `OPENAI_API_KEY` / `GITHUB_TOKEN` (values never in
-code or tfvars), and IAM execution roles scoped to exactly those secrets.
+Terraform for: ECS cluster (Container Insights on), ALB with `/api/health`
+health checks (15s interval, 3 failures → task replaced) and an HTTPS
+listener when `certificate_arn` is supplied (otherwise HTTP forward, so a
+fresh demo stack is reachable), API service (2 tasks baseline, scales 1→8 on
+60% CPU and 500 req/target/min), Celery worker service (1–2 vCPU/2GB for the
+verification sandbox), ElastiCache Redis as the Celery broker, an encrypted EFS
+volume shared by the API and worker for run records/workspaces, CloudWatch logs
+(30-day retention), Secrets Manager references for `OPENAI_API_KEY` /
+`GITHUB_TOKEN` (values never in code or tfvars), and IAM execution roles scoped
+to exactly those secrets.
 
 Self-healing layers (deliberately redundant):
 
@@ -66,6 +69,8 @@ terraform init
 terraform apply \
   -var "image_api=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/repomate/api:latest" \
   -var "image_worker=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/repomate/worker:latest"
+# Optional: add HTTPS with an ACM certificate (must be in the same region):
+#   terraform apply ... -var "certificate_arn=arn:aws:acm:..."
 
 # 4) Verify self-healing: kill a task and watch ECS replace it
 TASK=$(aws ecs list-tasks --cluster repomate-cluster --service-name repomate-api \
@@ -76,19 +81,27 @@ aws ecs describe-services --cluster repomate-cluster --services repomate-api \
 ```
 
 Point the frontend's `NEXT_PUBLIC_API_URL` at the ALB DNS name from
-`terraform output api_url` (attach an ACM certificate + HTTPS listener
-before real traffic; the HTTP listener currently redirects to 443).
+`terraform output api_url`. Without `certificate_arn` the stack serves plain
+HTTP (fine for a demo); set the variable to attach an ACM certificate and get
+an HTTP→HTTPS redirect plus an HTTPS listener.
+
+Cost honesty: this is **not** a free-tier stack. The ALB, two API tasks, one
+worker task, ElastiCache node and EFS all bill hourly. Run the AWS pricing
+calculator for your region before applying.
 
 ## Production hardening (next steps, in order)
 
-1. **Redis**: replace the compose/dev redis with ElastiCache
-   (serverless or `cache.t4g.micro`) in the same VPC; update `REDIS_URL`.
+1. **Redis HA**: the stack provisions a single `cache.t3.micro` node. Replace
+   it with a Multi-AZ ElastiCache replication group (and point `REDIS_URL` at
+   the primary endpoint) before relying on it for durable execution.
 2. **PostgreSQL**: RDS Postgres (`db.t4g.micro`, Multi-AZ later) and set
    `REPOMATE_DATABASE_URL`. The SQL store is live-tested on SQLite; the
    PostgreSQL dialect shares the same schema/queries and should be
-   smoke-tested in staging before production.
-3. **EFS volume** if you keep `REPOMATE_RUNS_ROOT` on disk while scaling
-   the API beyond 1 task (shared run records) — or go SQL-only.
+   smoke-tested in staging before production. With RDS, EFS only needs to hold
+   temporary workspaces.
+3. **EFS lifecycle**: the encrypted EFS volume is shared by the API and worker.
+   Add a backup policy and move workspaces to a lifecycle-managed directory if
+   you keep large repositories around.
 4. **Worker queue-depth autoscaling**: publish
    `ApproximateNumberOfMessagesVisible` as a custom metric and add a
    step-scaling policy on the worker service (CPU tracking is fine to

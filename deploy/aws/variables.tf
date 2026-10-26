@@ -45,7 +45,13 @@ variable "api_cpu_target" {
 }
 
 variable "database_url" {
-  description = "PostgreSQL URL for the SQL run store (empty = SQLite on the shared volume)"
+  description = "PostgreSQL URL for the SQL run store (empty = file store on the shared EFS volume)"
+  type        = string
+  default     = ""
+}
+
+variable "certificate_arn" {
+  description = "ACM certificate ARN for the ALB HTTPS listener (empty = HTTP only, demo use)"
   type        = string
   default     = ""
 }

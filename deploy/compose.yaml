@@ -63,7 +63,10 @@ services:
     environment:
       POSTGRES_DB: repomate
       POSTGRES_USER: repomate
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      # Local-development default so ``docker compose up`` works with no
+      # environment at all. Set POSTGRES_PASSWORD (or use an external managed
+      # database) before exposing this stack beyond your machine.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-repomate-dev}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U repomate -d repomate"]
       interval: 5s
@@ -72,7 +75,7 @@ services:
     volumes:
       - repomate-db:/var/lib/postgresql/data
     # Point services at PostgreSQL with:
-    #   REPOMATE_DATABASE_URL=postgresql://repomate:${POSTGRES_PASSWORD}@postgres:5432/repomate
+    #   REPOMATE_DATABASE_URL=postgresql://repomate:${POSTGRES_PASSWORD:-repomate-dev}@postgres:5432/repomate
 
 volumes:
   repomate-runs:

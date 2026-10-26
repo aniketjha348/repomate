@@ -17,6 +17,41 @@ Serverless platforms such as Vercel Functions cannot do either reliably (no
 `git` binary, ephemeral read-only filesystems) — which is exactly why the
 backend runs as a long-lived Docker web service on Render.
 
+## Docker Compose (self-contained local stack)
+
+`deploy/compose.yaml` runs the API, a Celery worker, Redis and PostgreSQL on
+one machine — useful for dogfooding the durable-execution topology or
+verifying the Docker images before deploying.
+
+```bash
+cp .env.example .env                 # optional: model key, GitHub token
+docker compose --env-file .env -f deploy/compose.yaml up --build
+curl http://localhost:8000/api/health
+```
+
+Compose looks for `.env` next to the compose file by default, which is why the
+repo-root `.env` needs the explicit `--env-file` flag. Without it, Compose uses
+your shell environment plus the defaults below and the stack still starts.
+
+| Variable | Default | Effect |
+|---|---|---|
+| `REPOMATE_EXECUTION` | `inproc` | Runs execute inside the API container; the worker and Redis stay up but idle. |
+| `REPOMATE_DATABASE_URL` | empty | Run records use the file-backed store on the `repomate-runs` volume. |
+| `POSTGRES_PASSWORD` | `repomate-dev` | Local-only password for the bundled Postgres; override it before exposing the stack. |
+
+To exercise the Celery + PostgreSQL path (the production topology), set these
+in `.env` and restart the stack:
+
+```dotenv
+REPOMATE_EXECUTION=celery
+REPOMATE_DATABASE_URL=postgresql://repomate:repomate-dev@postgres:5432/repomate
+```
+
+API and worker mount the same `repomate-runs` volume, so file-store runs are
+visible from both containers. `docker compose ... down` keeps the named volumes
+(`repomate-runs`, `repomate-db`); `down -v` deletes them. Compose waits for the
+Redis and PostgreSQL healthchecks before starting the API and worker.
+
 ## Backend on Render
 
 1. Push the repository to GitHub. The blueprint at `render.yaml` (repo root)

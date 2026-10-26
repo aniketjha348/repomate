@@ -36,6 +36,10 @@ the planner identity**, so reports never overstate what produced them.
 - **AWS (primary)**: ECS Fargate with autoscaling and self-healing —
   Terraform in `deploy/aws/`, runbook in `docs/aws-deployment.md`
   (includes the ECS-vs-EKS rationale).
+- **Local Docker**: `docker compose --env-file .env -f deploy/compose.yaml up --build`
+  runs the API, worker, Redis and PostgreSQL together; defaults to in-process
+  execution with the file store. See
+  [docs/deployment.md](docs/deployment.md#docker-compose-self-contained-local-stack).
 
 Two platforms, one repository:
 

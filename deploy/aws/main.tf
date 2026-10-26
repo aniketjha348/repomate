@@ -2,7 +2,8 @@
 #
 # Topology:
 #   ALB (health: GET /api/health) -> ECS "api" service (Fargate, 0.5 vCPU/1GB)
-#   ECS "worker" service (Celery)  <- Redis (ElastiCache or the dev container)
+#   ECS "worker" service (Celery)  <- ElastiCache Redis (provisioned below)
+#   API + worker share run storage on EFS
 #   Secrets (OPENAI_API_KEY, GITHUB_TOKEN) via AWS Secrets Manager — never in tfvars
 #
 # Self-healing comes from three cooperating mechanisms:
@@ -66,6 +67,13 @@ resource "aws_security_group" "alb" {
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -99,6 +107,102 @@ resource "aws_security_group" "services" {
   }
 }
 
+# ---- shared run storage: EFS (API and worker mount the same files) ----------
+#
+# Without this, a Celery worker writes run records to its own ephemeral disk
+# and the API can never read them. EFS also keeps file-store runs visible
+# across API task restarts and autoscaling.
+
+resource "aws_security_group" "efs" {
+  name_prefix = "${var.project}-efs-"
+  vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    from_port       = 2049
+    to_port         = 2049
+    protocol        = "tcp"
+    security_groups = [aws_security_group.services.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_efs_file_system" "runs" {
+  creation_token = "${var.project}-runs"
+  encrypted      = true
+}
+
+resource "aws_efs_mount_target" "runs" {
+  count           = length(data.aws_subnets.public.ids)
+  file_system_id  = aws_efs_file_system.runs.id
+  subnet_id       = data.aws_subnets.public.ids[count.index]
+  security_groups = [aws_security_group.efs.id]
+}
+
+resource "aws_efs_access_point" "runs" {
+  file_system_id = aws_efs_file_system.runs.id
+
+  # The images run as the non-root ``repomate`` user (UID/GID 1000). The
+  # access point makes EFS enforce those IDs, so the container can write.
+  posix_user {
+    uid = 1000
+    gid = 1000
+  }
+
+  root_directory {
+    path = "/repomate"
+    creation_info {
+      owner_uid   = 1000
+      owner_gid   = 1000
+      permissions = "755"
+    }
+  }
+}
+
+# ---- Celery broker: ElastiCache Redis --------------------------------------
+
+resource "aws_security_group" "redis" {
+  name_prefix = "${var.project}-redis-"
+  vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.services.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_elasticache_subnet_group" "redis" {
+  name       = "${var.project}-redis"
+  subnet_ids = data.aws_subnets.public.ids
+}
+
+resource "aws_elasticache_cluster" "redis" {
+  cluster_id           = "${var.project}-redis"
+  engine               = "redis"
+  engine_version       = "7.1"
+  node_type            = "cache.t3.micro"
+  num_cache_nodes      = 1
+  parameter_group_name = "default.redis7"
+  port                 = 6379
+  subnet_group_name    = aws_elasticache_subnet_group.redis.name
+  security_group_ids   = [aws_security_group.redis.id]
+  apply_immediately    = true
+}
+
 resource "aws_lb" "api" {
   name_prefix        = substr(var.project, 0, 6)
   load_balancer_type = "application"
@@ -128,13 +232,41 @@ resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.api.arn
   port              = 80
 
-  default_action {
-    type = "redirect"
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
+  # With a certificate, redirect to HTTPS. Without one, forward on HTTP so a
+  # freshly applied demo stack is reachable instead of redirecting to a
+  # listener that does not exist.
+  dynamic "default_action" {
+    for_each = var.certificate_arn == "" ? [1] : []
+    content {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.api.arn
     }
+  }
+
+  dynamic "default_action" {
+    for_each = var.certificate_arn == "" ? [] : [1]
+    content {
+      type = "redirect"
+      redirect {
+        port        = "443"
+        protocol    = "HTTPS"
+        status_code = "HTTP_301"
+      }
+    }
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  count             = var.certificate_arn == "" ? 0 : 1
+  load_balancer_arn = aws_lb.api.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = var.certificate_arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
   }
 }
 
@@ -165,8 +297,8 @@ resource "aws_iam_role_policy" "execution_read_secrets" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = ["secretsmanager:GetSecretValue"]
+      Effect = "Allow"
+      Action = ["secretsmanager:GetSecretValue"]
       Resource = [
         data.aws_secretsmanager_secret.openai_key.arn,
         data.aws_secretsmanager_secret.github_token.arn,
@@ -184,7 +316,7 @@ locals {
     { name = "OPENAI_TIMEOUT_SECONDS", value = "240" },
     { name = "REPOMATE_SANDBOX_ENABLED", value = "1" },
     { name = "REPOMATE_MAX_RUN_SECONDS", value = "900" },
-    { name = "REDIS_URL", value = "redis://redis:6379/0" },
+    { name = "REDIS_URL", value = "redis://${aws_elasticache_cluster.redis.cache_nodes[0].address}:6379/0" },
     { name = "ALLOWED_ORIGINS", value = var.allowed_origins },
   ]
   secrets = [
@@ -208,9 +340,10 @@ resource "aws_ecs_task_definition" "api" {
     image        = var.image_api
     essential    = true
     portMappings = [{ containerPort = 8000, protocol = "tcp" }]
+    mountPoints  = [{ sourceVolume = "runs", containerPath = "/var/lib/repomate" }]
     environment = concat(local.shared_env, [
       { name = "REPOMATE_EXECUTION", value = "celery" },
-      { name = "REPOMATE_RUNS_ROOT", value = "/var/lib/repomate" },
+      { name = "REPOMATE_RUNS_ROOT", value = "/var/lib/repomate/runs" },
     ])
     secrets = concat(local.secrets, var.database_url == "" ? [] : [
       { name = "REPOMATE_DATABASE_URL", value = var.database_url }
@@ -225,6 +358,18 @@ resource "aws_ecs_task_definition" "api" {
       }
     }
   }])
+
+  volume {
+    name = "runs"
+    efs_volume_configuration {
+      file_system_id     = aws_efs_file_system.runs.id
+      transit_encryption = "ENABLED"
+      authorization_config {
+        access_point_id = aws_efs_access_point.runs.id
+        iam             = "DISABLED"
+      }
+    }
+  }
 }
 
 resource "aws_ecs_service" "api" {
@@ -255,6 +400,14 @@ resource "aws_ecs_service" "api" {
 
   deployment_minimum_healthy_percent = 100
   deployment_maximum_percent         = 200
+
+  # Mount targets and Redis must exist before tasks start (tasks retry, but
+  # this avoids a noisy first boot).
+  depends_on = [
+    aws_efs_mount_target.runs,
+    aws_elasticache_cluster.redis,
+    aws_lb_listener.http,
+  ]
 }
 
 # Autoscaling: target tracking on CPU, plus ALB requests-per-target.
@@ -314,13 +467,14 @@ resource "aws_ecs_task_definition" "worker" {
   execution_role_arn       = aws_iam_role.task_execution.arn
 
   container_definitions = jsonencode([{
-    name      = "worker"
-    image     = var.image_worker
-    essential = true
-    command   = ["python", "-m", "services.worker"]
+    name        = "worker"
+    image       = var.image_worker
+    essential   = true
+    command     = ["python", "-m", "services.worker"]
+    mountPoints = [{ sourceVolume = "runs", containerPath = "/var/lib/repomate" }]
     environment = concat(local.shared_env, [
       { name = "REPOMATE_WORKER_CONCURRENCY", value = "2" },
-      { name = "REPOMATE_RUNS_ROOT", value = "/var/lib/repomate" },
+      { name = "REPOMATE_RUNS_ROOT", value = "/var/lib/repomate/runs" },
     ])
     secrets = concat(local.secrets, var.database_url == "" ? [] : [
       { name = "REPOMATE_DATABASE_URL", value = var.database_url }
@@ -335,6 +489,18 @@ resource "aws_ecs_task_definition" "worker" {
       }
     }
   }])
+
+  volume {
+    name = "runs"
+    efs_volume_configuration {
+      file_system_id     = aws_efs_file_system.runs.id
+      transit_encryption = "ENABLED"
+      authorization_config {
+        access_point_id = aws_efs_access_point.runs.id
+        iam             = "DISABLED"
+      }
+    }
+  }
 }
 
 resource "aws_ecs_service" "worker" {
@@ -352,6 +518,10 @@ resource "aws_ecs_service" "worker" {
 
   # Workers have no ALB; ECS restarts tasks that exit non-zero, and
   # acks-late requeues their in-flight runs.
+  depends_on = [
+    aws_efs_mount_target.runs,
+    aws_elasticache_cluster.redis,
+  ]
 }
 
 # ---- observability ------------------------------------------------------------
@@ -362,7 +532,11 @@ resource "aws_cloudwatch_log_group" "main" {
 }
 
 output "api_url" {
-  value = "http://${aws_lb.api.dns_name}" # point HTTPS/ACM at this in production
+  value = var.certificate_arn == "" ? "http://${aws_lb.api.dns_name}" : "https://${aws_lb.api.dns_name}"
+}
+
+output "redis_endpoint" {
+  value = aws_elasticache_cluster.redis.cache_nodes[0].address
 }
 
 output "cluster_name" {
