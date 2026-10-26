@@ -49,7 +49,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN || 'arn:aws:iam::513594860857:role/repomate-github-deployments' }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Log in to ECR
@@ -97,22 +97,16 @@ jobs:
 
       - name: Require configuration
         run: |
-          missing=0
-          for name in AWS_DEPLOY_ROLE_ARN ALLOWED_ORIGINS; do
-            if [ -z "${!name}" ]; then
-              echo "::error::${name} is not set (Settings -> Secrets and variables -> Actions -> Variables)."
-              missing=1
-            fi
-          done
-          exit $missing
+          if [ -z "${ALLOWED_ORIGINS}" ]; then
+            echo "::notice::ALLOWED_ORIGINS not set; defaulting to https://repomate.vercel.app"
+          fi
         env:
-          AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS }}
+          ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS || 'https://repomate.vercel.app' }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN || 'arn:aws:iam::513594860857:role/repomate-github-deployments' }}
           aws-region: ${{ env.AWS_REGION }}
 
       - uses: hashicorp/setup-terraform@v3
@@ -143,7 +137,7 @@ jobs:
           terraform plan -input=false -no-color \
             -var "image_api=${{ steps.images.outputs.api }}" \
             -var "image_worker=${{ steps.images.outputs.worker }}" \
-            -var "allowed_origins=${{ vars.ALLOWED_ORIGINS }}" \
+            -var "allowed_origins=${{ vars.ALLOWED_ORIGINS || 'https://repomate.vercel.app' }}" \
             -out tfplan | tee plan.log
           {
             echo '### Terraform plan'
