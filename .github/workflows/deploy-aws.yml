@@ -91,7 +91,6 @@ jobs:
     permissions:
       id-token: write
       contents: read
-      variables: write
       actions: write
     steps:
       - uses: actions/checkout@v4
@@ -187,31 +186,20 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       # NEXT_PUBLIC_* is baked into the bundle at build time, so the frontend
-      # only sees a new API URL after a rebuild. Publish the URL, then trigger
-      # the Vercel workflow.
-      - name: Hand the API URL to the frontend pipeline
+      # only follows the API after a rebuild. Dispatch the Vercel workflow with
+      # this apply's URL as an input rather than mutating a repo variable.
+      - name: Rebuild the frontend against the new API
         if: github.ref == 'refs/heads/main'
         env:
           API_URL: ${{ steps.apply.outputs.api_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          patch=$(curl -sS -o /dev/null -w '%{http_code}' -X PATCH \
-            -H "authorization: Bearer $GITHUB_TOKEN" \
-            -H 'accept: application/vnd.github+json' \
-            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/variables/NEXT_PUBLIC_API_URL" \
-            --data "{\"value\":\"$API_URL\"}")
-          if [ "$patch" = '404' ]; then
-            curl -fsS -X POST \
-              -H "authorization: Bearer $GITHUB_TOKEN" \
-              -H 'accept: application/vnd.github+json' \
-              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/variables" \
-              --data "{\"name\":\"NEXT_PUBLIC_API_URL\",\"value\":\"$API_URL\"}"
-          elif [ "$patch" != '204' ] && [ "$patch" != '200' ]; then
-            echo "::error::could not set NEXT_PUBLIC_API_URL (HTTP $patch)"
+          if [ -z "$API_URL" ]; then
+            echo "::error::terraform did not emit an api_url output"
             exit 1
           fi
           curl -fsS -X POST \
             -H "authorization: Bearer $GITHUB_TOKEN" \
             -H 'accept: application/vnd.github+json' \
             "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/deploy-vercel.yml/dispatches" \
-            --data '{"ref":"main"}'
+            --data "{\"ref\":\"main\",\"inputs\":{\"api_url\":\"$API_URL\"}}"

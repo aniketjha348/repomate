@@ -10,8 +10,9 @@
 #        secret   VERCEL_ORG_ID       = the Team ID
 #        secret   VERCEL_PROJECT_ID   = the Project ID
 #        variable NEXT_PUBLIC_API_URL = https://<deployed API origin>
-#           (a variable, not a secret: it is inlined into the client bundle;
-#            deploy-aws.yml writes it after each backend apply)
+#           (a variable, not a secret: it is inlined into the client bundle)
+#      deploy-aws.yml dispatches this workflow with an api_url input after each
+#      backend apply, so the variable is the fallback for web-only pushes.
 #
 # If the backend origin changes, this workflow must re-run: NEXT_PUBLIC_*
 # values are baked in at build time, not read at request time.
@@ -19,6 +20,11 @@ name: Deploy frontend (Vercel)
 
 on:
   workflow_dispatch:
+    inputs:
+      api_url:
+        description: API origin to bake in (defaults to the NEXT_PUBLIC_API_URL variable)
+        required: false
+        type: string
   push:
     branches: [main]
     paths:
@@ -49,7 +55,7 @@ jobs:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+      NEXT_PUBLIC_API_URL: ${{ github.event.inputs.api_url || vars.NEXT_PUBLIC_API_URL }}
     steps:
       - uses: actions/checkout@v4
 
