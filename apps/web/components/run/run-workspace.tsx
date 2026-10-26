@@ -93,6 +93,11 @@ export function RunWorkspace({ runId }: { runId: string }) {
   return (
     <div className="space-y-6">
       <RunHeader record={record} />
+      {active ? (
+        <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+          <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
+        </div>
+      ) : null}
       {record.error ? <ErrorBanner error={record.error} /> : null}
       {record.snapshot ? <SnapshotCard snapshot={record.snapshot} /> : null}
       {record.orientation ? (
@@ -101,7 +106,7 @@ export function RunWorkspace({ runId }: { runId: string }) {
       {record.test_guidance ? (
         <TestGuidancePanel guidance={record.test_guidance} />
       ) : null}
-      <EventsFeed events={events} defaultOpen={active} />
+      <EventsFeed events={events} defaultOpen={active} live={active} />
       {record.retrieval ? (
         <Section title="Retrieval scope">
           <RetrievalPanel retrieval={record.retrieval} />

@@ -9,9 +9,11 @@ import { cn } from "@/lib/utils";
 export function EventsFeed({
   events,
   defaultOpen = true,
+  live = false,
 }: {
   events: RunEvent[];
   defaultOpen?: boolean;
+  live?: boolean;
 }) {
   const [open, setOpen] = React.useState(defaultOpen);
   const bottomRef = React.useRef<HTMLDivElement | null>(null);
@@ -32,6 +34,12 @@ export function EventsFeed({
       >
         <span className="text-sm font-semibold tracking-tight">
           Events
+          {live ? (
+            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+              LIVE
+            </span>
+          ) : null}
           <span className="ml-2 font-mono text-xs font-normal text-muted-foreground">
             {events.length}
           </span>

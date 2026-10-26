@@ -25,12 +25,6 @@ export function IssueForm() {
 
   const valid = ISSUE_URL_RE.test(issueUrl.trim());
 
-  const EXAMPLE_URL = "https://github.com/fastapi/fastapi/issues/130";
-  const fillExample = () => {
-    setIssueUrl(EXAMPLE_URL);
-    setError(null);
-  };
-
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     const url = issueUrl.trim();
@@ -83,15 +77,6 @@ export function IssueForm() {
           <div className="flex flex-wrap items-center gap-2">
             <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
               {submitting ? "Starting run…" : "Start run"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={fillExample}
-              disabled={submitting}
-            >
-              Try example issue
             </Button>
           </div>
         </form>
