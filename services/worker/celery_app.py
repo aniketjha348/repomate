@@ -13,6 +13,9 @@ from celery import Celery
 app = Celery(
     "repomate",
     broker=os.environ.get("REDIS_URL", "redis://localhost:6379/0"),
+    # The worker process must import the task module, otherwise Celery
+    # discards deliveries with "unregistered task".
+    include=["services.worker.tasks"],
 )
 app.conf.update(
     task_track_started=True,

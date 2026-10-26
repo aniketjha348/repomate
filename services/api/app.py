@@ -15,11 +15,11 @@ APP_VERSION = "0.1.0"
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
-    _sweep_stale_workspaces()
+    _sweep_stale_workspaces(app)
     yield
 
 
-def _sweep_stale_workspaces() -> None:
+def _sweep_stale_workspaces(app: FastAPI) -> None:
     import os
 
     from repomate_core.orchestration.store_factory import build_store

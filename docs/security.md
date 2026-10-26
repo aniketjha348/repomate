@@ -34,22 +34,30 @@ refuses redirects and non-https URLs.
 Untrusted repository commands run only through the **process sandbox**
 (`repomate_core.verification.sandbox`), never bare on the host:
 
-- wall-time kill: the child process group is SIGKILLed on timeout
+- wall-time kill: the child process tree is SIGKILLed on POSIX
+  (`killpg`) and via `taskkill /T /F` on Windows
 - CPU budget via `RLIMIT_CPU`; memory budget via `RLIMIT_AS`; file-size
-  cap via `RLIMIT_FSIZE`
-- environment scrubbing: only PATH/HOME/locale reach the child — model
-  keys and tokens never do (regression-tested)
+  cap via `RLIMIT_FSIZE` (POSIX only — see limitations below)
+- environment scrubbing: only PATH/HOME/locale (plus Windows system
+  variables such as `SYSTEMROOT`) reach the child — model keys and
+  tokens never do (regression-tested)
 - stdout/stderr captured and tailed to a fixed size
 - permitted toolchains are an explicit allowlist (pytest via RepoMate's
   own interpreter, make); Node toolchains wait for the container backend
 
 Honest limitations: network egress is not yet isolated, and
 `RLIMIT_NPROC` is deliberately unused (it is per-UID and would break the
-host session). Production containers (the Render Docker service) add
-namespace isolation around this backend; a container-per-run backend is
-the follow-up. RepoMate's own git operations (apply --check, diff,
-reset) run on its private clone with bounded timeouts and
-`GIT_TERMINAL_PROMPT=0`.
+host session). Repository tests run with RepoMate's interpreter and
+installed dependencies; a repo-specific virtualenv is not created, so
+missing dependencies can make the suite fail (the receipt records the
+failure, never a pass). Windows has no `resource` module, so local Windows
+runs enforce only the wall-time budget and environment scrubbing; CPU,
+memory and file-size rlimits require a POSIX host. The Docker images are
+Linux, so production keeps the full rlimit set. Production containers (the
+Render Docker service) add namespace isolation around this backend; a
+container-per-run backend is the follow-up. RepoMate's own git operations
+(apply --check, diff, reset) run on its private clone with bounded
+timeouts and `GIT_TERMINAL_PROMPT=0`.
 
 ## Secrets
 

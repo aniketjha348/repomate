@@ -51,6 +51,18 @@ def test_content_draft_parsed_and_fences_stripped():
     assert plan.proposed_edits == []
 
 
+def test_content_draft_fence_strip_preserves_leading_words():
+    planner = ModelPlanner(FakeProvider({
+        "task_type": "DOCUMENTATION",
+        "summary": "explain markdown",
+        "planned_changes": [{"path": "README.md"}],
+        "content_draft": "```\nmarkdown is a markup language\n```",
+    }))
+    plan = planner.plan("explain markdown", _snapshot(), _evidence())
+    # ``lstrip("markdown")`` used to eat the first word of the draft.
+    assert plan.content_draft == "markdown is a markup language"
+
+
 def test_proposed_edits_parsed_with_coercion():
     planner = ModelPlanner(FakeProvider({
         "task_type": "BUG_FIX",

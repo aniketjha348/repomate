@@ -198,7 +198,10 @@ def plan_for_missing_evidence(
     ctx: RunContext, task_text: str
 ) -> ContributionPlan:
     """Honest NEED_MORE_INFO plan when nothing matched the task."""
-    return HeuristicPlanner().plan(task_text, ctx.record.snapshot or _empty_snapshot(ctx), [])
+    planner = HeuristicPlanner()
+    # Attribute the run even when the pipeline stops before ``stage_plan``.
+    ctx.record.planner = planner.name
+    return planner.plan(task_text, ctx.record.snapshot or _empty_snapshot(ctx), [])
 
 
 def _empty_snapshot(ctx: RunContext) -> RepositorySnapshot:  # pragma: no cover

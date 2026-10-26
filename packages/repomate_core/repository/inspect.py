@@ -100,6 +100,8 @@ def _declared_license(ws: RepoWorkspace, files: list[str]) -> str | None:
         except (ValueError, OSError):
             pkg = {}
         declared = pkg.get("license")
+        if isinstance(declared, dict):  # legacy npm form: {"type": "MIT"}
+            declared = declared.get("type")
         if isinstance(declared, str) and declared.strip():
             return declared.strip()
     if "pyproject.toml" in files:
@@ -111,7 +113,10 @@ def _declared_license(ws: RepoWorkspace, files: list[str]) -> str | None:
             data = tomllib.loads(ws.read_text("pyproject.toml", max_chars=100_000))
         except (ValueError, OSError):
             return None
-        expression = (data.get("project") or {}).get("license")
+        project = data.get("project") or {}
+        expression = project.get("license")
+        if isinstance(expression, dict):  # PEP 621 table form: {text = "MIT"}
+            expression = expression.get("text")
         if isinstance(expression, str) and expression.strip():
             return expression.strip()
     return None
@@ -140,11 +145,32 @@ def find_entry_points(ws: RepoWorkspace, files: list[str]) -> list[EntryPoint]:
         except (ValueError, OSError):
             pkg = {}
         main = pkg.get("main")
-        if main:
-            entries.append(EntryPoint(path=main, kind="manifest", detail="package.json main"))
-        for name in (pkg.get("bin") or {}):
-            entries.append(EntryPoint(path=str(name), kind="script", detail="package.json bin"))
-        if not main and not pkg.get("bin"):
+        if isinstance(main, str) and main.strip():
+            entries.append(
+                EntryPoint(path=main.strip(), kind="manifest", detail="package.json main")
+            )
+        else:
+            main = None
+        # ``bin`` is either a single path or a name -> path mapping; the
+        # mapping keys are command names, not files.
+        bin_field = pkg.get("bin")
+        if isinstance(bin_field, str) and bin_field.strip():
+            entries.append(
+                EntryPoint(
+                    path=bin_field.strip(), kind="script", detail="package.json bin"
+                )
+            )
+        elif isinstance(bin_field, dict):
+            for command, path in bin_field.items():
+                if isinstance(path, str) and path.strip():
+                    entries.append(
+                        EntryPoint(
+                            path=path.strip(),
+                            kind="script",
+                            detail=f"package.json bin: {command}",
+                        )
+                    )
+        if not main and not bin_field:
             entries.append(EntryPoint(path="package.json", kind="manifest", detail="no main/bin declared"))
 
     if "pyproject.toml" in files:

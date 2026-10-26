@@ -25,7 +25,12 @@ from repomate_core.contracts import (
     VerificationStatus,
 )
 from repomate_core.repository.workspace import RepoWorkspace
-from repomate_core.verification.sandbox import SandboxLimits, run_test_suite_check
+from repomate_core.verification.sandbox import (
+    SandboxLimits,
+    run_test_suite_check,
+    sandbox_environment_description,
+    sandbox_limitations,
+)
 
 _OUTPUT_TAIL = 800
 
@@ -79,13 +84,10 @@ def run_verification(
         checks=checks,
         overall=_overall(checks),
         environment=(
-            f"process sandbox (wall/cpu/memory limits, scrubbed env) "
+            f"{sandbox_environment_description()} "
             f"on {platform.system()}/{platform.machine()}"
         ),
-        limitations=[
-            "The process sandbox does not isolate network egress; a container-per-run "
-            "backend is planned for untrusted-network toolchains.",
-        ],
+        limitations=sandbox_limitations(),
     )
 
 

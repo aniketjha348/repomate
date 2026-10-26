@@ -23,13 +23,19 @@ _BLOCKED_V4 = [
     ipaddress.ip_network(n)
     for n in (
         "0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8",
-        "169.254.0.0/16", "172.16.0.0/12", "192.0.0.0/24", "192.168.0.0/16",
-        "198.18.0.0/15", "224.0.0.0/4", "240.0.0.0/4",
+        "169.254.0.0/16", "172.16.0.0/12", "192.0.0.0/24", "192.0.2.0/24",
+        "192.88.99.0/24", "192.168.0.0/16", "198.18.0.0/15",
+        "198.51.100.0/24", "203.0.113.0/24", "224.0.0.0/4",
+        "233.252.0.0/24", "240.0.0.0/4",
     )
 ]
 _BLOCKED_V6 = [
     ipaddress.ip_network(n)
-    for n in ("::/128", "::1/128", "fc00::/7", "fe80::/10", "ff00::/8")
+    for n in (
+        "::/128", "::1/128",
+        "64:ff9b::/96",  # NAT64 well-known prefix: can embed private IPv4
+        "fc00::/7", "fe80::/10", "ff00::/8",
+    )
 ]
 
 # Redirect targets reachable from api.github.com / github.com responses.
@@ -62,12 +68,25 @@ def assert_public_https_url(url: str, *, allow_hosts: Optional[set[str]] = None)
     except socket.gaierror as exc:
         raise NetworkSafetyError(f"cannot resolve host {host!r}: {exc}") from exc
     for info in infos:
-        addr = ipaddress.ip_address(info[4][0])
-        blocked = _BLOCKED_V6 if addr.version == 6 else _BLOCKED_V4
-        if any(addr in net for net in blocked):
-            raise NetworkSafetyError(
-                f"host {host!r} resolves to a non-public address {addr}; refusing"
-            )
+        _refuse_non_public(host, info[4][0])
+
+
+def _refuse_non_public(host: str, raw_addr: str) -> None:
+    try:
+        addr = ipaddress.ip_address(raw_addr.split("%", 1)[0])
+    except ValueError as exc:
+        raise NetworkSafetyError(
+            f"host {host!r} resolved to an unparseable address {raw_addr!r}; refusing"
+        ) from exc
+    # Judge IPv4-mapped IPv6 (``::ffff:127.0.0.1``) as its IPv4 target; some
+    # Python versions classify the mapped prefix itself as public.
+    if isinstance(addr, ipaddress.IPv6Address) and addr.ipv4_mapped is not None:
+        addr = addr.ipv4_mapped
+    blocked = _BLOCKED_V6 if addr.version == 6 else _BLOCKED_V4
+    if not addr.is_global or any(addr in net for net in blocked):
+        raise NetworkSafetyError(
+            f"host {host!r} resolves to a non-public address {addr}; refusing"
+        )
 
 
 class SafeHttpClient:

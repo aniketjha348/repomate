@@ -42,6 +42,9 @@ class RepoWorkspace:
         dest = Path(dest).absolute()
         if dest.exists():
             raise WorkspaceError(f"destination already exists: {dest}")
+        # The store may only persist metadata (SQL mode), so the run's
+        # parent directory is not guaranteed to exist yet.
+        dest.parent.mkdir(parents=True, exist_ok=True)
         url = f"https://github.com/{ref.owner}/{ref.repo}.git"
         # Token, if present, travels via a git config extraHeader so it never
         # appears in argv-derived error messages.
@@ -93,13 +96,23 @@ class RepoWorkspace:
         out = run_git("ls-files", cwd=self.root).stdout
         return [line for line in out.splitlines() if line.strip()]
 
-    def read_text(self, rel_path: str, *, max_chars: int = 300_000) -> str:
+    def read_text(
+        self, rel_path: str, *, max_chars: Optional[int] = 300_000
+    ) -> str:
         target = self._resolve(rel_path)
         if not target.is_file():
             raise WorkspaceError(f"file not found in workspace: {rel_path}")
-        return target.read_text(encoding="utf-8", errors="replace")[:max_chars]
+        text = target.read_text(encoding="utf-8", errors="replace")
+        return text if max_chars is None else text[:max_chars]
+
+    def exists(self, rel_path: str) -> bool:
+        return self._resolve(rel_path).exists()
 
     def write_text(self, rel_path: str, content: str) -> None:
+        # The working tree is for repository files only; never let a model
+        # edit git internals (config, hooks) through a proposed change.
+        if ".git" in Path(rel_path.replace("\\", "/")).parts:
+            raise WorkspaceError(f"refusing to write inside .git: {rel_path!r}")
         target = self._resolve(rel_path)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8", newline="\n")

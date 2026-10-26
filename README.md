@@ -76,6 +76,13 @@ Copy `.env.example` to `.env` to configure the model gateway, an optional
 `GITHUB_TOKEN` (raises the 60 req/h unauthenticated REST limit), and run
 budgets.
 
+RepoMate runs on Linux, macOS, and Windows. The verification sandbox uses
+POSIX rlimits on Unix/macOS; on Windows it still enforces the wall-time
+budget and environment scrubbing (CPU/memory rlimits are POSIX-only, and the
+receipt says so). The Docker images are Linux, so deployments keep the full
+sandbox limits. Repository tests run with RepoMate's own interpreter and
+installed dependencies; a repo-specific virtualenv is not created.
+
 ## Layout
 
 ```
@@ -112,5 +119,4 @@ nothing.
 Every run ends with a receipt. `PASSED`/`FAILED` only ever come from checks
 that actually executed (e.g. `git apply --check` against the pinned commit, or
 a deterministic policy evaluation). Anything not executed is `NOT_RUN` with an
-explicit reason — e.g. the repository test suite until the Phase 4 sandbox
-exists.
+explicit reason — e.g. a repository with no recognized test command.

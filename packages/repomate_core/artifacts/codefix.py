@@ -33,28 +33,41 @@ def apply_proposed_edits(
     base_sha = ws.commit_sha
     touched: list[str] = []
 
-    for edit in edits:
-        if edit.old_text == "":
-            existing = ""
-        else:
-            existing = _read_existing(ws, edit.path)
-            occurrences = existing.count(edit.old_text)
-            if occurrences == 0:
-                raise EditAnchorError(
-                    f"edit anchor not found in {edit.path}: {edit.old_text[:80]!r}"
-                )
-            if occurrences > 1:
-                raise EditAnchorError(
-                    f"edit anchor ambiguous in {edit.path} "
-                    f"({occurrences} occurrences): {edit.old_text[:80]!r}"
-                )
-        ws.write_text(edit.path, existing.replace(edit.old_text, edit.new_text, 1))
-        if edit.path not in touched:
-            touched.append(edit.path)
-        if edit.old_text == "":
-            ws.stage_intent_to_add(edit.path)
+    try:
+        for edit in edits:
+            if edit.old_text == "":
+                # ``old_text == ""`` means "create this file", never
+                # "replace whatever is already there".
+                if _exists(ws, edit.path):
+                    raise EditAnchorError(
+                        f"cannot create {edit.path!r}: it already exists in the "
+                        "pinned snapshot"
+                    )
+                existing = ""
+            else:
+                existing = _read_existing(ws, edit.path)
+                occurrences = existing.count(edit.old_text)
+                if occurrences == 0:
+                    raise EditAnchorError(
+                        f"edit anchor not found in {edit.path}: {edit.old_text[:80]!r}"
+                    )
+                if occurrences > 1:
+                    raise EditAnchorError(
+                        f"edit anchor ambiguous in {edit.path} "
+                        f"({occurrences} occurrences): {edit.old_text[:80]!r}"
+                    )
+            _write(ws, edit.path, existing.replace(edit.old_text, edit.new_text, 1))
+            if edit.path not in touched:
+                touched.append(edit.path)
+            if edit.old_text == "":
+                ws.stage_intent_to_add(edit.path)
 
-    patch = ws.diff()
+        patch = ws.diff()
+    except Exception:
+        # All-or-nothing: a failed edit must not leave a partially
+        # modified working tree behind.
+        ws.reset_hard()
+        raise
     ws.reset_hard()
 
     affected = extract_affected_paths(patch)
@@ -67,8 +80,24 @@ def apply_proposed_edits(
     )
 
 
+def _exists(ws: RepoWorkspace, path: str) -> bool:
+    try:
+        return ws.exists(path)
+    except Exception as exc:
+        raise EditAnchorError(f"invalid target path {path!r}: {exc}") from exc
+
+
 def _read_existing(ws: RepoWorkspace, path: str) -> str:
     try:
-        return ws.read_text(path)
+        # Full file: truncating here would silently delete the tail when
+        # the edited file is larger than the default read cap.
+        return ws.read_text(path, max_chars=None)
     except Exception as exc:
         raise EditAnchorError(f"cannot read target file {path!r}: {exc}") from exc
+
+
+def _write(ws: RepoWorkspace, path: str, content: str) -> None:
+    try:
+        ws.write_text(path, content)
+    except Exception as exc:
+        raise EditAnchorError(f"cannot write target file {path!r}: {exc}") from exc

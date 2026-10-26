@@ -51,6 +51,21 @@ def _translate_sqlite_to_pg(sql: str) -> str:
     return re.sub(r"\?", "%s", sql)
 
 
+def _sqlite_path(parsed, runs_root: Path) -> Path:
+    """Resolve a SQLite URL using the usual three/four-slash convention.
+
+    ``sqlite:///relative.db`` is relative; ``sqlite:////abs/path.db`` is
+    absolute. On Windows the common form is ``sqlite:///C:/path.db``
+    (``urlparse`` keeps a leading slash before the drive letter).
+    """
+    raw = parsed.path
+    if not raw:
+        return Path(runs_root) / "runs.db"
+    if raw.startswith("//"):
+        return Path(raw[1:])
+    return Path(raw[1:] if raw.startswith("/") else raw)
+
+
 class SqlRunStore:
     def __init__(self, connect, *, dialect: str, runs_root: Path) -> None:
         self._connect = connect
@@ -80,8 +95,7 @@ class SqlRunStore:
     ) -> "SqlRunStore":
         parsed = urlparse(database_url)
         if parsed.scheme in ("sqlite", "sqlite3"):
-            path = parsed.path.lstrip("/") or str(Path(runs_root) / "runs.db")
-            return cls.sqlite("/" + path if not Path(path).is_absolute() else path, runs_root=runs_root)
+            return cls.sqlite(_sqlite_path(parsed, runs_root), runs_root=runs_root)
         if parsed.scheme in ("postgres", "postgresql"):
             try:
                 import psycopg
@@ -204,8 +218,12 @@ class SqlRunStore:
         if self.load_run(run_id) is None:
             return False
         with self._conn() as conn:
+            # Portable across SQLite and PostgreSQL; ``INSERT OR IGNORE``
+            # is SQLite-only and would fail on the production dialect.
             conn.execute(
-                "INSERT OR IGNORE INTO run_cancels (run_id) VALUES (?)", (run_id,)
+                "INSERT INTO run_cancels (run_id) VALUES (?) "
+                "ON CONFLICT (run_id) DO NOTHING",
+                (run_id,),
             )
         return True
 
@@ -219,10 +237,12 @@ class SqlRunStore:
     def workspace_dir(self, run_id: str) -> Path:
         if "/" in run_id or "\\" in run_id or run_id in ("", ".", ".."):
             raise ValueError(f"invalid run id: {run_id!r}")
-        return self._runs_root / run_id
+        # Same contract as the file store: the clone destination, not the
+        # run directory. The pipeline clones straight into this path.
+        return self._runs_root / run_id / "workspace"
 
     def cleanup_workspace(self, run_id: str) -> None:
-        workspace = self.workspace_dir(run_id) / "workspace"
+        workspace = self.workspace_dir(run_id)
         if workspace.exists():
             shutil.rmtree(workspace, ignore_errors=True)
 
@@ -235,7 +255,7 @@ class SqlRunStore:
         removed: list[str] = []
         cutoff = time.time() - max_age_hours * 3600
         for run_id in self.list_run_ids():
-            workspace = self.workspace_dir(run_id) / "workspace"
+            workspace = self.workspace_dir(run_id)
             if workspace.exists() and workspace.stat().st_mtime < cutoff:
                 self.cleanup_workspace(run_id)
                 removed.append(run_id)

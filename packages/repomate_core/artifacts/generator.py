@@ -36,7 +36,11 @@ def generate_docs_artifact(
     if change is None:
         raise ValueError("plan has no planned changes to render")
 
-    original = ws.read_text(change.path) if change.change_type == "MODIFY" else ""
+    original = (
+        ws.read_text(change.path, max_chars=None)
+        if change.change_type == "MODIFY"
+        else ""
+    )
     base_sha = ws.commit_sha
 
     title = _section_title(task_text)

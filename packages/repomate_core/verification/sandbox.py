@@ -3,24 +3,30 @@
 Untrusted repository test commands run through :class:`ProcessSandbox`,
 never bare on the host:
 
-- **wall-time kill**: the process group is SIGKILLed on timeout
-- **CPU budget**: ``RLIMIT_CPU`` stops runaway compute
+- **wall-time kill**: the process tree is killed on timeout (SIGKILL to the
+  process group on POSIX, ``taskkill /T /F`` on Windows)
+- **CPU budget**: ``RLIMIT_CPU`` stops runaway compute (POSIX)
 - **memory budget**: ``RLIMIT_AS`` turns runaway allocation into failure
-- **environment scrubbing**: only an explicit allowlist (PATH/HOME/locale)
-  reaches the child — server secrets (model keys, tokens) never do
+  (POSIX)
+- **file-size budget**: ``RLIMIT_FSIZE`` caps writes (POSIX)
+- **environment scrubbing**: only an explicit allowlist (PATH/HOME/locale
+  plus Windows system variables) reaches the child — server secrets
+  (model keys, tokens) never do
 - **bounded outputs**: stdout/stderr are tailed to a fixed size
 
 Honest limitations (documented in docs/security.md): the process backend
 does not isolate network egress, and ``RLIMIT_NPROC`` is deliberately not
-used because it is per-UID and would break the host session. Production
-containers (the Render Docker service) add namespace isolation around
-this backend; a dedicated container-per-run backend is the next step.
+used because it is per-UID and would break the host session. On Windows
+the ``resource`` module is unavailable, so only the wall-time budget and
+environment scrubbing are enforced; CPU/memory/file-size rlimits require a
+POSIX host (the Docker images are Linux). Production containers (the Render
+Docker service) add namespace isolation around this backend; a dedicated
+container-per-run backend is the next step.
 """
 
 from __future__ import annotations
 
 import os
-import resource
 import shutil
 import signal
 import subprocess
@@ -32,7 +38,26 @@ from typing import Optional, Sequence
 from repomate_core.contracts import VerificationCheck, VerificationStatus
 from repomate_core.repository.workspace import RepoWorkspace
 
-_ENV_ALLOWLIST = ("PATH", "HOME", "LANG", "LC_ALL", "TMPDIR", "TMP", "TEMP")
+try:  # POSIX-only module; Windows has no ``resource``.
+    import resource
+except ImportError:  # pragma: no cover - exercised on Windows
+    resource = None  # type: ignore[assignment]
+
+_IS_POSIX = os.name == "posix"
+_ENV_ALLOWLIST = (
+    "PATH",
+    "HOME",
+    "USERPROFILE",
+    "LANG",
+    "LC_ALL",
+    "TMPDIR",
+    "TMP",
+    "TEMP",
+    "SYSTEMROOT",
+    "WINDIR",
+    "COMSPEC",
+    "PATHEXT",
+)
 _OUTPUT_TAIL_CHARS = 2000
 
 
@@ -64,6 +89,9 @@ def _tail(text: str) -> str:
 
 
 def _apply_limits(limits: SandboxLimits):
+    if resource is None or not _IS_POSIX:
+        return None
+
     def preexec() -> None:
         os.setsid()
         cpu = limits.cpu_seconds
@@ -83,18 +111,23 @@ class ProcessSandbox:
     def run(self, argv: Sequence[str], cwd: Path) -> SandboxResult:
         env = {key: os.environ[key] for key in _ENV_ALLOWLIST if key in os.environ}
         env["PYTHONDONTWRITEBYTECODE"] = "1"
+        popen_kwargs: dict = {
+            "cwd": str(cwd),
+            "env": env,
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.PIPE,
+            "text": True,
+            "encoding": "utf-8",
+            "errors": "replace",
+        }
+        if _IS_POSIX:
+            popen_kwargs["preexec_fn"] = _apply_limits(self.limits)
+        else:
+            # Windows has no preexec_fn; a new process group lets taskkill
+            # terminate the whole tree (pytest may spawn workers).
+            popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
         try:
-            process = subprocess.Popen(
-                [str(a) for a in argv],
-                cwd=str(cwd),
-                env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                preexec_fn=_apply_limits(self.limits),
-            )
+            process = subprocess.Popen([str(a) for a in argv], **popen_kwargs)
         except OSError as exc:
             return SandboxResult(None, "", f"failed to start: {exc}")
 
@@ -102,7 +135,11 @@ class ProcessSandbox:
             stdout, stderr = process.communicate(timeout=self.limits.wall_time_seconds)
         except subprocess.TimeoutExpired:
             _kill_process_group(process)
-            stdout, stderr = process.communicate()
+            try:
+                stdout, stderr = process.communicate(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                stdout, stderr = process.communicate()
             reason = f"test suite exceeded the {self.limits.wall_time_seconds}s wall-time budget and was killed"
             return SandboxResult(
                 None, _tail(stdout), _tail(stderr), timed_out=True, killed_reason=reason
@@ -111,10 +148,49 @@ class ProcessSandbox:
 
 
 def _kill_process_group(process: subprocess.Popen) -> None:
+    if _IS_POSIX:
+        try:
+            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+        except (ProcessLookupError, PermissionError, OSError):
+            process.kill()
+        return
+    # Windows: /T kills the child and all descendants.
     try:
-        os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-    except (ProcessLookupError, PermissionError, OSError):
+        subprocess.run(
+            ["taskkill", "/F", "/T", "/PID", str(process.pid)],
+            capture_output=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
         process.kill()
+
+
+def sandbox_environment_description() -> str:
+    """Human-readable, honest description of the active sandbox limits."""
+    if _IS_POSIX:
+        return "process sandbox (wall-time, CPU and memory limits, scrubbed env)"
+    return (
+        "process sandbox (wall-time kill, scrubbed env; "
+        "CPU/memory limits unavailable on this OS)"
+    )
+
+
+def sandbox_limitations() -> list[str]:
+    """Platform-specific limitations included in every receipt."""
+    limitations = [
+        "The process sandbox does not isolate network egress; a container-per-run "
+        "backend is planned for untrusted-network toolchains.",
+        "Repository tests run with RepoMate's interpreter and installed "
+        "dependencies; a repo-specific virtualenv is not created, so missing "
+        "dependencies can make the suite fail.",
+    ]
+    if not _IS_POSIX:
+        limitations.append(
+            "CPU, memory and file-size rlimits are POSIX-only; on Windows the "
+            "sandbox enforces only the wall-time budget and environment scrubbing."
+        )
+    return limitations
 
 
 def detect_test_command(ws: RepoWorkspace) -> Optional[ToolchainCommand]:

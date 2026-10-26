@@ -9,6 +9,7 @@ is detected.
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -168,6 +169,9 @@ class TestProcessSandbox:
         assert check.status is VerificationStatus.NOT_RUN
         assert "no recognized test command" in check.reason
 
+    @pytest.mark.skipif(
+        os.name != "posix", reason="RLIMIT_AS is POSIX-only; Windows has no memory rlimit"
+    )
     def test_memory_budget_caps_allocation(self, tmp_path):
         repo = _repo_with_test(
             tmp_path,
@@ -193,6 +197,6 @@ class TestSandboxResultShape:
     def test_run_returns_typed_result(self, tmp_path):
         repo = _mini_repo(tmp_path, "echo-repo", {"noop.txt": "x\n"})
         sandbox = ProcessSandbox(SandboxLimits(wall_time_seconds=10))
-        result = sandbox.run(["true"], cwd=repo)
+        result = sandbox.run([sys.executable, "-c", "pass"], cwd=repo)
         assert result.exit_code == 0
         assert result.timed_out is False

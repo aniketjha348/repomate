@@ -142,7 +142,8 @@ class RunStore:
         removed: list[str] = []
         cutoff = time.time() - max_age_hours * 3600
         for run_id in self.list_run_ids():
-            workspace = self.workspace_dir(run_id) / "workspace"
+            # ``workspace_dir`` already returns ``<run_id>/workspace``.
+            workspace = self.workspace_dir(run_id)
             if workspace.exists() and workspace.stat().st_mtime < cutoff:
                 self.cleanup_workspace(run_id)
                 removed.append(run_id)

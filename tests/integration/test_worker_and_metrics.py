@@ -33,6 +33,14 @@ def eager_celery(monkeypatch, tmp_path):
     return tasks_module
 
 
+def test_worker_app_includes_task_module():
+    # Without this, a real worker starts but discards every delivery with
+    # "Received unregistered task of type 'repomate.execute_run'".
+    from services.worker.celery_app import app
+
+    assert "services.worker.tasks" in (app.conf.include or ())
+
+
 def test_celery_task_executes_pipeline(tmp_path, local_repo, eager_celery, monkeypatch):
     from repomate_core.orchestration import pipeline as pipeline_module
 

@@ -2,6 +2,7 @@
 tests via the same DB-API surface). The durable system of record."""
 
 from pathlib import Path
+from urllib.parse import urlparse
 
 import pytest
 
@@ -12,7 +13,7 @@ from repomate_core.contracts import (
     RunStatus,
     TaskSource,
 )
-from repomate_core.orchestration.store_sql import SqlRunStore
+from repomate_core.orchestration.store_sql import SqlRunStore, _sqlite_path
 
 
 def _record(run_id: str = "run_t1") -> RunRecord:
@@ -30,6 +31,20 @@ def _record(run_id: str = "run_t1") -> RunRecord:
 @pytest.fixture
 def store(tmp_path: Path) -> SqlRunStore:
     return SqlRunStore.sqlite(tmp_path / "runs.db", runs_root=tmp_path / "ws")
+
+
+class TestSqliteUrlResolution:
+    def test_relative_three_slash_url_stays_relative(self, tmp_path):
+        path = _sqlite_path(urlparse("sqlite:///var/runs.db"), tmp_path)
+        assert path == Path("var/runs.db")
+
+    def test_absolute_four_slash_url_stays_absolute(self, tmp_path):
+        path = _sqlite_path(urlparse("sqlite:////tmp/runs.db"), tmp_path)
+        assert path == Path("/tmp/runs.db")
+
+    def test_empty_url_falls_back_to_runs_root(self, tmp_path):
+        path = _sqlite_path(urlparse("sqlite://"), tmp_path)
+        assert path == tmp_path / "runs.db"
 
 
 class TestRunRecords:
@@ -103,10 +118,11 @@ class TestArtifactsAndCancellation:
         assert store.cancel_requested("run_t1") is True
 
     def test_workspace_dirs_on_filesystem(self, store, tmp_path):
-        assert store.workspace_dir("run_t1") == tmp_path / "ws" / "run_t1"
-        clone = store.workspace_dir("run_t1") / "workspace"
+        # The clone destination must match the file store's contract.
+        assert store.workspace_dir("run_t1") == tmp_path / "ws" / "run_t1" / "workspace"
+        clone = store.workspace_dir("run_t1")
         clone.mkdir(parents=True)
         (clone / "file.txt").write_text("x", encoding="utf-8")
         store.cleanup_workspace("run_t1")
         assert not clone.exists()
-        assert store.workspace_dir("run_t1").exists()  # run dir itself survives
+        assert store.workspace_dir("run_t1").parent.exists()  # run dir survives

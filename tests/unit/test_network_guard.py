@@ -18,6 +18,15 @@ from repomate_core.safety.network import NetworkSafetyError, assert_public_https
         "https://100.64.0.1/repo",                    # CGNAT
         "https://198.18.0.5/repo",                    # benchmark range
         "https://240.0.0.1/repo",                     # reserved
+        "https://[::ffff:127.0.0.1]/repo",            # IPv4-mapped loopback
+        "https://[::ffff:10.0.0.1]/repo",             # IPv4-mapped private
+        "https://192.0.2.1/repo",                     # TEST-NET-1
+        "https://198.51.100.7/repo",                  # TEST-NET-2
+        "https://203.0.113.9/repo",                   # TEST-NET-3
+        "https://192.88.99.1/repo",                   # 6to4 relay anycast
+        "https://233.252.0.1/repo",                   # MCAST-TEST-NET
+        "https://[64:ff9b::7f00:1]/repo",             # NAT64-embedded loopback
+        "https://[2001:db8::1]/repo",                 # documentation prefix
     ],
 )
 def test_non_public_hosts_rejected(url):

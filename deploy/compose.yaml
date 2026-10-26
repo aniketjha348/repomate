@@ -27,7 +27,10 @@ services:
     volumes:
       - repomate-runs:/var/lib/repomate
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
   worker:
     build:
@@ -42,10 +45,18 @@ services:
     volumes:
       - repomate-runs:/var/lib/repomate
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
   redis:
     image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   postgres:
     image: postgres:16-alpine
@@ -53,6 +64,11 @@ services:
       POSTGRES_DB: repomate
       POSTGRES_USER: repomate
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U repomate -d repomate"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     volumes:
       - repomate-db:/var/lib/postgresql/data
     # Point services at PostgreSQL with:

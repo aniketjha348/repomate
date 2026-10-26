@@ -46,6 +46,9 @@ def test_test_guidance_names_relevant_tests_and_commands(local_workspace):
     assert guidance.relevant_tests[0].path == "tests/test_core.py"
     assert "keyword-based" in guidance.note
     assert "full suite" in guidance.note
+    # Guidance is built before verification; it must not claim execution.
+    assert "already executed" not in guidance.note
+    assert "receipt" in guidance.note
 
 
 def test_test_guidance_honest_without_toolchain(tmp_path):

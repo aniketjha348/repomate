@@ -90,6 +90,56 @@ def test_empty_old_text_creates_file(local_workspace):
     assert local_workspace.git("status", "--porcelain").stdout.strip() == ""
 
 
+def test_empty_old_text_refuses_to_overwrite_existing_file(local_workspace):
+    with pytest.raises(EditAnchorError, match="already exists"):
+        apply_proposed_edits(
+            local_workspace,
+            _plan([
+                ProposedEdit(
+                    path="README.md",
+                    old_text="",
+                    new_text="replacement that would delete the README\n",
+                    rationale="not actually a create",
+                )
+            ]),
+        )
+    # The original README is still intact.
+    assert "fixture-project" in local_workspace.read_text("README.md")
+
+
+def test_edit_does_not_truncate_large_file(local_workspace, local_repo):
+    large = local_repo / "src" / "fixture" / "large.py"
+    large.write_text(
+        "HEAD\n" + ("x" * 350_000) + "\nTAIL_MARKER\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    local_workspace.git("add", "-A")
+    local_workspace.git(
+        "-c", "user.name=T", "-c", "user.email=t@t.invalid",
+        "commit", "-m", "add large fixture file",
+    )
+
+    artifact = apply_proposed_edits(
+        local_workspace,
+        _plan([
+            ProposedEdit(
+                path="src/fixture/large.py",
+                old_text="HEAD",
+                new_text="HEAD2",
+                rationale="rename the marker",
+            )
+        ]),
+    )
+    assert "HEAD2" in artifact.patch
+    # Apply the patch and prove the 350k tail survived; a truncated read
+    # would have produced a diff that deletes it.
+    local_workspace.apply(artifact.patch)
+    patched = local_workspace.read_text("src/fixture/large.py", max_chars=None)
+    assert "TAIL_MARKER" in patched
+    local_workspace.reset_hard()
+
+
 def test_multi_file_edits_single_patch(local_workspace):
     artifact = apply_proposed_edits(
         local_workspace,

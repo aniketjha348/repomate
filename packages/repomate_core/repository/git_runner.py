@@ -31,21 +31,27 @@ def run_git(
     env.setdefault("GIT_TRACE", "0")
     cmd = ["git", "--no-pager", "-c", "core.autocrlf=false", *args]
     try:
-        result = subprocess.run(
+        # Bytes mode is deliberate: ``text=True`` would translate "\n" to
+        # os.linesep on Windows stdin, corrupting patches passed to
+        # ``git apply -``. Decode the captured output ourselves instead.
+        raw = subprocess.run(
             cmd,
             cwd=str(cwd),
             env=env,
             capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
             timeout=timeout,
-            input=input_text,
+            input=input_text.encode("utf-8") if input_text is not None else None,
         )
     except subprocess.TimeoutExpired as exc:
         raise WorkspaceError(f"git command timed out after {timeout}s") from exc
     except OSError as exc:
         raise WorkspaceError(f"git command failed to start: {_redact(str(exc), redact)}") from exc
+    result = subprocess.CompletedProcess(
+        raw.args,
+        raw.returncode,
+        stdout=raw.stdout.decode("utf-8", errors="replace"),
+        stderr=raw.stderr.decode("utf-8", errors="replace"),
+    )
     if check and result.returncode != 0:
         stderr = _redact(result.stderr.strip(), redact)
         raise WorkspaceError(f"git {' '.join(args[:2])} failed: {stderr[:500]}")

@@ -12,4 +12,7 @@ if __name__ == "__main__":
         "--loglevel=info",
         f"--concurrency={os.environ.get('REPOMATE_WORKER_CONCURRENCY', '2')}",
     ]
+    # Celery's prefork pool is POSIX-only; Windows needs solo/threads.
+    if os.name == "nt":
+        argv.append("--pool=solo")
     app.worker_main(argv=argv)

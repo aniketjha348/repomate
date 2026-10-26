@@ -84,8 +84,9 @@ before real traffic; the HTTP listener currently redirects to 443).
 1. **Redis**: replace the compose/dev redis with ElastiCache
    (serverless or `cache.t4g.micro`) in the same VPC; update `REDIS_URL`.
 2. **PostgreSQL**: RDS Postgres (`db.t4g.micro`, Multi-AZ later) and set
-   `REPOMATE_DATABASE_URL` — the SQL store is already live-tested
-   (SQLite path) and schema-compatible.
+   `REPOMATE_DATABASE_URL`. The SQL store is live-tested on SQLite; the
+   PostgreSQL dialect shares the same schema/queries and should be
+   smoke-tested in staging before production.
 3. **EFS volume** if you keep `REPOMATE_RUNS_ROOT` on disk while scaling
    the API beyond 1 task (shared run records) — or go SQL-only.
 4. **Worker queue-depth autoscaling**: publish

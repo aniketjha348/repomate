@@ -89,6 +89,20 @@ def test_bug_task_returns_need_more_info(tmp_path, local_repo):
     assert record.plan.questions
 
 
+def test_missing_evidence_still_records_planner(tmp_path, local_repo):
+    run_input = RepositoryInput(
+        source=TaskSource.REPO_TASK,
+        repo_url="https://github.com/acme/fixture-project",
+        task="add the documentation to the readme",  # all stopwords -> no evidence
+    )
+    record = run_pipeline(
+        run_input, config=_config(tmp_path), workspace_factory=_factory(local_repo)
+    )
+    assert record.status is RunStatus.NEED_MORE_INFO
+    assert record.artifact is None
+    assert record.planner == "heuristic-v1"
+
+
 def test_invalid_url_fails_with_typed_error(tmp_path):
     run_input = RepositoryInput(
         source=TaskSource.REPO_TASK,

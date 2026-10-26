@@ -47,8 +47,9 @@ def build_test_guidance(
         relevant_tests=relevant,
         note=(
             "Selection is keyword-based — start with the files above, then run "
-            "the full suite as the authoritative check. The verification stage "
-            f"already executed the full suite ({command.display})."
+            "the full suite as the authoritative check. Whether the full suite "
+            "actually executed is recorded in the verification receipt "
+            f"({command.display})."
         ) if relevant else (
             "No test file matched this task by keyword; run the full suite "
             "as the authoritative check."

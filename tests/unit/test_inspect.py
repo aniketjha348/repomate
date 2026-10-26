@@ -68,3 +68,54 @@ def test_license_file_beats_manifest(local_workspace):
     assert snapshot.license.file_path == "LICENSE"
     assert snapshot.license.spdx_id == "MIT"
     assert "content" in snapshot.license.note
+
+
+def _committed_repo(path: Path) -> RepoWorkspace:
+    _git(path, "init", "-b", "main")
+    _git(path, "add", "-A")
+    _git(path, "commit", "-m", "init")
+    return RepoWorkspace.from_local(path)
+
+
+def test_pyproject_table_form_license_recognized(tmp_path: Path):
+    repo = tmp_path / "table-license"
+    repo.mkdir()
+    (repo / "pyproject.toml").write_text(
+        '[project]\nname = "table-license"\nlicense = { text = "Apache-2.0" }\n',
+        encoding="utf-8",
+    )
+    snapshot = inspect_repository(
+        _committed_repo(repo), owner="a", name="b", url="https://github.com/a/b"
+    )
+    assert snapshot.license.status.value == "RECOGNIZED"
+    assert snapshot.license.spdx_id == "Apache-2.0"
+
+
+def test_package_json_bin_string_is_a_path(tmp_path: Path):
+    repo = tmp_path / "bin-string"
+    repo.mkdir()
+    (repo / "cli.js").write_text("#!/usr/bin/env node\n", encoding="utf-8")
+    (repo / "package.json").write_text(
+        json.dumps({"name": "bin-string", "bin": "./cli.js"}), encoding="utf-8"
+    )
+    snapshot = inspect_repository(
+        _committed_repo(repo), owner="a", name="b", url="https://github.com/a/b"
+    )
+    assert "./cli.js" in [entry.path for entry in snapshot.entry_points]
+
+
+def test_package_json_bin_mapping_uses_paths_not_command_names(tmp_path: Path):
+    repo = tmp_path / "bin-map"
+    repo.mkdir()
+    (repo / "bin").mkdir()
+    (repo / "bin" / "tool.js").write_text("#!/usr/bin/env node\n", encoding="utf-8")
+    (repo / "package.json").write_text(
+        json.dumps({"name": "bin-map", "bin": {"tool": "bin/tool.js"}}),
+        encoding="utf-8",
+    )
+    snapshot = inspect_repository(
+        _committed_repo(repo), owner="a", name="b", url="https://github.com/a/b"
+    )
+    paths = [entry.path for entry in snapshot.entry_points]
+    assert "bin/tool.js" in paths
+    assert "tool" not in paths

@@ -179,7 +179,15 @@ def _clean_draft(raw) -> str | None:
         return None
     draft = raw.strip()
     if draft.startswith("```"):
-        draft = draft.strip("`").lstrip("markdown").strip()
+        # Drop the opening fence line (``` or ```markdown) and the closing
+        # fence. Do not character-strip: ``lstrip("markdown")`` used to eat
+        # real leading words such as "markdown is a markup language".
+        lines = draft.splitlines()[1:]
+        while lines and not lines[-1].strip():
+            lines.pop()
+        if lines and lines[-1].strip().startswith("```"):
+            lines.pop()
+        draft = "\n".join(lines).strip()
     return draft[:8000] or None
 
 
