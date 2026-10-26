@@ -1,7 +1,11 @@
-name: Deploy AWS backend
+name: Deploy AWS app
 
-# Backend deploy chain: CI -> ECR images -> Terraform apply -> health gate ->
-# hand the new API URL to the Vercel workflow.
+# Full-stack deploy chain: CI -> ECR images (api, worker, web) -> Terraform
+# apply -> health gate on both the frontend and the API.
+#
+# The Next.js service is part of the same ALB, so image_web must always resolve
+# to a real tag: with an empty image_web the stack's web_enabled local goes false
+# and Terraform destroys the frontend service it is already running.
 #
 # Authentication is OIDC: the workflow assumes the role created in AWS and trusts
 # only this repository's `production` environment, so no long-lived AWS key
@@ -15,8 +19,10 @@ on:
       - packages/**
       - services/**
       - scripts/**
+      - apps/web/**
       - deploy/**
       - pyproject.toml
+      - .dockerignore
       - .github/workflows/ci.yml
       - .github/workflows/deploy-aws.yml
 
@@ -83,6 +89,22 @@ jobs:
           cache-to: type=gha,scope=worker,mode=max
           tags: ${{ steps.ecr.outputs.registry }}/repomate/worker:${{ github.sha }}
 
+      - name: Create the web repository if this is its first build
+        run: |
+          aws ecr describe-repositories --repository-names repomate/web \
+            || aws ecr create-repository --repository-name repomate/web
+
+      - name: Build and push web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.web
+          push: true
+          provenance: false
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+          tags: ${{ steps.ecr.outputs.registry }}/repomate/web:${{ github.sha }}
+
   infrastructure:
     name: Plan and apply
     needs: images
@@ -125,9 +147,21 @@ jobs:
         id: images
         run: |
           acct=$(aws sts get-caller-identity --query Account --output text)
+          api="$acct.dkr.ecr.$AWS_REGION.amazonaws.com/repomate/api:$GITHUB_SHA"
+          worker="$acct.dkr.ecr.$AWS_REGION.amazonaws.com/repomate/worker:$GITHUB_SHA"
+          web="$acct.dkr.ecr.$AWS_REGION.amazonaws.com/repomate/web:$GITHUB_SHA"
+          # An empty image_web silently destroys the running frontend service,
+          # so refuse to plan with a half-resolved image set.
+          for image in api worker web; do
+            if [ -z "${!image}" ]; then
+              echo "::error::could not resolve the $image image reference"
+              exit 1
+            fi
+          done
           {
-            echo "api=$acct.dkr.ecr.$AWS_REGION.amazonaws.com/repomate/api:$GITHUB_SHA"
-            echo "worker=$acct.dkr.ecr.$AWS_REGION.amazonaws.com/repomate/worker:$GITHUB_SHA"
+            echo "api=$api"
+            echo "worker=$worker"
+            echo "web=$web"
           } >> "$GITHUB_OUTPUT"
 
       - name: Terraform plan
@@ -137,6 +171,7 @@ jobs:
           terraform plan -input=false -no-color \
             -var "image_api=${{ steps.images.outputs.api }}" \
             -var "image_worker=${{ steps.images.outputs.worker }}" \
+            -var "image_web=${{ steps.images.outputs.web }}" \
             -var "allowed_origins=${{ vars.ALLOWED_ORIGINS || 'https://repomate.vercel.app' }}" \
             -out tfplan | tee plan.log
           {
@@ -153,15 +188,17 @@ jobs:
         working-directory: deploy/aws
         run: |
           terraform apply -input=false -no-color tfplan
-          url=$(terraform output -raw api_url)
-          echo "api_url=$url" >> "$GITHUB_OUTPUT"
-          echo "Deployed API: $url" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "api_url=$(terraform output -raw api_url)"
+            echo "web_url=$(terraform output -raw web_url)"
+          } >> "$GITHUB_OUTPUT"
+          echo "Deployed app: $(terraform output -raw web_url)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Wait for the services to settle
         if: github.ref == 'refs/heads/main'
         run: |
           aws ecs wait services-stable --cluster repomate-cluster \
-            --services repomate-api repomate-worker
+            --services repomate-api repomate-worker repomate-web
 
       - name: Gate on the deployed API reporting healthy
         if: github.ref == 'refs/heads/main'
@@ -179,10 +216,34 @@ jobs:
           cat /tmp/health.json >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
+      # The bundle is built with an empty NEXT_PUBLIC_API_URL so it fetches
+      # relative /api/* paths off the same origin. If a localhost URL ever leaks
+      # into the served HTML or a chunk, the frontend would be talking to the
+      # visitor's own machine, so fail the deploy instead of shipping that.
+      - name: Gate on the deployed frontend
+        if: github.ref == 'refs/heads/main'
+        env:
+          WEB_URL: ${{ steps.apply.outputs.web_url }}
+        run: |
+          if [ -z "$WEB_URL" ]; then
+            echo "::error::terraform did not emit a web_url output"
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error --retry 40 --retry-delay 10 \
+            --retry-connrefused "$WEB_URL/" -o /tmp/index.html
+          grep -q '<title' /tmp/index.html
+          if grep -q 'localhost:8000' /tmp/index.html; then
+            echo "::error::the served bundle still points at localhost:8000"
+            exit 1
+          fi
+          echo "### Frontend" >> "$GITHUB_STEP_SUMMARY"
+          echo "Served $(wc -c < /tmp/index.html) bytes from $WEB_URL with same-origin /api/* calls." \
+            >> "$GITHUB_STEP_SUMMARY"
+
       # NEXT_PUBLIC_* is baked into the bundle at build time, so the frontend
       # only follows the API after a rebuild. Dispatch the Vercel workflow with
       # this apply's URL as an input rather than mutating a repo variable.
-      - name: Rebuild the frontend against the new API
+      - name: Rebuild the Vercel copy against the new API
         if: github.ref == 'refs/heads/main'
         env:
           API_URL: ${{ steps.apply.outputs.api_url }}
