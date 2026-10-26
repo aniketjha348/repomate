@@ -1,3 +1,4 @@
+# trigger
 name: Deploy AWS app
 
 # Full-stack deploy chain: CI -> ECR images (api, worker, web) -> Terraform
