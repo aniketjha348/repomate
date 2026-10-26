@@ -1,0 +1,43 @@
+# RepoMate web (Next.js) image: builds the app, then runs `next start`.
+#
+# The API origin is deliberately NOT baked in as an absolute URL. The ALB in
+# deploy/aws routes /api/* to the API service, so the bundle is built with an
+# empty NEXT_PUBLIC_API_URL and every browser request is same-origin — which is
+# also what keeps an HTTPS page from tripping mixed content on an http:// API.
+FROM node:24-alpine AS build
+
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+
+COPY apps/web/package.json apps/web/package-lock.json ./
+RUN npm ci
+
+COPY apps/web/tsconfig.json apps/web/next.config.ts apps/web/postcss.config.mjs ./
+COPY apps/web/app ./app
+COPY apps/web/components ./components
+COPY apps/web/lib ./lib
+
+ARG NEXT_PUBLIC_API_URL=
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+RUN npm run build
+
+FROM node:24-alpine AS runtime
+
+WORKDIR /app
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_PUBLIC_API_URL=
+
+RUN addgroup -S app && adduser -S app -G app
+
+COPY --from=build --chown=app:app /app/package.json ./package.json
+COPY --from=build --chown=app:app /app/next.config.ts ./next.config.ts
+COPY --from=build --chown=app:app /app/.next ./.next
+COPY --from=build --chown=app:app /app/node_modules ./node_modules
+
+USER app
+EXPOSE 3000
+
+# PORT is honoured so the same image can run on a platform that injects it.
+CMD sh -c "npx next start -H 0.0.0.0 -p ${PORT:-3000}"

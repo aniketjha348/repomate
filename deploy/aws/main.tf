@@ -100,6 +100,14 @@ resource "aws_security_group" "services" {
     security_groups = [aws_security_group.alb.id]
   }
 
+  # The frontend task listens on 3000 and is reached only through the ALB.
+  ingress {
+    from_port       = 3000
+    to_port         = 3000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -229,6 +237,53 @@ resource "aws_lb_target_group" "api" {
   }
 }
 
+# ---- optional frontend on the same ALB --------------------------------------
+#
+# Path routing rather than a second load balancer: the browser talks to one
+# origin, so an https:// page never has to call an http:// API and /api/* still
+# lands on the FastAPI targets.
+
+locals {
+  web_enabled     = var.image_web != ""
+  http_default_tg = local.web_enabled ? aws_lb_target_group.web[0].arn : aws_lb_target_group.api.arn
+}
+
+resource "aws_lb_target_group" "web" {
+  count       = local.web_enabled ? 1 : 0
+  name_prefix = substr(var.project, 0, 6)
+  port        = 3000
+  protocol    = "HTTP"
+  vpc_id      = data.aws_vpc.default.id
+  target_type = "ip"
+
+  health_check {
+    path                = "/"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+}
+
+# Only one of the two listeners carries traffic: with a certificate port 80
+# redirects, otherwise there is no port 443 listener at all.
+resource "aws_lb_listener_rule" "api" {
+  count        = local.web_enabled ? 1 : 0
+  listener_arn = var.certificate_arn == "" ? aws_lb_listener.http.arn : aws_lb_listener.https[0].arn
+  priority     = 10
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/*"]
+    }
+  }
+}
+
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.api.arn
   port              = 80
@@ -240,7 +295,7 @@ resource "aws_lb_listener" "http" {
     for_each = var.certificate_arn == "" ? [1] : []
     content {
       type             = "forward"
-      target_group_arn = aws_lb_target_group.api.arn
+      target_group_arn = local.http_default_tg
     }
   }
 
@@ -267,7 +322,7 @@ resource "aws_lb_listener" "https" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.api.arn
+    target_group_arn = local.http_default_tg
   }
 }
 

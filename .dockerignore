@@ -1,0 +1,27 @@
+# Nothing here is read by any Dockerfile, and apps/web/node_modules alone is
+# ~400MB: sending it would make every image build pay for it.
+.git
+.github
+.dockerignore
+**/node_modules
+**/.next
+**/.turbo
+**/*.tsbuildinfo
+**/out
+
+# Local state and scratch must never reach an image.
+.env
+.env.*
+!.env.example
+var/
+**/.terraform
+*.tfstate
+*.tfstate.*
+deploy/seccomp-bwrap.json
+
+docs
+tests
+**/__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache

@@ -20,6 +20,12 @@ variable "image_worker" {
   type        = string
 }
 
+variable "image_web" {
+  description = "ECR/image URI for the Next.js frontend (deploy/Dockerfile.web). Empty keeps the stack API-only."
+  type        = string
+  default     = ""
+}
+
 variable "allowed_origins" {
   description = "CORS origins for the API (your frontend URL)"
   type        = string
@@ -30,6 +36,12 @@ variable "api_desired_count" {
   description = "Baseline API tasks"
   type        = number
   default     = 2
+}
+
+variable "web_desired_count" {
+  description = "Baseline frontend tasks (each is a Node server, so scale it like the API)"
+  type        = number
+  default     = 1
 }
 
 variable "worker_desired_count" {
