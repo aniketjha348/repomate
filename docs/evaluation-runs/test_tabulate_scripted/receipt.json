@@ -1,0 +1,84 @@
+{
+  "checks": [
+    {
+      "name": "patch-path-policy",
+      "command": "internal:patch-policy",
+      "status": "PASSED",
+      "exit_code": null,
+      "duration_ms": null,
+      "output_tail": "",
+      "reason": ""
+    },
+    {
+      "name": "patch-applies-on-pinned-commit",
+      "command": "git apply --check",
+      "status": "PASSED",
+      "exit_code": 0,
+      "duration_ms": null,
+      "output_tail": "",
+      "reason": ""
+    },
+    {
+      "name": "sandbox-egress-isolation",
+      "command": "internal:egress-probe",
+      "status": "PASSED",
+      "exit_code": null,
+      "duration_ms": null,
+      "output_tail": "{\n  \"public_http\": \"blocked:OSError\",\n  \"cloud_metadata\": \"blocked:OSError\",\n  \"cloud_metadata_ipv6\": \"blocked:OSError\",\n  \"private_rfc1918_10\": \"blocked:OSError\",\n  \"private_rfc1918_172\": \"blocked:OSError\",\n  \"private_rfc1918_192\": \"blocked:OSError\",\n  \"loopback_postgres\": \"blocked:ConnectionRefusedError\",\n  \"loopback_redis\": \"blocked:ConnectionRefusedError\",\n  \"loopback_api\": \"blocked:ConnectionRefusedError\",\n  \"public_https\": \"blocked:gaierror\",\n  \"dns\": \"blocked:gaierror\"\n}",
+      "reason": "every egress attempt from inside the sandbox was refused"
+    },
+    {
+      "name": "repository-test-suite",
+      "command": "python -m pytest -q",
+      "status": "PASSED",
+      "exit_code": 0,
+      "duration_ms": 4042,
+      "output_tail": "============================= test session starts ==============================\nplatform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.7.0\nrootdir: /tmp/repomate-verify-f0rx304v/patched\nconfigfile: pyproject.toml\nplugins: anyio-4.15.1\ncollected 384 items\n\nREADME.md .                                                              [  0%]\ntabulate/__init__.py ................                                    [  4%]\ntest/test_api.py ...                                                     [  5%]\ntest/test_cli.py .............................                           [ 12%]\ntest/test_grapheme_clusters.py .................                         [ 17%]\ntest/test_grid_contract.py .                                             [ 17%]\ntest/test_input.py .......sssssssss.................                     [ 26%]\ntest/test_internal.py ......................                             [ 31%]\ntest/test_output.py .................................................... [ 45%]\n........................................................................ [ 64%]\n..........................................s..................ssss....... [ 82%]\n.....                                                                    [ 84%]\ntest/test_regression.py ......................s.........s...s.....       [ 95%]\ntest/test_textwrapper.py ...................                             [100%]\n\n======================= 367 passed, 17 skipped in 2.96s ========================",
+      "reason": ""
+    }
+  ],
+  "overall": "PASSED",
+  "environment": "process sandbox (wall-time, CPU and memory limits, scrubbed env; network egress denied (bwrap)) on Linux/x86_64",
+  "limitations": [
+    "The sandbox uses an unprivileged bwrap namespace: egress is denied, host socket directories are masked, the process table is private, and the repository's .git directory is read-only. It is not a full VM; the host kernel is shared.",
+    "Repository tests run with RepoMate's interpreter and installed dependencies; a repo-specific virtualenv is not created, so missing dependencies are reported NOT_RUN (they cannot be downloaded without network access)."
+  ],
+  "sandbox": {
+    "network_mode": "disabled",
+    "backend": "bwrap",
+    "policy_enforced": true,
+    "egress_validation": "PASSED",
+    "egress_detail": "every egress attempt from inside the sandbox was refused"
+  },
+  "base_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "patch_sha256": "238f5a58d5ed3ee04326e5601015211ed7156c672c8e83cab0cada0f56c854d6",
+  "comparison": {
+    "base_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+    "patch_sha256": "238f5a58d5ed3ee04326e5601015211ed7156c672c8e83cab0cada0f56c854d6",
+    "baseline": {
+      "phase": "baseline",
+      "commit_sha": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+      "command": "python -m pytest -q",
+      "status": "PASSED",
+      "exit_code": 0,
+      "duration_ms": 4039,
+      "output_summary": "============================= test session starts ==============================\nplatform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.7.0\nrootdir: /tmp/repomate-verify-f0rx304v/baseline\nconfigfile: pyproject.toml\nplugins: anyio-4.15.1\ncollected 383 items\n\nREADME.md .                                                              [  0%]\ntabulate/__init__.py ................                                    [  4%]\ntest/test_api.py ...                                                     [  5%]\ntest/test_cli.py .............................                           [ 12%]\ntest/test_grapheme_clusters.py .................                         [ 17%]\ntest/test_input.py .......sssssssss.................                     [ 25%]\ntest/test_internal.py ......................                             [ 31%]\ntest/test_output.py .................................................... [ 45%]\n........................................................................ [ 63%]\n..........................................s..................ssss....... [ 82%]\n.....                                                                    [ 84%]\ntest/test_regression.py ......................s.........s...s.....       [ 95%]\ntest/test_textwrapper.py ...................                             [100%]\n\n======================= 366 passed, 17 skipped in 2.93s ========================",
+      "reason": ""
+    },
+    "post_patch": {
+      "phase": "post_patch",
+      "commit_sha": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+      "command": "python -m pytest -q",
+      "status": "PASSED",
+      "exit_code": 0,
+      "duration_ms": 4042,
+      "output_summary": "============================= test session starts ==============================\nplatform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.7.0\nrootdir: /tmp/repomate-verify-f0rx304v/patched\nconfigfile: pyproject.toml\nplugins: anyio-4.15.1\ncollected 384 items\n\nREADME.md .                                                              [  0%]\ntabulate/__init__.py ................                                    [  4%]\ntest/test_api.py ...                                                     [  5%]\ntest/test_cli.py .............................                           [ 12%]\ntest/test_grapheme_clusters.py .................                         [ 17%]\ntest/test_grid_contract.py .                                             [ 17%]\ntest/test_input.py .......sssssssss.................                     [ 26%]\ntest/test_internal.py ......................                             [ 31%]\ntest/test_output.py .................................................... [ 45%]\n........................................................................ [ 64%]\n..........................................s..................ssss....... [ 82%]\n.....                                                                    [ 84%]\ntest/test_regression.py ......................s.........s...s.....       [ 95%]\ntest/test_textwrapper.py ...................                             [100%]\n\n======================= 367 passed, 17 skipped in 2.96s ========================",
+      "reason": ""
+    },
+    "outcome": "NO_REGRESSION_DETECTED",
+    "interpretation": "the selected check passed before and after the patch; no regression was detected in the selected check",
+    "commands_match": true
+  },
+  "resolution_statement": "Selected checks passed before and after the patch; no regression was detected in those checks, but issue resolution is not fully established.",
+  "created_at": "2026-10-26T10:01:40.824060Z"
+}

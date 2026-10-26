@@ -15,12 +15,55 @@ from pathlib import Path
 import pytest
 
 from repomate_core.contracts import VerificationStatus
+from repomate_core.verification.network_policy import EgressBackend, detect_egress_backend
 from repomate_core.verification.sandbox import (
     ProcessSandbox,
     SandboxLimits,
+    _dependency_failure_reason,
     detect_test_command,
     run_test_suite_check,
 )
+
+requires_backend = pytest.mark.skipif(
+    detect_egress_backend() is EgressBackend.NONE,
+    reason="no egress-enforcement backend on this host (bwrap); the sandbox fails closed",
+)
+
+
+class TestDependencyFailureClassification:
+    """A test's own network error is not a missing build dependency."""
+
+    def test_missing_module_is_not_run_reason(self):
+        reason = _dependency_failure_reason(
+            "ERROR collecting tests/test_diagram.py\n"
+            "ModuleNotFoundError: No module named 'railroad'\n"
+        )
+        assert reason is not None
+        assert "railroad" in reason
+
+    def test_pip_transport_failure_needs_pip_context(self):
+        output = (
+            "FAILED test/test_network_egress.py\n"
+            "urllib.error.URLError: <urlopen error [Errno -3] "
+            "Temporary failure in name resolution>\n"
+            "1 failed, 366 passed in 3.47s\n"
+        )
+        assert _dependency_failure_reason(output) is None
+
+        pip_output = (
+            "ERROR: Could not install packages due to an OSError: "
+            "Temporary failure in name resolution\n"
+        )
+        reason = _dependency_failure_reason(pip_output)
+        assert reason is not None
+        assert "dependency installation failed" in reason
+
+    def test_pip_resolution_failure_is_not_run_reason(self):
+        reason = _dependency_failure_reason(
+            "ERROR: No matching distribution found for railroad\n"
+        )
+        assert reason is not None
+        assert "package resolution failed" in reason
 
 
 def _git(cwd: Path, *args: str) -> None:
@@ -87,6 +130,7 @@ class TestDetectTestCommand:
         assert detect_test_command(RepoWorkspace.from_local(repo)) is None
 
 
+@requires_backend
 class TestProcessSandbox:
     def test_passing_suite(self, tmp_path):
         repo = _repo_with_test(
@@ -143,20 +187,24 @@ class TestProcessSandbox:
         run_test_suite_check(ws, limits=SandboxLimits(wall_time_seconds=60))
         dump = json.loads((repo / "envdump.json").read_text(encoding="utf-8"))
         assert "REPOMATE_SECRET_MARKER" not in dump
-        assert "VYCE_API_KEY" not in dump
+        assert "OLLAMA_API_KEY" not in dump
         assert "PATH" in dump  # minimal working environment kept
 
     def test_output_is_capped(self, tmp_path):
         repo = _repo_with_test(
             tmp_path,
             "noisy-repo",
-            "def test_noisy():\n    print('x' * 1_000_000)\n    assert True\n",
+            # Fail as well as print: pytest only echoes captured stdout for
+            # failing tests, and a long failure tail used to overflow the
+            # VerificationCheck.output_tail contract after execution.
+            "def test_noisy():\n    print('x' * 1_000_000)\n    assert False\n",
         )
         from repomate_core.repository.workspace import RepoWorkspace
 
         check = run_test_suite_check(
             RepoWorkspace.from_local(repo), limits=SandboxLimits(wall_time_seconds=60)
         )
+        assert check.status is VerificationStatus.FAILED
         assert len(check.output_tail) <= 2000
 
     def test_no_toolchain_is_honest_not_run(self, tmp_path):
@@ -193,6 +241,7 @@ class TestProcessSandbox:
         assert check.status is VerificationStatus.FAILED
 
 
+@requires_backend
 class TestSandboxResultShape:
     def test_run_returns_typed_result(self, tmp_path):
         repo = _mini_repo(tmp_path, "echo-repo", {"noop.txt": "x\n"})

@@ -17,7 +17,7 @@ export function PlannerChip({
       </span>
       {isHeuristic ? (
         <span className="text-xs text-amber-400/90">
-          offline heuristic planner — set VYCE_API_KEY for model planning
+          offline heuristic planner — set OLLAMA_API_KEY for model planning
         </span>
       ) : null}
     </span>

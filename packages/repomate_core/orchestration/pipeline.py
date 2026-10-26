@@ -21,22 +21,26 @@ from typing import Callable, Optional
 from repomate_core.contracts import (
     ErrorCode,
     RepositoryInput,
+    RetrievalStatus,
     RunRecord,
     RunStatus,
     StageName,
     TaskSource,
+    ToolLoopStatus,
 )
-from repomate_core.models import ModelError, ModelTimeoutError
+from repomate_core.models import ModelBudgetExceeded, ModelError, ModelTimeoutError
 from repomate_core.orchestration.context import EventCallback, RunContext
 from repomate_core.orchestration.errors import PipelineError, RunCancelled
 from repomate_core.orchestration.pipeline_config import PipelineConfig
 from repomate_core.orchestration.stages import (
     WorkspaceFactory,
     plan_for_missing_evidence,
+    stage_expand_evidence,
     stage_generate_artifact,
     stage_plan,
     stage_pin_snapshot,
     stage_retrieve_evidence,
+    stage_validate_grounding,
     stage_verify,
 )
 from repomate_core.planning.heuristic import HeuristicPlanner
@@ -108,6 +112,41 @@ def _run_stages(
     task_text, evidence = stage_retrieve_evidence(ctx, ref, run_input, workspace)
     ctx.guard()
 
+    retrieval = ctx.record.retrieval
+    if retrieval is not None and retrieval.status is RetrievalStatus.PARTIAL:
+        # A truncated scan is never allowed to continue as if it were a full
+        # analysis. The run publishes its evidence, orientation and the
+        # remaining-work report, but stops before planning or generating an
+        # artifact from an explicitly incomplete repository scope.
+        ctx.record.status = RunStatus.PARTIAL
+        ctx.emit(
+            StageName.RETRIEVE_EVIDENCE,
+            "INFO",
+            "Retrieval limits reached; run marked PARTIAL without claiming "
+            "full analysis",
+        )
+        return _finish(ctx)
+
+    # 4) supplementary model-driven retrieval (bounded) --------------------------
+    # The model may ask for extra context through three typed read-only tools.
+    # Every retrieved item is re-validated against the pinned workspace, and a
+    # global tool-budget hit is an explicit PARTIAL stop.
+    planner = ctx.config.planner or resolve_planner()
+    ctx.record.planner = planner.name
+    evidence = stage_expand_evidence(ctx, workspace, task_text, evidence, planner)
+    ctx.guard()
+
+    tool_loop = ctx.record.tool_loop
+    if tool_loop is not None and tool_loop.status is ToolLoopStatus.PARTIAL:
+        ctx.record.status = RunStatus.PARTIAL
+        ctx.emit(
+            StageName.RETRIEVE_EVIDENCE,
+            "INFO",
+            "Tool-retrieval limits reached; run marked PARTIAL without "
+            "claiming full analysis",
+        )
+        return _finish(ctx)
+
     if not evidence:
         ctx.record.plan = plan_for_missing_evidence(ctx, task_text)
         ctx.record.status = RunStatus.NEED_MORE_INFO
@@ -117,9 +156,18 @@ def _run_stages(
         )
         return _finish(ctx)
 
-    # 4) plan ------------------------------------------------------------------------
-    plan = stage_plan(ctx, task_text, evidence)
+    # 5) plan ------------------------------------------------------------------------
+    plan = stage_plan(ctx, task_text, evidence, planner)
     ctx.guard()
+
+    # 4b) grounding ----------------------------------------------------------------
+    # Citations are validated against this run's evidence before any
+    # artifact is generated, and before the run can stop early: a plan that
+    # asks for more information still makes assertions, and those
+    # assertions must not reach a report unvalidated.
+    stage_validate_grounding(ctx, plan, evidence, workspace)
+    ctx.guard()
+
     if plan.need_more_info:
         ctx.record.status = RunStatus.NEED_MORE_INFO
         return _finish(ctx)
@@ -178,8 +226,22 @@ def _to_run_error(exc: Exception):
 
     if isinstance(exc, PipelineError):
         return exc.to_run_error()
+    if isinstance(exc, ModelBudgetExceeded):
+        return RunError(code=ErrorCode.BUDGET_EXCEEDED, message=str(exc))
     if isinstance(exc, (ModelError, ModelTimeoutError)):
         return RunError(code=ErrorCode.MODEL, message=str(exc))
+    if type(exc).__name__ == "SoftTimeLimitExceeded":
+        # Celery's soft time limit is matched by name so the core package
+        # stays celery-free. The run is finalised FAILED/TIMEOUT instead of
+        # being mislabelled as an internal error.
+        return RunError(
+            code=ErrorCode.TIMEOUT,
+            message="worker run time limit exceeded",
+            detail=(
+                "The execution worker's soft time limit interrupted the run. "
+                "No verification result is claimed."
+            ),
+        )
     if isinstance(exc, RateLimitedError):
         return RunError(code=ErrorCode.RATE_LIMITED, message=str(exc))
     if isinstance(exc, (GitHubAccessError, WorkspaceError, OSError)):

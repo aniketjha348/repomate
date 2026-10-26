@@ -1,0 +1,14 @@
+{
+  "case_workspace": "var/eval-real/cases/regression_tabulate_scripted",
+  "injected_files": [
+    "test/test_padding_contract.py"
+  ],
+  "injection": "Committed a passing contract test on top of upstream so the baseline comparison can detect the scripted regression.",
+  "prepared_commit": "be57b71b53a4278d80159e5ed68bd33343bb51ec",
+  "repo": "astanin/python-tabulate",
+  "upstream_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "base_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "elapsed_seconds": 19.81,
+  "planner_observed": "scripted-eval-v1",
+  "sandbox_backend": "bwrap"
+}

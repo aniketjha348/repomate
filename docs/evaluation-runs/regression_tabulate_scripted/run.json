@@ -1,0 +1,491 @@
+{
+  "run_id": "run_20261026-100403_q8ak1fnr",
+  "status": "COMPLETED",
+  "input": {
+    "source": "REPO_TASK",
+    "issue_url": null,
+    "repo_url": "https://github.com/astanin/python-tabulate",
+    "task": "Adjust the left-padding implementation for the table renderer."
+  },
+  "created_at": "2026-10-26T10:04:03.499190Z",
+  "updated_at": "2026-10-26T10:04:23.296683Z",
+  "snapshot": {
+    "owner": "astanin",
+    "name": "python-tabulate",
+    "url": "https://github.com/astanin/python-tabulate",
+    "default_branch": "master",
+    "commit_sha": "be57b71b53a4278d80159e5ed68bd33343bb51ec",
+    "license": {
+      "status": "RECOGNIZED",
+      "spdx_id": "MIT",
+      "file_path": "LICENSE",
+      "note": "recognized as MIT from license file content"
+    },
+    "languages": {
+      "py": 100.0
+    },
+    "file_count": 27,
+    "readme_path": "README.md",
+    "contributing_path": null,
+    "entry_points": [
+      {
+        "path": "pyproject.toml",
+        "kind": "manifest",
+        "detail": "pyproject.toml scripts: tabulate"
+      }
+    ],
+    "pinned_at": "2026-10-26T10:04:03.731385Z"
+  },
+  "issue": null,
+  "evidence": [
+    {
+      "id": "ev1",
+      "kind": "SOURCE",
+      "path": "tabulate/__init__.py",
+      "start_line": 2182,
+      "end_line": 2193,
+      "snippet": "\\\\end{tabular}\n\n    \"latex_longtable\" produces a tabular environment that can stretch along\n    multiple pages, using the longtable package for LaTeX.\n\n    >>> print(tabulate([[\"spam\", 41.9999], [\"eggs\", \"451.0\"]], tablefmt=\"latex_longtable\"))\n    \\\\begin{longtable}{lr}\n    \\\\hline\n     spam &  41.9999 \\\\\\\\\n     eggs & 451      \\\\\\\\\n    \\\\hline\n    \\\\end{longtable}",
+      "rationale": "matches task keywords: table"
+    },
+    {
+      "id": "ev2",
+      "kind": "DOC",
+      "path": "README.md",
+      "start_line": 1177,
+      "end_line": 1188,
+      "snippet": "-   has to \"guess\" how to print a particular tabular data type\n-   needs to keep the entire table in-memory\n-   has to \"transpose\" the table twice\n-   does much more work than it may appear\n\nIt may not be suitable for serializing really big tables (but who's\ngoing to do that, anyway?) or printing tables in performance sensitive\napplications. `tabulate` is about two orders of magnitude slower than\nsimply joining lists of values with a tab, comma, or other separator.\n\nAt the same time, `tabulate` is comparable to other table\npretty-printers. Given a 10x10 table (a list of lists) of mixed text and",
+      "rationale": "matches task keywords: table"
+    },
+    {
+      "id": "ev3",
+      "kind": "TEST",
+      "path": "test/test_api.py",
+      "start_line": 39,
+      "end_line": 50,
+      "snippet": "(\"tabular_data\", _empty),\n        (\"headers\", ()),\n        (\"tablefmt\", \"simple\"),\n        (\"floatfmt\", \"g\"),\n        (\"intfmt\", \"\"),\n        (\"numalign\", \"default\"),\n        (\"stralign\", \"default\"),\n        (\"missingval\", \"\"),\n        (\"showindex\", \"default\"),\n        (\"disable_numparse\", False),\n        (\"colglobalalign\", None),\n        (\"colalign\", None),",
+      "rationale": "matches task keywords: table"
+    },
+    {
+      "id": "ev4",
+      "kind": "TEST",
+      "path": "test/test_cli.py",
+      "start_line": 183,
+      "end_line": 194,
+      "snippet": "\"\"\"Command line utility: -1, --header option\"\"\"\n    for option in [\"-1\", \"--header\"]:\n        cmd = [sys.executable, \"tabulate/cli.py\", option]\n        raw_table = sample_input(with_headers=True)\n        out = run_and_capture_stdout(cmd, input=raw_table)\n        expected = SAMPLE_SIMPLE_FORMAT_WITH_HEADERS\n        print(out)\n        print(\"got:     \", repr(out))\n        print(\"expected:\", repr(expected))\n        assert_equal(out.splitlines(), expected.splitlines())",
+      "rationale": "matches task keywords: table"
+    },
+    {
+      "id": "ev5",
+      "kind": "TEST",
+      "path": "test/test_grapheme_clusters.py",
+      "start_line": 61,
+      "end_line": 72,
+      "snippet": "[family, \"emoji\"],\n        ]\n        result = tabulate(data, headers=[\"col\", \"desc\"], tablefmt=\"grid\")\n        lines = result.split(\"\\n\")\n\n        border_width = len(lines[0])\n        for line in lines:\n            from tabulate import _visible_width\n\n            assert _visible_width(line) == border_width\n\n    @requires_wcwidth",
+      "rationale": "matches task keywords: table"
+    },
+    {
+      "id": "ev6",
+      "kind": "TEST",
+      "path": "test/test_input.py",
+      "start_line": 431,
+      "end_line": 442,
+      "snippet": "expected1 = \"\\n\".join([\"  DIGITS  LETTERS\", \"--------  ---------\", \"   12345  ABCDE\"])\n    expected2 = \"\\n\".join([\"LETTERS      DIGITS\", \"---------  --------\", \"ABCDE         12345\"])\n    result = tabulate(table, headers=headers)\n    assert_in(result, [expected1, expected2])\n\n\ndef test_list_of_dicts_with_list_of_headers():\n    \"Input: ValueError on a list of headers with a list of dicts (issue #23)\"\n    table = [{\"letters\": \"ABCDE\", \"digits\": 12345}]\n    headers = [\"DIGITS\", \"LETTERS\"]\n    with raises(ValueError):\n        tabulate(table, headers=headers)",
+      "rationale": "matches task keywords: table"
+    },
+    {
+      "id": "ev7",
+      "kind": "TEST",
+      "path": "test/test_internal.py",
+      "start_line": 335,
+      "end_line": 346,
+      "snippet": "]\n    result, sep_lines = T._remove_separating_lines(with_rows)\n    expected = rows_to_pipe_table_str([[0, \"a\"], [1, \"b\"], [2, \"c\"], [3, \"c\"]])\n\n    assert_equal(expected, rows_to_pipe_table_str(result))\n    assert_equal(\"2|4|6\", cols_to_pipe_str(sep_lines))\n\n\ndef test__reinsert_separating_lines():\n    with_rows = [\n        [0, \"a\"],\n        [1, \"b\"],",
+      "rationale": "matches task keywords: table"
+    },
+    {
+      "id": "ev8",
+      "kind": "TEST",
+      "path": "test/test_output.py",
+      "start_line": 2696,
+      "end_line": 2707,
+      "snippet": "def test_latex_raw():\n    \"Output: raw latex with headers\"\n    raw_test_table_headers = list(_test_table_headers)\n    raw_test_table_headers[-1] += \" ($N_0$)\"\n    raw_test_table = list(map(list, _test_table))\n    raw_test_table[0][0] += \"$_1$\"\n    raw_test_table[1][0] = \"\\\\emph{\" + raw_test_table[1][0] + \"}\"\n    print(raw_test_table)\n    result = tabulate(raw_test_table, raw_test_table_headers, tablefmt=\"latex_raw\")\n    expected = \"\\n\".join(\n        [\n            r\"\\begin{tabular}{lr}\",",
+      "rationale": "matches task keywords: table"
+    }
+  ],
+  "retrieval": {
+    "status": "COMPLETE",
+    "limits": {
+      "max_files": 2000,
+      "max_bytes_per_file": 200000,
+      "max_total_bytes": 32000000,
+      "max_search_results": 200,
+      "max_seconds": 30.0
+    },
+    "files_total": 27,
+    "files_eligible": 19,
+    "files_examined": 19,
+    "bytes_read": 369793,
+    "search_results": 15,
+    "evidence_records": 8,
+    "elapsed_ms": 383,
+    "limit_hits": [],
+    "summary": "Retrieval is COMPLETE: examined 19 of 19 eligible file(s) from 27 tracked file(s), read 369793 byte(s), and retained 15 matching file(s). No retrieval limit was reached."
+  },
+  "orientation": {
+    "summary": "astanin/python-tabulate is a py-dominant repository (27 tracked files, default branch master). The README opens with: \"python-tabulate\" License: MIT (recognized). 8 evidence location(s) connect this task to the codebase.",
+    "key_paths": [
+      {
+        "path": "README.md",
+        "role": "project overview and quickstart"
+      },
+      {
+        "path": "tabulate/__init__.py",
+        "role": "relevant to this task (matches task keywords: table)"
+      }
+    ],
+    "languages": {
+      "py": 100.0
+    },
+    "entry_points": [
+      {
+        "path": "pyproject.toml",
+        "role": "manifest: pyproject.toml scripts: tabulate"
+      }
+    ],
+    "generated_by": "snapshot-v1"
+  },
+  "test_guidance": {
+    "run_command": "python -m pytest -q",
+    "focused_command": "python -m pytest -q test/test_api.py test/test_cli.py test/test_grapheme_clusters.py",
+    "relevant_tests": [
+      {
+        "path": "test/test_api.py",
+        "reason": "matches task keywords: table"
+      },
+      {
+        "path": "test/test_cli.py",
+        "reason": "matches task keywords: table"
+      },
+      {
+        "path": "test/test_grapheme_clusters.py",
+        "reason": "matches task keywords: table"
+      },
+      {
+        "path": "test/test_input.py",
+        "reason": "matches task keywords: table"
+      },
+      {
+        "path": "test/test_internal.py",
+        "reason": "matches task keywords: table"
+      }
+    ],
+    "note": "Selection is keyword-based — start with the files above, then run the full suite as the authoritative check. Whether the full suite actually executed is recorded in the verification receipt (python -m pytest -q)."
+  },
+  "tool_loop": null,
+  "model_usage": null,
+  "plan": {
+    "task_type": "BUG_FIX",
+    "summary": "Widen left-aligned table cells by one column.",
+    "planned_changes": [
+      {
+        "path": "tabulate/__init__.py",
+        "change_type": "MODIFY",
+        "rationale": "adjust the left-padding implementation"
+      }
+    ],
+    "acceptance_criteria": [
+      "existing grid output is unchanged"
+    ],
+    "evidence_ids": [
+      "ev1"
+    ],
+    "limitations": [],
+    "need_more_info": false,
+    "questions": [],
+    "planned_by": "scripted-eval-v1",
+    "proposed_claims": [],
+    "raw_response": "",
+    "content_draft": null,
+    "proposed_edits": [
+      {
+        "path": "tabulate/__init__.py",
+        "old_text": "    fmt = f\"{{0:<{width}s}}\"\n    return fmt.format(s)\n",
+        "new_text": "    fmt = f\"{{0:<{width + 1}s}}\"\n    return fmt.format(s)\n",
+        "rationale": "increase the left-aligned cell padding"
+      }
+    ]
+  },
+  "grounding": {
+    "claims": [
+      {
+        "text": "Widen left-aligned table cells by one column.",
+        "evidence_ids": [
+          "ev1"
+        ],
+        "support_status": "hypothesis",
+        "matched_evidence_ids": [],
+        "matched_keywords": []
+      },
+      {
+        "text": "existing grid output is unchanged",
+        "evidence_ids": [
+          "ev1"
+        ],
+        "support_status": "hypothesis",
+        "matched_evidence_ids": [],
+        "matched_keywords": []
+      }
+    ],
+    "warnings": [
+      {
+        "code": "CLAIM_NOT_SUPPORTED_BY_EVIDENCE",
+        "message": "claim cites 'ev1' (tabulate/__init__.py), but that evidence shares no distinctive vocabulary with the claim",
+        "evidence_id": "ev1",
+        "claim_text": "Widen left-aligned table cells by one column."
+      }
+    ],
+    "resolved_evidence_ids": [
+      "ev1"
+    ],
+    "unresolved_evidence_ids": []
+  },
+  "artifact": {
+    "kind": "PATCH_DIFF",
+    "patch": "diff --git a/tabulate/__init__.py b/tabulate/__init__.py\nindex 12a2950..e55843b 100644\n--- a/tabulate/__init__.py\n+++ b/tabulate/__init__.py\n@@ -1055,7 +1055,7 @@ def _padright(width, s):\n     True\n \n     \"\"\"\n-    fmt = f\"{{0:<{width}s}}\"\n+    fmt = f\"{{0:<{width + 1}s}}\"\n     return fmt.format(s)\n \n \n",
+    "affected_paths": [
+      "tabulate/__init__.py"
+    ],
+    "based_on_commit": "be57b71b53a4278d80159e5ed68bd33343bb51ec",
+    "generated_by": "scripted-eval-v1"
+  },
+  "documents": [
+    {
+      "name": "CONTRIBUTION_PLAN.md",
+      "kind": "CONTRIBUTION_PLAN",
+      "media_type": "text/markdown; charset=utf-8",
+      "content": "# Contribution Plan\n\n- **Repository:** `astanin/python-tabulate`\n- **Pinned commit:** `be57b71b53a4278d80159e5ed68bd33343bb51ec`\n- **Planner:** `scripted-eval-v1`\n- **Task type:** `BUG_FIX`\n- **Run status:** `COMPLETED`\n- **License:** `RECOGNIZED` (MIT)\n\n## Task\n\nAdjust the left-padding implementation for the table renderer.\n\n## Summary\n\nWiden left-aligned table cells by one column.\n\n## Planned changes\n\n| Path | Change | Rationale |\n|---|---|---|\n| `tabulate/__init__.py` | MODIFY | adjust the left-padding implementation |\n\n## Acceptance criteria\n\n- existing grid output is unchanged\n\n## Evidence consulted\n\n- `ev1` — `tabulate/__init__.py:2182-2193` — matches task keywords: table\n\n  ```\n  \\\\end{tabular}\n  \n      \"latex_longtable\" produces a tabular environment that can stretch along\n      multiple pages, using the longtable package for LaTeX.\n  \n      >>> print(tabulate([[\"spam\", 41.9999], [\"eggs\", \"451.0\"]], tablefmt=\"latex_longtable\"))\n      \\\\begin{longtable}{lr}\n      \\\\hline\n       spam &  41.9999 \\\\\\\\\n       eggs & 451      \\\\\\\\\n      \\\\hline\n      \\\\end{longtable}\n  ```\n- `ev2` — `README.md:1177-1188` — matches task keywords: table\n\n  ```\n  -   has to \"guess\" how to print a particular tabular data type\n  -   needs to keep the entire table in-memory\n  -   has to \"transpose\" the table twice\n  -   does much more work than it may appear\n  \n  It may not be suitable for serializing really big tables (but who's\n  going to do that, anyway?) or printing tables in performance sensitive\n  applications. `tabulate` is about two orders of magnitude slower than\n  simply joining lists of values with a tab, comma, or other separator.\n  \n  At the same time, `tabulate` is comparable to other table\n  pretty-printers. Given a 10x10 table (a list of lists) of mixed text an…\n  ```\n- `ev3` — `test/test_api.py:39-50` — matches task keywords: table\n\n  ```\n  (\"tabular_data\", _empty),\n          (\"headers\", ()),\n          (\"tablefmt\", \"simple\"),\n          (\"floatfmt\", \"g\"),\n          (\"intfmt\", \"\"),\n          (\"numalign\", \"default\"),\n          (\"stralign\", \"default\"),\n          (\"missingval\", \"\"),\n          (\"showindex\", \"default\"),\n          (\"disable_numparse\", False),\n          (\"colglobalalign\", None),\n          (\"colalign\", None),\n  ```\n- `ev4` — `test/test_cli.py:183-194` — matches task keywords: table\n\n  ```\n  \"\"\"Command line utility: -1, --header option\"\"\"\n      for option in [\"-1\", \"--header\"]:\n          cmd = [sys.executable, \"tabulate/cli.py\", option]\n          raw_table = sample_input(with_headers=True)\n          out = run_and_capture_stdout(cmd, input=raw_table)\n          expected = SAMPLE_SIMPLE_FORMAT_WITH_HEADERS\n          print(out)\n          print(\"got:     \", repr(out))\n          print(\"expected:\", repr(expected))\n          assert_equal(out.splitlines(), expected.splitlines())\n  ```\n- `ev5` — `test/test_grapheme_clusters.py:61-72` — matches task keywords: table\n\n  ```\n  [family, \"emoji\"],\n          ]\n          result = tabulate(data, headers=[\"col\", \"desc\"], tablefmt=\"grid\")\n          lines = result.split(\"\\n\")\n  \n          border_width = len(lines[0])\n          for line in lines:\n              from tabulate import _visible_width\n  \n              assert _visible_width(line) == border_width\n  \n      @requires_wcwidth\n  ```\n- `ev6` — `test/test_input.py:431-442` — matches task keywords: table\n\n  ```\n  expected1 = \"\\n\".join([\"  DIGITS  LETTERS\", \"--------  ---------\", \"   12345  ABCDE\"])\n      expected2 = \"\\n\".join([\"LETTERS      DIGITS\", \"---------  --------\", \"ABCDE         12345\"])\n      result = tabulate(table, headers=headers)\n      assert_in(result, [expected1, expected2])\n  \n  \n  def test_list_of_dicts_with_list_of_headers():\n      \"Input: ValueError on a list of headers with a list of dicts (issue #23)\"\n      table = [{\"letters\": \"ABCDE\", \"digits\": 12345}]\n      headers = [\"DIGITS\", \"LETTERS\"]\n      with raises(ValueError):\n          tabulate(table, headers=headers)\n  ```\n- `ev7` — `test/test_internal.py:335-346` — matches task keywords: table\n\n  ```\n  ]\n      result, sep_lines = T._remove_separating_lines(with_rows)\n      expected = rows_to_pipe_table_str([[0, \"a\"], [1, \"b\"], [2, \"c\"], [3, \"c\"]])\n  \n      assert_equal(expected, rows_to_pipe_table_str(result))\n      assert_equal(\"2|4|6\", cols_to_pipe_str(sep_lines))\n  \n  \n  def test__reinsert_separating_lines():\n      with_rows = [\n          [0, \"a\"],\n          [1, \"b\"],\n  ```\n- `ev8` — `test/test_output.py:2696-2707` — matches task keywords: table\n\n  ```\n  def test_latex_raw():\n      \"Output: raw latex with headers\"\n      raw_test_table_headers = list(_test_table_headers)\n      raw_test_table_headers[-1] += \" ($N_0$)\"\n      raw_test_table = list(map(list, _test_table))\n      raw_test_table[0][0] += \"$_1$\"\n      raw_test_table[1][0] = \"\\\\emph{\" + raw_test_table[1][0] + \"}\"\n      print(raw_test_table)\n      result = tabulate(raw_test_table, raw_test_table_headers, tablefmt=\"latex_raw\")\n      expected = \"\\n\".join(\n          [\n              r\"\\begin{tabular}{lr}\",\n  ```\n\n## Grounding\n\n- Resolved citations: 1 of 1\n- `hypothesis` — Widen left-aligned table cells by one column.\n- `hypothesis` — existing grid output is unchanged\n- Warning `CLAIM_NOT_SUPPORTED_BY_EVIDENCE`: claim cites 'ev1' (tabulate/__init__.py), but that evidence shares no distinctive vocabulary with the claim\n\n## Honest status\n\nThe selected checks do not establish a resolution. Read the comparison and the receipt's reasons before relying on this artifact.\n\n<!-- Generated by RepoMate from persisted run data. -->\n",
+      "generated_by": "scripted-eval-v1"
+    },
+    {
+      "name": "REPRO_CHECKLIST.md",
+      "kind": "REPRO_CHECKLIST",
+      "media_type": "text/markdown; charset=utf-8",
+      "content": "# Reproduction Checklist\n\n- **Repository:** `astanin/python-tabulate`\n- **Pinned commit:** `be57b71b53a4278d80159e5ed68bd33343bb51ec`\n- **Planner:** `scripted-eval-v1`\n- **Run status:** `COMPLETED`\n\n> These steps are derived from the task text and the cited evidence.\n> RepoMate did not observe the reported failure itself, so the checklist\n> asks you to record whether it reproduces rather than asserting that it does.\n\n## Reported task\n\nAdjust the left-padding implementation for the table renderer.\n\n## Expected behaviour\n\n- existing grid output is unchanged\n\n## Environment\n\n- Commit: `be57b71b53a4278d80159e5ed68bd33343bb51ec`\n- Languages: py (100%)\n- Full suite command: `python -m pytest -q`\n- Focused command: `python -m pytest -q test/test_api.py test/test_cli.py test/test_grapheme_clusters.py`\n- Test guidance note: Selection is keyword-based — start with the files above, then run the full suite as the authoritative check. Whether the full suite actually executed is recorded in the verification receipt (python -m pytest -q).\n\n## Evidence-guided steps\n\n1. Check out the pinned commit `be57b71b53a4278d80159e5ed68bd33343bb51ec`.\n2. Inspect the evidence-matched test file(s): `test/test_api.py`, `test/test_cli.py`, `test/test_grapheme_clusters.py`, `test/test_input.py`, `test/test_internal.py`.\n3. Run the focused command `python -m pytest -q test/test_api.py test/test_cli.py test/test_grapheme_clusters.py` and record the exit code and output.\n4. Run the full suite `python -m pytest -q`; note any pre-existing failures.\n5. Capture the observed behaviour, exit code and relevant output before applying a fix.\n\n## Cited evidence\n\n- `tabulate/__init__.py:2182-2193` — matches task keywords: table\n- `test/test_api.py:39-50` — matches task keywords: table\n- `test/test_cli.py:183-194` — matches task keywords: table\n- `test/test_grapheme_clusters.py:61-72` — matches task keywords: table\n- `test/test_input.py:431-442` — matches task keywords: table\n- `test/test_internal.py:335-346` — matches task keywords: table\n- `test/test_output.py:2696-2707` — matches task keywords: table\n\n## Verification recorded by RepoMate\n\n- Baseline: `PASSED`, exit `0`, command `python -m pytest -q`\n- Post-patch: `FAILED`, exit `1`, command `python -m pytest -q`\n- Comparison: `POTENTIAL_REGRESSION`\n- Statement: the selected check passed before the patch and failed after it; a potential regression is present\n- Repository suite: `FAILED`, exit `1`\n\n## Record your observation\n\n- [ ] The failure reproduces at the pinned commit (attach output or exit code).\n- [ ] The cited evidence is the code path involved.\n- [ ] The focused command still fails after a clean checkout.\n- [ ] A proposed fix is a separate, reviewable diff.\n\n<!-- Generated by RepoMate from persisted run data. -->\n",
+      "generated_by": "scripted-eval-v1"
+    }
+  ],
+  "receipt": {
+    "checks": [
+      {
+        "name": "patch-path-policy",
+        "command": "internal:patch-policy",
+        "status": "PASSED",
+        "exit_code": null,
+        "duration_ms": null,
+        "output_tail": "",
+        "reason": ""
+      },
+      {
+        "name": "patch-applies-on-pinned-commit",
+        "command": "git apply --check",
+        "status": "PASSED",
+        "exit_code": 0,
+        "duration_ms": null,
+        "output_tail": "",
+        "reason": ""
+      },
+      {
+        "name": "sandbox-egress-isolation",
+        "command": "internal:egress-probe",
+        "status": "PASSED",
+        "exit_code": null,
+        "duration_ms": null,
+        "output_tail": "{\n  \"public_http\": \"blocked:OSError\",\n  \"cloud_metadata\": \"blocked:OSError\",\n  \"cloud_metadata_ipv6\": \"blocked:OSError\",\n  \"private_rfc1918_10\": \"blocked:OSError\",\n  \"private_rfc1918_172\": \"blocked:OSError\",\n  \"private_rfc1918_192\": \"blocked:OSError\",\n  \"loopback_postgres\": \"blocked:ConnectionRefusedError\",\n  \"loopback_redis\": \"blocked:ConnectionRefusedError\",\n  \"loopback_api\": \"blocked:ConnectionRefusedError\",\n  \"public_https\": \"blocked:gaierror\",\n  \"dns\": \"blocked:gaierror\"\n}",
+        "reason": "every egress attempt from inside the sandbox was refused"
+      },
+      {
+        "name": "repository-test-suite",
+        "command": "python -m pytest -q",
+        "status": "FAILED",
+        "exit_code": 1,
+        "duration_ms": 12872,
+        "output_tail": ":test_alignment_of_link_text_cells - Assertion...\nFAILED test/test_regression.py::test_datetime_values - AssertionError\nFAILED test/test_regression.py::test_simple_separated_format - AssertionError\nFAILED test/test_regression.py::test_88_256_ANSI_color_codes - AssertionError\nFAILED test/test_regression.py::test_column_with_mixed_value_types - Assertio...\nFAILED test/test_regression.py::test_latex_escape_special_chars - AssertionError\nFAILED test/test_regression.py::test_isconvertible_on_set_values - AssertionE...\nFAILED test/test_regression.py::test_ansi_color_for_decimal_numbers - Asserti...\nFAILED test/test_regression.py::test_alignment_of_decimal_numbers_with_commas\nFAILED test/test_regression.py::test_mix_normal_and_wide_characters - Asserti...\nFAILED test/test_regression.py::test_multiline_with_wide_characters - Asserti...\nFAILED test/test_regression.py::test_boolean_columns - AssertionError\nFAILED test/test_regression.py::test_escape_empty_cell_in_first_column_in_rst\nFAILED test/test_regression.py::test_empty_pipe_table_with_columns - Assertio...\nFAILED test/test_regression.py::test_custom_tablefmt - AssertionError\nFAILED test/test_regression.py::test_preserve_line_breaks_with_maxcolwidths\nFAILED test/test_regression.py::test_maxcolwidths_accepts_list_or_tuple - Ass...\nFAILED test/test_regression.py::test_empty_table_with_colalign - AssertionError\nFAILED test/test_regression.py::test_empty_table_with_maxheadercolwidths - As...\nFAILED test/test_regression.py::test_asciidoc_without_trailing_whitespace - A...\nFAILED test/test_regression.py::test_github_escape_pipe_character - Assertion...\nFAILED test/test_textwrapper.py::test_wrap_datetime - AssertionError\nFAILED test/test_textwrapper.py::test_wrap_none_value - AssertionError\nFAILED test/test_textwrapper.py::test_wrap_none_value_with_missingval - Asser...\nFAILED test/test_textwrapper.py::test_wrap_optional_bool_strs - AssertionError\n================= 216 failed, 151 passed, 17 skipped in 11.37s =================",
+        "reason": ""
+      }
+    ],
+    "overall": "FAILED",
+    "environment": "process sandbox (wall-time, CPU and memory limits, scrubbed env; network egress denied (bwrap)) on Linux/x86_64",
+    "limitations": [
+      "The sandbox uses an unprivileged bwrap namespace: egress is denied, host socket directories are masked, the process table is private, and the repository's .git directory is read-only. It is not a full VM; the host kernel is shared.",
+      "Repository tests run with RepoMate's interpreter and installed dependencies; a repo-specific virtualenv is not created, so missing dependencies are reported NOT_RUN (they cannot be downloaded without network access)."
+    ],
+    "sandbox": {
+      "network_mode": "disabled",
+      "backend": "bwrap",
+      "policy_enforced": true,
+      "egress_validation": "PASSED",
+      "egress_detail": "every egress attempt from inside the sandbox was refused"
+    },
+    "base_commit": "be57b71b53a4278d80159e5ed68bd33343bb51ec",
+    "patch_sha256": "1c8e51fdb11226592217f4d506784d28a83dc2ba84afaac42acd79fec298e93b",
+    "comparison": {
+      "base_commit": "be57b71b53a4278d80159e5ed68bd33343bb51ec",
+      "patch_sha256": "1c8e51fdb11226592217f4d506784d28a83dc2ba84afaac42acd79fec298e93b",
+      "baseline": {
+        "phase": "baseline",
+        "commit_sha": "be57b71b53a4278d80159e5ed68bd33343bb51ec",
+        "command": "python -m pytest -q",
+        "status": "PASSED",
+        "exit_code": 0,
+        "duration_ms": 4546,
+        "output_summary": "============================= test session starts ==============================\nplatform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.7.0\nrootdir: /tmp/repomate-verify-g5b8srml/baseline\nconfigfile: pyproject.toml\nplugins: anyio-4.15.1\ncollected 384 items\n\nREADME.md .                                                              [  0%]\ntabulate/__init__.py ................                                    [  4%]\ntest/test_api.py ...                                                     [  5%]\ntest/test_cli.py .............................                           [ 12%]\ntest/test_grapheme_clusters.py .................                         [ 17%]\ntest/test_input.py .......sssssssss.................                     [ 25%]\ntest/test_internal.py ......................                             [ 31%]\ntest/test_output.py .................................................... [ 45%]\n........................................................................ [ 63%]\n..........................................s..................ssss....... [ 82%]\n.....                                                                    [ 83%]\ntest/test_padding_contract.py .                                          [ 84%]\ntest/test_regression.py ......................s.........s...s.....       [ 95%]\ntest/test_textwrapper.py ...................                             [100%]\n\n======================= 367 passed, 17 skipped in 3.27s ========================",
+        "reason": ""
+      },
+      "post_patch": {
+        "phase": "post_patch",
+        "commit_sha": "be57b71b53a4278d80159e5ed68bd33343bb51ec",
+        "command": "python -m pytest -q",
+        "status": "FAILED",
+        "exit_code": 1,
+        "duration_ms": 12872,
+        "output_summary": ":test_alignment_of_link_text_cells - Assertion...\nFAILED test/test_regression.py::test_datetime_values - AssertionError\nFAILED test/test_regression.py::test_simple_separated_format - AssertionError\nFAILED test/test_regression.py::test_88_256_ANSI_color_codes - AssertionError\nFAILED test/test_regression.py::test_column_with_mixed_value_types - Assertio...\nFAILED test/test_regression.py::test_latex_escape_special_chars - AssertionError\nFAILED test/test_regression.py::test_isconvertible_on_set_values - AssertionE...\nFAILED test/test_regression.py::test_ansi_color_for_decimal_numbers - Asserti...\nFAILED test/test_regression.py::test_alignment_of_decimal_numbers_with_commas\nFAILED test/test_regression.py::test_mix_normal_and_wide_characters - Asserti...\nFAILED test/test_regression.py::test_multiline_with_wide_characters - Asserti...\nFAILED test/test_regression.py::test_boolean_columns - AssertionError\nFAILED test/test_regression.py::test_escape_empty_cell_in_first_column_in_rst\nFAILED test/test_regression.py::test_empty_pipe_table_with_columns - Assertio...\nFAILED test/test_regression.py::test_custom_tablefmt - AssertionError\nFAILED test/test_regression.py::test_preserve_line_breaks_with_maxcolwidths\nFAILED test/test_regression.py::test_maxcolwidths_accepts_list_or_tuple - Ass...\nFAILED test/test_regression.py::test_empty_table_with_colalign - AssertionError\nFAILED test/test_regression.py::test_empty_table_with_maxheadercolwidths - As...\nFAILED test/test_regression.py::test_asciidoc_without_trailing_whitespace - A...\nFAILED test/test_regression.py::test_github_escape_pipe_character - Assertion...\nFAILED test/test_textwrapper.py::test_wrap_datetime - AssertionError\nFAILED test/test_textwrapper.py::test_wrap_none_value - AssertionError\nFAILED test/test_textwrapper.py::test_wrap_none_value_with_missingval - Asser...\nFAILED test/test_textwrapper.py::test_wrap_optional_bool_strs - AssertionError\n================= 216 failed, 151 passed, 17 skipped in 11.37s =================",
+        "reason": ""
+      },
+      "outcome": "POTENTIAL_REGRESSION",
+      "interpretation": "the selected check passed before the patch and failed after it; a potential regression is present",
+      "commands_match": true
+    },
+    "resolution_statement": "Selected checks passed before the patch and failed after it; a potential regression is present. One or more verification checks failed.",
+    "created_at": "2026-10-26T10:04:23.240239Z"
+  },
+  "events": [
+    {
+      "seq": 1,
+      "stage": "VALIDATE_INPUT",
+      "status": "STARTED",
+      "message": "Validating task input",
+      "at": "2026-10-26T10:04:03.505604Z"
+    },
+    {
+      "seq": 2,
+      "stage": "VALIDATE_INPUT",
+      "status": "COMPLETED",
+      "message": "Input accepted: astanin/python-tabulate",
+      "at": "2026-10-26T10:04:03.521645Z"
+    },
+    {
+      "seq": 3,
+      "stage": "PIN_SNAPSHOT",
+      "status": "STARTED",
+      "message": "Cloning astanin/python-tabulate (shallow, pinned to HEAD)",
+      "at": "2026-10-26T10:04:03.549273Z"
+    },
+    {
+      "seq": 4,
+      "stage": "PIN_SNAPSHOT",
+      "status": "COMPLETED",
+      "message": "Pinned astanin/python-tabulate@be57b71b53 (license: RECOGNIZED, 27 files)",
+      "at": "2026-10-26T10:04:03.731422Z"
+    },
+    {
+      "seq": 5,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "STARTED",
+      "message": "Collecting issue and repository evidence",
+      "at": "2026-10-26T10:04:03.748009Z"
+    },
+    {
+      "seq": 6,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "COMPLETED",
+      "message": "Collected 8 evidence record(s)",
+      "at": "2026-10-26T10:04:04.146853Z"
+    },
+    {
+      "seq": 7,
+      "stage": "PLAN",
+      "status": "STARTED",
+      "message": "Building contribution plan from evidence",
+      "at": "2026-10-26T10:04:04.194663Z"
+    },
+    {
+      "seq": 8,
+      "stage": "PLAN",
+      "status": "COMPLETED",
+      "message": "Plan (BUG_FIX) by scripted-eval-v1: Widen left-aligned table cells by one column.",
+      "at": "2026-10-26T10:04:04.208554Z"
+    },
+    {
+      "seq": 9,
+      "stage": "PLAN",
+      "status": "STARTED",
+      "message": "Validating plan citations against evidence",
+      "at": "2026-10-26T10:04:04.224046Z"
+    },
+    {
+      "seq": 10,
+      "stage": "PLAN",
+      "status": "INFO",
+      "message": "Grounding: 0 supported / 2 hypothesis claim(s), 1 resolved citation(s)",
+      "at": "2026-10-26T10:04:04.515181Z"
+    },
+    {
+      "seq": 11,
+      "stage": "GENERATE_ARTIFACT",
+      "status": "STARTED",
+      "message": "Generating contribution artifact",
+      "at": "2026-10-26T10:04:04.530438Z"
+    },
+    {
+      "seq": 12,
+      "stage": "GENERATE_ARTIFACT",
+      "status": "COMPLETED",
+      "message": "Generated PATCH_DIFF touching tabulate/__init__.py",
+      "at": "2026-10-26T10:04:04.864310Z"
+    },
+    {
+      "seq": 13,
+      "stage": "VERIFY",
+      "status": "STARTED",
+      "message": "Running verification checks",
+      "at": "2026-10-26T10:04:04.877961Z"
+    },
+    {
+      "seq": 14,
+      "stage": "VERIFY",
+      "status": "INFO",
+      "message": "Repository test suite FAILED (exit 1); run completes with an honest receipt",
+      "at": "2026-10-26T10:04:23.240306Z"
+    },
+    {
+      "seq": 15,
+      "stage": "VERIFY",
+      "status": "INFO",
+      "message": "Baseline PASSED -> post-patch FAILED: POTENTIAL_REGRESSION",
+      "at": "2026-10-26T10:04:23.249786Z"
+    },
+    {
+      "seq": 16,
+      "stage": "VERIFY",
+      "status": "COMPLETED",
+      "message": "Verification overall: FAILED",
+      "at": "2026-10-26T10:04:23.258763Z"
+    },
+    {
+      "seq": 17,
+      "stage": "PUBLISH",
+      "status": "STARTED",
+      "message": "Publishing run record and artifacts",
+      "at": "2026-10-26T10:04:23.270447Z"
+    },
+    {
+      "seq": 18,
+      "stage": "PUBLISH",
+      "status": "COMPLETED",
+      "message": "Run run_20261026-100403_q8ak1fnr completed",
+      "at": "2026-10-26T10:04:23.296673Z"
+    }
+  ],
+  "error": null,
+  "planner": "scripted-eval-v1",
+  "workspace_kept": false
+}

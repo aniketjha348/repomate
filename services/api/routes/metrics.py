@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from repomate_core.orchestration.store_factory import build_store
+from services.api import fair_use
 from services.api.config import read_settings
 
 router = APIRouter()
@@ -32,9 +33,13 @@ def metrics() -> dict:
         if record and record.planner:
             planner_counts[record.planner] = planner_counts.get(record.planner, 0) + 1
 
+    # Aggregate operational counters only. Do not expose filesystem paths,
+    # environment contents, prompts or per-run identifiers here: the route is
+    # reachable without authentication in the default deployment.
     return {
         "runs_by_status": store.status_counts(),
         "runs_by_planner": planner_counts,
+        "fair_use": fair_use.metrics_snapshot(settings, store),
         "execution": settings.execution,
         "sandbox_enabled": settings.sandbox_enabled,
         "process_started_at": _started_at(),

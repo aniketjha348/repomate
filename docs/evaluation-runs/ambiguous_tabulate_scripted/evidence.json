@@ -1,0 +1,74 @@
+[
+  {
+    "id": "ev1",
+    "kind": "TEST",
+    "path": "test/test_output.py",
+    "start_line": 2695,
+    "end_line": 2706,
+    "snippet": "def test_latex_raw():\n    \"Output: raw latex with headers\"\n    raw_test_table_headers = list(_test_table_headers)\n    raw_test_table_headers[-1] += \" ($N_0$)\"\n    raw_test_table = list(map(list, _test_table))\n    raw_test_table[0][0] += \"$_1$\"\n    raw_test_table[1][0] = \"\\\\emph{\" + raw_test_table[1][0] + \"}\"\n    print(raw_test_table)\n    result = tabulate(raw_test_table, raw_test_table_headers, tablefmt=\"latex_raw\")\n    expected = \"\\n\".join(\n        [",
+    "rationale": "matches task keywords: table, output"
+  },
+  {
+    "id": "ev2",
+    "kind": "DOC",
+    "path": "README.md",
+    "start_line": 1177,
+    "end_line": 1188,
+    "snippet": "-   has to \"guess\" how to print a particular tabular data type\n-   needs to keep the entire table in-memory\n-   has to \"transpose\" the table twice\n-   does much more work than it may appear\n\nIt may not be suitable for serializing really big tables (but who's\ngoing to do that, anyway?) or printing tables in performance sensitive\napplications. `tabulate` is about two orders of magnitude slower than\nsimply joining lists of values with a tab, comma, or other separator.\n\nAt the same time, `tabulate` is comparable to other table\npretty-printers. Given a 10x10 table (a list of lists) of mixed text and",
+    "rationale": "matches task keywords: table"
+  },
+  {
+    "id": "ev3",
+    "kind": "TEST",
+    "path": "test/test_cli.py",
+    "start_line": 369,
+    "end_line": 380,
+    "snippet": "\"\"\"In-process: read from file, write to file (-o)\"\"\"\n    with TemporaryTextFile() as input_file:\n        with TemporaryTextFile() as output_file:\n            input_file.write(sample_input())\n            input_file.flush()\n            run_main_in_process([\"-o\", output_file.name, input_file.name])\n            output_file.seek(0)\n            out = output_file.file.read()\n            assert_equal(out.splitlines(), SAMPLE_SIMPLE_FORMAT.splitlines())\n\n\ndef test_inprocess_jsonl_from_stdin():",
+    "rationale": "matches task keywords: output"
+  },
+  {
+    "id": "ev4",
+    "kind": "TEST",
+    "path": "test/test_internal.py",
+    "start_line": 64,
+    "end_line": 75,
+    "snippet": "output = T._align_column(column, None)\n    expected = [\"123.4\", \"56.7890\"]\n    assert_equal(expected, output)\n\n\ndef test_align_column_multiline():\n    \"Internal: _align_column(..., is_multiline=True)\"\n    column = [\"1\", \"123\", \"12345\\n6\"]\n    output = T._align_column(column, \"center\", is_multiline=True)\n    expected = [\"  1  \", \" 123 \", \"12345\" + \"\\n\" + \"  6  \"]\n    assert_equal(expected, output)",
+    "rationale": "matches task keywords: output"
+  },
+  {
+    "id": "ev5",
+    "kind": "TEST",
+    "path": "test/test_regression.py",
+    "start_line": 423,
+    "end_line": 434,
+    "snippet": "def test_empty_pipe_table_with_columns():\n    \"Regression: allow empty pipe tables with columns, like empty dataframes (github issue #15)\"\n    table = []\n    headers = [\"Col1\", \"Col2\"]\n    expected = \"\\n\".join([\"| Col1   | Col2   |\", \"|--------|--------|\"])\n    result = tabulate(table, headers, tablefmt=\"pipe\")\n    assert_equal(expected, result)\n\n\ndef test_custom_tablefmt():\n    \"Regression: allow custom TableFormat that specifies with_header_hide (github issue #20)\"\n    tablefmt = TableFormat(",
+    "rationale": "matches task keywords: table"
+  },
+  {
+    "id": "ev6",
+    "kind": "SOURCE",
+    "path": "tabulate/__init__.py",
+    "start_line": 2182,
+    "end_line": 2193,
+    "snippet": "\\\\end{tabular}\n\n    \"latex_longtable\" produces a tabular environment that can stretch along\n    multiple pages, using the longtable package for LaTeX.\n\n    >>> print(tabulate([[\"spam\", 41.9999], [\"eggs\", \"451.0\"]], tablefmt=\"latex_longtable\"))\n    \\\\begin{longtable}{lr}\n    \\\\hline\n     spam &  41.9999 \\\\\\\\\n     eggs & 451      \\\\\\\\\n    \\\\hline\n    \\\\end{longtable}",
+    "rationale": "matches task keywords: table"
+  },
+  {
+    "id": "ev7",
+    "kind": "SOURCE",
+    "path": "tabulate/cli.py",
+    "start_line": 59,
+    "end_line": 70,
+    "snippet": "-F FPFMT, --float FPFMT   floating point number format (default: g)\n    -I INTFMT, --int INTFMT   integer point number format (default: \"\")\n    -f FMT, --format FMT      set output table format (default: simple)\n\n    Supported output formats: asciidoc, colon_grid, double_grid, double_outline,\n    fancy_grid, fancy_outline, github, grid, heavy_grid, heavy_outline, html, jira,\n    latex, latex_booktabs, latex_longtable, latex_raw, mediawiki, mixed_grid, mixed_outline,\n    moinmoin, orgtbl, outline, pipe, plain, presto, pretty, psql, rounded_grid,\n    rounded_outline, rst, simple, simple_grid, simple_outline, textile, tsv, unsafehtml.\n\n    OUTPUT:\n    -o FILE, --output FILE    print table to FILE (default: stdout)",
+    "rationale": "matches task keywords: table, output"
+  },
+  {
+    "id": "ev8",
+    "kind": "TEST",
+    "path": "test/test_api.py",
+    "start_line": 39,
+    "end_line": 50,
+    "snippet": "(\"tabular_data\", _empty),\n        (\"headers\", ()),\n        (\"tablefmt\", \"simple\"),\n        (\"floatfmt\", \"g\"),\n        (\"intfmt\", \"\"),\n        (\"numalign\", \"default\"),\n        (\"stralign\", \"default\"),\n        (\"missingval\", \"\"),\n        (\"showindex\", \"default\"),\n        (\"disable_numparse\", False),\n        (\"colglobalalign\", None),\n        (\"colalign\", None),",
+    "rationale": "matches task keywords: table"
+  }
+]

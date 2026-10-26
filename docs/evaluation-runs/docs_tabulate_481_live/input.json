@@ -1,0 +1,13 @@
+{
+  "case": "docs_tabulate_481_live",
+  "title": "Documentation task with the configured live model",
+  "repository": "astanin/python-tabulate",
+  "input": {
+    "source": "GITHUB_ISSUE",
+    "issue_url": "https://github.com/astanin/python-tabulate/issues/481",
+    "repo_url": null,
+    "task": null
+  },
+  "expected": "COMPLETED with a DOCS_DIFF and CONTRIBUTION_PLAN.md; a typed MODEL_ERROR is preserved honestly if the gateway fails",
+  "notes": "This call uses the configured gateway and model. A failure here is a real observed failure, not a simulated one."
+}

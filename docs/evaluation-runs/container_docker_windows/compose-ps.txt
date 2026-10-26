@@ -1,0 +1,5 @@
+﻿NAME                IMAGE                COMMAND                   SERVICE    CREATED              STATUS                        PORTS
+deploy-api-1        deploy-api           "/bin/sh -c 'sh -c \"ΓÇª"   api        About a minute ago   Up About a minute             0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+deploy-postgres-1   postgres:16-alpine   "docker-entrypoint.sΓÇª"    postgres   About a minute ago   Up About a minute (healthy)   5432/tcp
+deploy-redis-1      redis:7-alpine       "docker-entrypoint.sΓÇª"    redis      About a minute ago   Up About a minute (healthy)   6379/tcp
+deploy-worker-1     deploy-worker        "python -m services.ΓÇª"    worker     About a minute ago   Up About a minute             

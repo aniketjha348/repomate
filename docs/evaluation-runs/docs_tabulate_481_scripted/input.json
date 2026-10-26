@@ -1,0 +1,13 @@
+{
+  "case": "docs_tabulate_481_scripted",
+  "title": "Documentation task on a licensed public repository",
+  "repository": "astanin/python-tabulate",
+  "input": {
+    "source": "GITHUB_ISSUE",
+    "issue_url": "https://github.com/astanin/python-tabulate/issues/481",
+    "repo_url": null,
+    "task": null
+  },
+  "expected": "COMPLETED with a DOCS_DIFF, CONTRIBUTION_PLAN.md, patch checks PASSED and a real repository-suite receipt",
+  "notes": "Issue #481 asks for a README clarification. The plan is scripted so the mechanics are repeatable; the repository, issue, evidence and verification are real."
+}

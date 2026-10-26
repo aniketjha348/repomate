@@ -22,6 +22,33 @@ def _cors_origins_from_env() -> list[str]:
     return origins
 
 
+def _env_positive_int(name: str, default: int) -> int:
+    try:
+        value = int(os.environ.get(name, str(default)))
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+def _env_positive_float(name: str, default: float) -> float:
+    try:
+        value = float(os.environ.get(name, str(default)))
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+def _trusted_proxies_from_env() -> list[str]:
+    """IPs/CIDRs whose ``X-Forwarded-For`` header is believed.
+
+    Empty by default: without an explicitly configured trusted proxy the
+    socket peer address is the client identity, so a caller cannot spoof its
+    way around the per-IP rate limit with a header.
+    """
+    raw = os.environ.get("REPOMATE_TRUSTED_PROXIES", "")
+    return [entry.strip() for entry in raw.split(",") if entry.strip()]
+
+
 @dataclass
 class Settings:
     runs_root: Path = field(
@@ -49,6 +76,21 @@ class Settings:
         default_factory=lambda: os.environ.get("REDIS_URL", "redis://localhost:6379/0")
     )
     cors_origins: list[str] = field(default_factory=_cors_origins_from_env)
+    # Fair-use admission (docs/security.md). The rate limit is a per-client
+    # sliding window; the concurrent-run cap protects the worker pool and the
+    # model budget. Both are configurable and fail closed.
+    rate_limit_requests: int = field(
+        default_factory=lambda: _env_positive_int("REPOMATE_RATE_LIMIT_REQUESTS", 20)
+    )
+    rate_limit_window_seconds: float = field(
+        default_factory=lambda: _env_positive_float(
+            "REPOMATE_RATE_LIMIT_WINDOW_SECONDS", 60.0
+        )
+    )
+    max_concurrent_runs: int = field(
+        default_factory=lambda: _env_positive_int("REPOMATE_MAX_CONCURRENT_RUNS", 3)
+    )
+    trusted_proxies: list[str] = field(default_factory=_trusted_proxies_from_env)
 
 
 def read_settings() -> Settings:

@@ -1,0 +1,84 @@
+{
+  "checks": [
+    {
+      "name": "patch-path-policy",
+      "command": "internal:patch-policy",
+      "status": "PASSED",
+      "exit_code": null,
+      "duration_ms": null,
+      "output_tail": "",
+      "reason": ""
+    },
+    {
+      "name": "patch-applies-on-pinned-commit",
+      "command": "git apply --check",
+      "status": "PASSED",
+      "exit_code": 0,
+      "duration_ms": null,
+      "output_tail": "",
+      "reason": ""
+    },
+    {
+      "name": "sandbox-egress-isolation",
+      "command": "internal:egress-probe",
+      "status": "PASSED",
+      "exit_code": null,
+      "duration_ms": null,
+      "output_tail": "{\n  \"public_http\": \"blocked:OSError\",\n  \"cloud_metadata\": \"blocked:OSError\",\n  \"cloud_metadata_ipv6\": \"blocked:OSError\",\n  \"private_rfc1918_10\": \"blocked:OSError\",\n  \"private_rfc1918_172\": \"blocked:OSError\",\n  \"private_rfc1918_192\": \"blocked:OSError\",\n  \"loopback_postgres\": \"blocked:ConnectionRefusedError\",\n  \"loopback_redis\": \"blocked:ConnectionRefusedError\",\n  \"loopback_api\": \"blocked:ConnectionRefusedError\",\n  \"public_https\": \"blocked:gaierror\",\n  \"dns\": \"blocked:gaierror\"\n}",
+      "reason": "every egress attempt from inside the sandbox was refused"
+    },
+    {
+      "name": "repository-test-suite",
+      "command": "python -m pytest -q",
+      "status": "PASSED",
+      "exit_code": 0,
+      "duration_ms": 3993,
+      "output_tail": "============================= test session starts ==============================\nplatform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.7.0\nrootdir: /tmp/repomate-verify-hkgwo4m2/patched\nconfigfile: pyproject.toml\nplugins: anyio-4.15.1\ncollected 384 items\n\nREADME.md .                                                              [  0%]\ntabulate/__init__.py ................                                    [  4%]\ntest/test_api.py ...                                                     [  5%]\ntest/test_cli.py .............................                           [ 12%]\ntest/test_grapheme_clusters.py .................                         [ 17%]\ntest/test_input.py .......sssssssss.................                     [ 25%]\ntest/test_internal.py ......................                             [ 31%]\ntest/test_issue_478_regression.py .                                      [ 31%]\ntest/test_output.py .................................................... [ 45%]\n........................................................................ [ 64%]\n..........................................s..................ssss....... [ 82%]\n.....                                                                    [ 84%]\ntest/test_regression.py ......................s.........s...s.....       [ 95%]\ntest/test_textwrapper.py ...................                             [100%]\n\n======================= 367 passed, 17 skipped in 2.68s ========================",
+      "reason": ""
+    }
+  ],
+  "overall": "PASSED",
+  "environment": "process sandbox (wall-time, CPU and memory limits, scrubbed env; network egress denied (bwrap)) on Linux/x86_64",
+  "limitations": [
+    "The sandbox uses an unprivileged bwrap namespace: egress is denied, host socket directories are masked, the process table is private, and the repository's .git directory is read-only. It is not a full VM; the host kernel is shared.",
+    "Repository tests run with RepoMate's interpreter and installed dependencies; a repo-specific virtualenv is not created, so missing dependencies are reported NOT_RUN (they cannot be downloaded without network access)."
+  ],
+  "sandbox": {
+    "network_mode": "disabled",
+    "backend": "bwrap",
+    "policy_enforced": true,
+    "egress_validation": "PASSED",
+    "egress_detail": "every egress attempt from inside the sandbox was refused"
+  },
+  "base_commit": "df8421880b41229b51edee238d87f689bf96e5b0",
+  "patch_sha256": "3a8a5ba2f0556b873540e8e98666b056459b0920dd1dfcefd1fc0ce02e4d44a1",
+  "comparison": {
+    "base_commit": "df8421880b41229b51edee238d87f689bf96e5b0",
+    "patch_sha256": "3a8a5ba2f0556b873540e8e98666b056459b0920dd1dfcefd1fc0ce02e4d44a1",
+    "baseline": {
+      "phase": "baseline",
+      "commit_sha": "df8421880b41229b51edee238d87f689bf96e5b0",
+      "command": "python -m pytest -q",
+      "status": "FAILED",
+      "exit_code": 1,
+      "duration_ms": 4199,
+      "output_summary": ".md .                                                              [  0%]\ntabulate/__init__.py ................                                    [  4%]\ntest/test_api.py ...                                                     [  5%]\ntest/test_cli.py .............................                           [ 12%]\ntest/test_grapheme_clusters.py .................                         [ 17%]\ntest/test_input.py .......sssssssss.................                     [ 25%]\ntest/test_internal.py ......................                             [ 31%]\ntest/test_issue_478_regression.py F                                      [ 31%]\ntest/test_output.py .................................................... [ 45%]\n........................................................................ [ 64%]\n..........................................s..................ssss....... [ 82%]\n.....                                                                    [ 84%]\ntest/test_regression.py ......................s.........s...s.....       [ 95%]\ntest/test_textwrapper.py ...................                             [100%]\n\n=================================== FAILURES ===================================\n____________________ test_wrapped_wide_char_lines_fit_width ____________________\n\n    def test_wrapped_wide_char_lines_fit_width():\n        lines = _CustomTextWrap(width=3).wrap(\"a 글글\")\n        widths = [wcwidth.wcswidth(line) for line in lines]\n>       assert all(width <= 3 for width in widths), (lines, widths)\nE       AssertionError: (['a 글', '글'], [4, 2])\nE       assert False\nE        +  where False = all(<generator object test_wrapped_wide_char_lines_fit_width.<locals>.<genexpr> at 0x770b863724d0>)\n\ntest/test_issue_478_regression.py:9: AssertionError\n=========================== short test summary info ============================\nFAILED test/test_issue_478_regression.py::test_wrapped_wide_char_lines_fit_width\n================== 1 failed, 366 passed, 17 skipped in 3.07s ===================",
+      "reason": ""
+    },
+    "post_patch": {
+      "phase": "post_patch",
+      "commit_sha": "df8421880b41229b51edee238d87f689bf96e5b0",
+      "command": "python -m pytest -q",
+      "status": "PASSED",
+      "exit_code": 0,
+      "duration_ms": 3993,
+      "output_summary": "============================= test session starts ==============================\nplatform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.7.0\nrootdir: /tmp/repomate-verify-hkgwo4m2/patched\nconfigfile: pyproject.toml\nplugins: anyio-4.15.1\ncollected 384 items\n\nREADME.md .                                                              [  0%]\ntabulate/__init__.py ................                                    [  4%]\ntest/test_api.py ...                                                     [  5%]\ntest/test_cli.py .............................                           [ 12%]\ntest/test_grapheme_clusters.py .................                         [ 17%]\ntest/test_input.py .......sssssssss.................                     [ 25%]\ntest/test_internal.py ......................                             [ 31%]\ntest/test_issue_478_regression.py .                                      [ 31%]\ntest/test_output.py .................................................... [ 45%]\n........................................................................ [ 64%]\n..........................................s..................ssss....... [ 82%]\n.....                                                                    [ 84%]\ntest/test_regression.py ......................s.........s...s.....       [ 95%]\ntest/test_textwrapper.py ...................                             [100%]\n\n======================= 367 passed, 17 skipped in 2.68s ========================",
+      "reason": ""
+    },
+    "outcome": "CONSISTENT_IMPROVEMENT",
+    "interpretation": "the selected check failed on the clean baseline commit and passed after applying the patch; consistent improvement, not final proof of correctness",
+    "commands_match": true
+  },
+  "resolution_statement": "Selected checks failed on the baseline commit and passed after the patch; this is consistent improvement, not final proof that the issue is resolved.",
+  "created_at": "2026-10-26T10:01:30.260682Z"
+}

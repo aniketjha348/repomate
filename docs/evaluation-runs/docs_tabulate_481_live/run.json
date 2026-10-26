@@ -1,0 +1,349 @@
+{
+  "run_id": "run_20261026-095409_dkch1h8w",
+  "status": "FAILED",
+  "input": {
+    "source": "GITHUB_ISSUE",
+    "issue_url": "https://github.com/astanin/python-tabulate/issues/481",
+    "repo_url": null,
+    "task": null
+  },
+  "created_at": "2026-10-26T09:54:09.533927Z",
+  "updated_at": "2026-10-26T10:01:18.720823Z",
+  "snapshot": {
+    "owner": "astanin",
+    "name": "python-tabulate",
+    "url": "https://github.com/astanin/python-tabulate",
+    "default_branch": "master",
+    "commit_sha": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+    "license": {
+      "status": "RECOGNIZED",
+      "spdx_id": "MIT",
+      "file_path": "LICENSE",
+      "note": "recognized as MIT from license file content"
+    },
+    "languages": {
+      "py": 100.0
+    },
+    "file_count": 26,
+    "readme_path": "README.md",
+    "contributing_path": null,
+    "entry_points": [
+      {
+        "path": "pyproject.toml",
+        "kind": "manifest",
+        "detail": "pyproject.toml scripts: tabulate"
+      }
+    ],
+    "pinned_at": "2026-10-26T09:54:09.667360Z"
+  },
+  "issue": {
+    "url": "https://github.com/astanin/python-tabulate/issues/481",
+    "number": 481,
+    "title": "README library-only installation option may no longer work with current packaging",
+    "body": "The README documents setting `TABULATE_INSTALL=lib-only` when installing `tabulate` so that only the Python library is installed. It gives commands for Unix-like systems and Windows.\n\nHowever, the repository's current `pyproject.toml` uses `flit_scm:buildapi` and declares a console entry point unconditionally:\n\n```toml\n[project.scripts]\ntabulate = \"tabulate.cli:_main\"\n```\n\nI could not find a corresponding setting in the current packaging configuration that uses `TABULATE_INSTALL` to disable this entry point. The README option may be left over from a previous build system.\n\nRelevant files:\n\n- https://github.com/astanin/python-tabulate/blob/master/README.md\n- https://github.com/astanin/python-tabulate/blob/master/pyproject.toml\n\n## Expected behavior\n\nUsing the documented library-only installation option should omit the `tabulate` executable, or the README should clarify that the option is no longer supported.\n\n## Suggested verification\n\nIn a fresh virtual environment, compare two installs built from the current source: one with the `TABULATE_INSTALL=lib-only` environment variable and one without it. Then inspect the generated console entry point, such as in the environment's `bin` or `Scripts` directory. This would confirm whether the environment variable changes what gets installed.\n\n## Suggested improvement\n\nIf the setting is no longer supported, remove the library-only installation examples or explain the behavior supported by the current build system. If it is supported, it would help to document where the conditional behavior is implemented.\n\n## Scope\n\nThis report is based on a comparison of the README and the current packaging configuration. I have not run a clean installation from the current repository, so I am reporting a documentation inconsistency to verify rather than a confirmed installation failure.\n",
+    "state": "open",
+    "labels": [],
+    "fetched_at": "2026-10-26T09:54:09.813245Z"
+  },
+  "evidence": [
+    {
+      "id": "ev1",
+      "kind": "ISSUE",
+      "path": "issue#481",
+      "start_line": null,
+      "end_line": null,
+      "snippet": "README library-only installation option may no longer work with current packaging\n\nThe README documents setting `TABULATE_INSTALL=lib-only` when installing `tabulate` so that only the Python library is installed. It gives commands for Unix-like systems and Windows.\n\nHowever, the repository's current `pyproject.toml` uses `flit_scm:buildapi` and declares a console entry point unconditionally:\n\n```toml\n[project.scripts]\ntabulate = \"tabulate.cli:_main\"\n```\n\nI could not find a corresponding setting in the current packaging configuration that uses `TABULATE_INSTALL` to disable this entry point. The README option may be left over from a previous build system.\n\nRelevant files:\n\n- https://github.com/astanin/python-tabulate/blob/master/README.md\n- https://github.com/astanin/python-tabulate/blob/master/pyproject.toml\n\n## Expected behavior\n\nUsing the documented library-only installation option should omit the `tabulate` executable, or the README should clarify that the option is no longer supported.\n\n## Suggested verification\n\nIn a fresh virtual environment, compare two installs built from the current source: one with the `TABULATE_INSTALL=lib-only` environment variable and one without it. Then inspect the generated console entry point, such as in the environment's `bin` or `Scripts` directory. This would confirm whether the environment variable changes what gets installed.\n\n## Suggested improvement\n\nIf the setting is no longer supported, remove the library-only installation examples or explain the behavior supported by the current build system. If it is supported, it",
+      "rationale": "the GitHub issue this contribution addresses"
+    },
+    {
+      "id": "ev2",
+      "kind": "DOC",
+      "path": "README.md",
+      "start_line": 26,
+      "end_line": 37,
+      "snippet": "The command line utility will be installed as `tabulate` to `bin` on\nLinux (e.g. `/usr/bin`); or as `tabulate.exe` to `Scripts` in your\nPython installation on Windows (e.g. `C:\\Python39\\Scripts\\tabulate.exe`).\n\nYou may consider installing the library only for the current user:\n\n```shell\npip install tabulate --user\n```\n\nIn this case the command line utility will be installed to\n`~/.local/bin/tabulate` on Linux and to",
+      "rationale": "matches task keywords: installation, current, installing"
+    },
+    {
+      "id": "ev3",
+      "kind": "SOURCE",
+      "path": "tabulate/__init__.py",
+      "start_line": 268,
+      "end_line": 279,
+      "snippet": "header_list = ['cols=\"' + (\",\".join(asciidoc_column_specifiers)) + '\"']\n\n        # generate the list of options (currently only \"header\")\n        options_list = []\n\n        if is_header:\n            options_list.append(\"header\")\n\n        if options_list:\n            options_list = \",\".join(options_list)\n            header_list.append(f'options=\"{options_list}\"')",
+      "rationale": "matches task keywords: option, current"
+    },
+    {
+      "id": "ev4",
+      "kind": "TEST",
+      "path": "test/test_output.py",
+      "start_line": 102,
+      "end_line": 113,
+      "snippet": "def test_plain_maxcolwidth_autowraps():\n    \"Output: maxcolwidth will result in autowrapping longer cells\"\n    table = [[\"hdr\", \"fold\"], [\"1\", \"very long data\"]]\n    expected = \"\\n\".join([\"  hdr  fold\", \"    1  very long\", \"       data\"])\n    result = tabulate(table, headers=\"firstrow\", tablefmt=\"plain\", maxcolwidths=[10, 10])\n    assert_equal(expected, result)\n\n\ndef test_plain_maxcolwidth_autowraps_with_sep():\n    \"Output: maxcolwidth will result in autowrapping longer cells and separating line\"\n    table = [",
+      "rationale": "matches task keywords: longer"
+    },
+    {
+      "id": "ev5",
+      "kind": "TEST",
+      "path": "test/test_cli.py",
+      "start_line": 180,
+      "end_line": 191,
+      "snippet": "def test_script_header_option():\n    \"\"\"Command line utility: -1, --header option\"\"\"\n    for option in [\"-1\", \"--header\"]:\n        cmd = [sys.executable, \"tabulate/cli.py\", option]\n        raw_table = sample_input(with_headers=True)\n        out = run_and_capture_stdout(cmd, input=raw_table)\n        expected = SAMPLE_SIMPLE_FORMAT_WITH_HEADERS\n        print(out)\n        print(\"got:     \", repr(out))\n        print(\"expected:\", repr(expected))",
+      "rationale": "matches task keywords: option"
+    },
+    {
+      "id": "ev6",
+      "kind": "TEST",
+      "path": "test/test_regression.py",
+      "start_line": 586,
+      "end_line": 597,
+      "snippet": "\"Regression: asciidoc format output must not generate trailing whitespace (issue #408)\"\n    result = tabulate([[\"foo\"]], headers=(\"longheader\",), tablefmt=\"asciidoc\")\n    expected = '[cols=\"<14\",options=\"header\"]\\n|====\\n| longheader\\n| foo\\n|===='\n    assert_equal(expected, result)\n\n    result = tabulate([[\"longtext\"]], headers=(\"bar\",), tablefmt=\"asciidoc\")\n    expected = '[cols=\"<10\",options=\"header\"]\\n|====\\n| bar\\n| longtext\\n|===='\n    assert_equal(expected, result)\n\n\ndef test_github_escape_pipe_character():\n    \"Regression: github format must escape pipe character with a backslash (issue #241)\"",
+      "rationale": "matches task keywords: option"
+    },
+    {
+      "id": "ev7",
+      "kind": "TEST",
+      "path": "test/test_textwrapper.py",
+      "start_line": 303,
+      "end_line": 314,
+      "snippet": "def test_wrap_optional_bool_strs():\n    \"\"\"TextWrapper: Show that str bools and None can be wrapped without crashing\"\"\"\n    data = [\n        [\"First Entry\", \"True\"],\n        [\"Second Entry\", None],\n    ]\n    headers = [\"Title\", \"When\"]\n    result = tabulate(data, headers=headers, tablefmt=\"grid\", maxcolwidths=[7, 5])\n\n    expected = [",
+      "rationale": "matches task keywords: option"
+    },
+    {
+      "id": "ev8",
+      "kind": "SOURCE",
+      "path": "pyproject.toml",
+      "start_line": 27,
+      "end_line": 38,
+      "snippet": "Homepage = \"https://github.com/astanin/python-tabulate\"\n\n[project.optional-dependencies]\nwidechars = [\"wcwidth>=0.6.0\"]\n\n[project.scripts]\ntabulate = \"tabulate.cli:_main\"\n\n[tool.flit.sdist]\ninclude = [\"CHANGELOG\", \"test/\", \"tox.ini\"]\n\n[tool.setuptools_scm]",
+      "rationale": "matches task keywords: option"
+    },
+    {
+      "id": "ev9",
+      "kind": "DOC",
+      "path": "README.md",
+      "start_line": 41,
+      "end_line": 45,
+      "snippet": "\n```shell\nTABULATE_INSTALL=lib-only pip install tabulate\n```\n",
+      "rationale": "model tool search_text matched 'TABULATE_INSTALL' at line 43"
+    },
+    {
+      "id": "ev10",
+      "kind": "DOC",
+      "path": "README.md",
+      "start_line": 47,
+      "end_line": 51,
+      "snippet": "\n```shell\nset TABULATE_INSTALL=lib-only\npip install tabulate\n```",
+      "rationale": "model tool search_text matched 'TABULATE_INSTALL' at line 49"
+    }
+  ],
+  "retrieval": {
+    "status": "COMPLETE",
+    "limits": {
+      "max_files": 2000,
+      "max_bytes_per_file": 200000,
+      "max_total_bytes": 32000000,
+      "max_search_results": 200,
+      "max_seconds": 30.0
+    },
+    "files_total": 26,
+    "files_eligible": 18,
+    "files_examined": 18,
+    "bytes_read": 369616,
+    "search_results": 8,
+    "evidence_records": 8,
+    "elapsed_ms": 237,
+    "limit_hits": [],
+    "summary": "Retrieval is COMPLETE: examined 18 of 18 eligible file(s) from 26 tracked file(s), read 369616 byte(s), and retained 8 matching file(s). No retrieval limit was reached."
+  },
+  "orientation": {
+    "summary": "astanin/python-tabulate is a py-dominant repository (26 tracked files, default branch master). The README opens with: \"python-tabulate\" License: MIT (recognized). 10 evidence location(s) connect this task to the codebase.",
+    "key_paths": [
+      {
+        "path": "README.md",
+        "role": "project overview and quickstart"
+      },
+      {
+        "path": "tabulate/__init__.py",
+        "role": "relevant to this task (matches task keywords: option, current)"
+      }
+    ],
+    "languages": {
+      "py": 100.0
+    },
+    "entry_points": [
+      {
+        "path": "pyproject.toml",
+        "role": "manifest: pyproject.toml scripts: tabulate"
+      }
+    ],
+    "generated_by": "snapshot-v1"
+  },
+  "test_guidance": {
+    "run_command": "python -m pytest -q",
+    "focused_command": "python -m pytest -q test/test_output.py test/test_cli.py test/test_regression.py",
+    "relevant_tests": [
+      {
+        "path": "test/test_output.py",
+        "reason": "matches task keywords: longer"
+      },
+      {
+        "path": "test/test_cli.py",
+        "reason": "matches task keywords: option"
+      },
+      {
+        "path": "test/test_regression.py",
+        "reason": "matches task keywords: option"
+      },
+      {
+        "path": "test/test_textwrapper.py",
+        "reason": "matches task keywords: option"
+      }
+    ],
+    "note": "Selection is keyword-based — start with the files above, then run the full suite as the authoritative check. Whether the full suite actually executed is recorded in the verification receipt (python -m pytest -q)."
+  },
+  "tool_loop": {
+    "status": "COMPLETE",
+    "limits": {
+      "max_tool_calls": 8,
+      "max_total_bytes": 4000000,
+      "max_seconds": 180.0,
+      "max_results_per_search": 20
+    },
+    "model_calls": 2,
+    "tool_calls": 1,
+    "bytes_read": 371213,
+    "records_added": 2,
+    "rejected_items": 0,
+    "calls": [
+      {
+        "index": 1,
+        "tool": "search_text",
+        "target": "TABULATE_INSTALL",
+        "status": "OK",
+        "detail": "scanned 20 file(s), read 371213 byte(s), found 2 match(es)",
+        "bytes_read": 371213,
+        "evidence_paths": [
+          "README.md",
+          "README.md"
+        ]
+      },
+      {
+        "index": 2,
+        "tool": "done",
+        "target": "",
+        "status": "ERROR",
+        "detail": "invalid tool call: model response contained no JSON object",
+        "bytes_read": 0,
+        "evidence_paths": []
+      }
+    ],
+    "limit_hits": [],
+    "stop_reason": "invalid_model_output",
+    "summary": "Tool retrieval is COMPLETE: 2 model call(s), 1 tool call(s), 371213 byte(s) read, and 2 validated evidence record(s) added. Stop reason: invalid_model_output."
+  },
+  "model_usage": {
+    "limits": {
+      "max_calls": 10,
+      "max_tokens": 120000
+    },
+    "calls": 3,
+    "prompt_tokens": 3403,
+    "completion_tokens": 422,
+    "total_tokens": 3825,
+    "usage_source": "reported",
+    "exhausted": false,
+    "reason": ""
+  },
+  "plan": null,
+  "grounding": null,
+  "artifact": null,
+  "documents": [],
+  "receipt": null,
+  "events": [
+    {
+      "seq": 1,
+      "stage": "VALIDATE_INPUT",
+      "status": "STARTED",
+      "message": "Validating task input",
+      "at": "2026-10-26T09:54:09.537746Z"
+    },
+    {
+      "seq": 2,
+      "stage": "VALIDATE_INPUT",
+      "status": "COMPLETED",
+      "message": "Input accepted: astanin/python-tabulate issue #481",
+      "at": "2026-10-26T09:54:09.546454Z"
+    },
+    {
+      "seq": 3,
+      "stage": "PIN_SNAPSHOT",
+      "status": "STARTED",
+      "message": "Cloning astanin/python-tabulate (shallow, pinned to HEAD)",
+      "at": "2026-10-26T09:54:09.555951Z"
+    },
+    {
+      "seq": 4,
+      "stage": "PIN_SNAPSHOT",
+      "status": "COMPLETED",
+      "message": "Pinned astanin/python-tabulate@268615a5c2 (license: RECOGNIZED, 26 files)",
+      "at": "2026-10-26T09:54:09.667395Z"
+    },
+    {
+      "seq": 5,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "STARTED",
+      "message": "Collecting issue and repository evidence",
+      "at": "2026-10-26T09:54:09.678068Z"
+    },
+    {
+      "seq": 6,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "INFO",
+      "message": "Fetched issue #481: README library-only installation option may no longer work with current packagin",
+      "at": "2026-10-26T09:54:09.813390Z"
+    },
+    {
+      "seq": 7,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "COMPLETED",
+      "message": "Collected 8 evidence record(s)",
+      "at": "2026-10-26T09:54:10.060548Z"
+    },
+    {
+      "seq": 8,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "STARTED",
+      "message": "Running bounded model tool loop for supplementary context",
+      "at": "2026-10-26T09:54:10.093327Z"
+    },
+    {
+      "seq": 9,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "COMPLETED",
+      "message": "Tool retrieval COMPLETE: 1 tool call(s), 2 validated record(s) added — invalid_model_output",
+      "at": "2026-10-26T09:54:56.802442Z"
+    },
+    {
+      "seq": 10,
+      "stage": "PLAN",
+      "status": "STARTED",
+      "message": "Building contribution plan from evidence",
+      "at": "2026-10-26T09:54:56.812123Z"
+    },
+    {
+      "seq": 11,
+      "stage": null,
+      "status": "FAILED",
+      "message": "MODEL_ERROR: model gateway error (status 524): <!DOCTYPE html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 8]>    <html class=\"no-js ie8 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if gt IE 8]><!--> <html class=\"no-js\" lang=\"en-US\"> <!",
+      "at": "2026-10-26T10:01:18.707688Z"
+    }
+  ],
+  "error": {
+    "code": "MODEL_ERROR",
+    "message": "model gateway error (status 524): <!DOCTYPE html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 8]>    <html class=\"no-js ie8 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if gt IE 8]><!--> <html class=\"no-js\" lang=\"en-US\"> <!",
+    "detail": ""
+  },
+  "planner": "model:openai/deepseek-v4.1",
+  "workspace_kept": false
+}

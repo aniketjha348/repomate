@@ -1,0 +1,13 @@
+{
+  "case": "unavailable_toolchain_pyparsing",
+  "title": "Unavailable test dependency is an explicit NOT_RUN",
+  "repository": "pyparsing/pyparsing",
+  "input": {
+    "source": "REPO_TASK",
+    "issue_url": null,
+    "repo_url": "https://github.com/pyparsing/pyparsing",
+    "task": "Document the original_text_for helper in the README."
+  },
+  "expected": "COMPLETED with a DOCS_DIFF and repository suite NOT_RUN with a reason",
+  "notes": "The sandbox detects that the pyparsing test suite needs the 'railroad' package, which is unavailable and cannot be installed without network access. The per-file retrieval byte cap is raised for this case so evidence collection reaches verification; it is not the scenario under test."
+}

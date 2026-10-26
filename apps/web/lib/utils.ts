@@ -26,3 +26,18 @@ export function truncate(text: string, max = 64): string {
   if (text.length <= max) return text;
   return `${text.slice(0, max - 1)}…`;
 }
+
+/** Human-friendly execution duration. */
+export function formatDuration(ms: number | null | undefined): string {
+  if (typeof ms !== "number") return "—";
+  if (ms < 1000) return `${ms} ms`;
+  return `${(ms / 1000).toFixed(1)} s`;
+}
+
+/** Human-friendly byte count. */
+export function formatBytes(bytes: number | null | undefined): string {
+  if (typeof bytes !== "number") return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}

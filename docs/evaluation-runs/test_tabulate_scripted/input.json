@@ -1,0 +1,13 @@
+{
+  "case": "test_tabulate_scripted",
+  "title": "Test-addition task",
+  "repository": "astanin/python-tabulate",
+  "input": {
+    "source": "REPO_TASK",
+    "issue_url": null,
+    "repo_url": "https://github.com/astanin/python-tabulate",
+    "task": "Add a regression test for the simple grid output in the test suite."
+  },
+  "expected": "COMPLETED, TEST_DIFF, CONTRIBUTION_PLAN.md, passing suite",
+  "notes": "Scripted TEST plan creates a new test file. The baseline and post-patch suites must both pass; the artifact is labelled TEST_DIFF rather than PATCH_DIFF."
+}

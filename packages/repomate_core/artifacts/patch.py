@@ -62,6 +62,19 @@ CODE_FIX_PATCH_POLICY = PatchPolicy(
     ],
 )
 
+# A test-addition artifact is still a code diff, but it is labelled
+# ``TEST_DIFF`` and judged by a policy of its own so the receipt and the
+# download name describe what the contribution actually is.
+TEST_PATCH_POLICY = PatchPolicy(
+    artifact_kind=ArtifactKind.TEST_DIFF,
+    allow=["**"],
+    deny=[
+        ".github/**", ".git*", "**/.git*", "**/*.lock", "**/package-lock.json",
+        "**/.env*", "**/secrets/**", "**/id_rsa*", "**/*.pem", "**/*.key",
+        "node_modules/**", "vendor/**",
+    ],
+)
+
 
 def _matches(posix_path: str, pattern: str) -> bool:
     if pattern.endswith("/**"):

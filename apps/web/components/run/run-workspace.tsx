@@ -11,11 +11,14 @@ import { EventsFeed } from "./events-feed";
 import { EvidencePanel } from "./evidence-panel";
 import { OrientationCard } from "./orientation-card";
 import { PlanPanel } from "./plan-panel";
+import { RetrievalPanel } from "./retrieval-panel";
+import { ToolLoopPanel } from "./tool-loop-panel";
 import { RunHeader } from "./run-header";
 import { Section } from "./section";
 import { SnapshotCard } from "./snapshot-card";
 import { TestGuidancePanel } from "./test-guidance";
 import { DiffViewer } from "./diff-viewer";
+import { ArtifactDownloads } from "./artifact-downloads";
 import { VerificationPanel } from "./verification-panel";
 
 const POLL_INTERVAL_MS = 2000;
@@ -99,24 +102,50 @@ export function RunWorkspace({ runId }: { runId: string }) {
         <TestGuidancePanel guidance={record.test_guidance} />
       ) : null}
       <EventsFeed events={events} defaultOpen={active} />
+      {record.retrieval ? (
+        <Section title="Retrieval scope">
+          <RetrievalPanel retrieval={record.retrieval} />
+        </Section>
+      ) : null}
+      {record.tool_loop || record.model_usage ? (
+        <Section title="Model usage & tool retrieval">
+          <ToolLoopPanel report={record.tool_loop} usage={record.model_usage} />
+        </Section>
+      ) : null}
       <Section title={`Evidence (${record.evidence.length})`}>
         <EvidencePanel evidence={record.evidence} />
       </Section>
       {record.plan ? (
         <Section title="Contribution plan">
-          <PlanPanel plan={record.plan} />
+          <PlanPanel plan={record.plan} grounding={record.grounding} />
         </Section>
       ) : null}
-      {record.artifact ? (
-        <Section title="Patch">
-          <DiffViewer runId={runId} artifact={record.artifact} />
-        </Section>
-      ) : record.status === "NEED_MORE_INFO" ? (
-        <Section title="Patch">
-          <p className="rounded-lg border border-dashed border-sky-500/30 bg-sky-500/5 p-6 text-center text-sm text-sky-300/90">
-            No patch yet — the plan needs more information before RepoMate can
-            generate one.
-          </p>
+      {record.artifact ||
+      (record.documents && record.documents.length > 0) ||
+      record.status === "NEED_MORE_INFO" ||
+      record.status === "PARTIAL" ? (
+        <Section title="Artifacts">
+          <ArtifactDownloads
+            runId={runId}
+            artifact={record.artifact}
+            documents={record.documents ?? []}
+          />
+          {record.artifact ? (
+            <div className="mt-4">
+              <DiffViewer runId={runId} artifact={record.artifact} />
+            </div>
+          ) : record.status === "NEED_MORE_INFO" ? (
+            <p className="mt-4 rounded-lg border border-dashed border-sky-500/30 bg-sky-500/5 p-6 text-center text-sm text-sky-300/90">
+              No patch yet — the plan needs more information before RepoMate can
+              generate one. The plan and any checklist above are still
+              downloadable.
+            </p>
+          ) : record.status === "PARTIAL" ? (
+            <p className="mt-4 rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5 p-6 text-center text-sm text-amber-200/90">
+              No patch — retrieval stopped at an explicit limit. The run is
+              PARTIAL and its scope is reported above; it is not a full analysis.
+            </p>
+          ) : null}
         </Section>
       ) : null}
       {record.receipt ? (

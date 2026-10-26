@@ -1,0 +1,10 @@
+{
+  "case_workspace": "var/eval-real/cases/unavailable_toolchain_pyparsing",
+  "prepared_commit": "810199f89bf916590426e1c5cb3d612584f11a2f",
+  "repo": "pyparsing/pyparsing",
+  "upstream_commit": "810199f89bf916590426e1c5cb3d612584f11a2f",
+  "base_commit": "810199f89bf916590426e1c5cb3d612584f11a2f",
+  "elapsed_seconds": 11.95,
+  "planner_observed": "scripted-eval-v1",
+  "sandbox_backend": "bwrap"
+}

@@ -1,0 +1,61 @@
+{
+  "base": "http://localhost:3000",
+  "issue": "https://github.com/astanin/python-tabulate/issues/481",
+  "run_id": "run_20261026-100340_8a5rrl53",
+  "final_status": "COMPLETED",
+  "planner": "heuristic-v1",
+  "artifact_kind": "DOCS_DIFF",
+  "artifact_paths": [
+    "README.md"
+  ],
+  "documents": [
+    "CONTRIBUTION_PLAN.md"
+  ],
+  "receipt_checks": [
+    {
+      "name": "patch-path-policy",
+      "status": "PASSED"
+    },
+    {
+      "name": "patch-applies-on-pinned-commit",
+      "status": "PASSED"
+    },
+    {
+      "name": "sandbox-egress-isolation",
+      "status": "PASSED"
+    },
+    {
+      "name": "repository-test-suite",
+      "status": "PASSED"
+    }
+  ],
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "network_failures": [],
+  "downloads": [
+    {
+      "name": "documentation.patch",
+      "href": "http://localhost:8000/api/runs/run_20261026-100340_8a5rrl53/artifacts/patch",
+      "suggested": "documentation.patch",
+      "bytes": 1393,
+      "saved": "D:\\repomate\\docs\\evaluation-runs\\browser_tabulate_481\\downloads\\documentation.patch"
+    },
+    {
+      "name": "CONTRIBUTION_PLAN.md",
+      "href": "http://localhost:8000/api/runs/run_20261026-100340_8a5rrl53/artifacts/CONTRIBUTION_PLAN.md",
+      "suggested": "CONTRIBUTION_PLAN.md",
+      "bytes": 9007,
+      "saved": "D:\\repomate\\docs\\evaluation-runs\\browser_tabulate_481\\downloads\\CONTRIBUTION_PLAN.md"
+    },
+    {
+      "name": "README.md",
+      "href": "http://localhost:8000/api/runs/run_20261026-100340_8a5rrl53/artifacts/patch",
+      "suggested": "documentation.patch",
+      "bytes": 1393,
+      "saved": "D:\\repomate\\docs\\evaluation-runs\\browser_tabulate_481\\downloads\\documentation.patch"
+    }
+  ],
+  "screenshot": "workspace-full.png",
+  "dom": "dom.txt"
+}

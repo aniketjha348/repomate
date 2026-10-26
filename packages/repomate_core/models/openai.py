@@ -1,11 +1,4 @@
-"""OpenAI-compatible chat-completions gateway adapter.
-
-Vyce AI (and any OpenAI-compatible gateway) speaks the standard
-``/chat/completions`` dialect, so the adapter is named for the protocol,
-not the vendor: :class:`OpenAIProvider`. Configuration is entirely
-environment-driven (``OPENAI_BASE_URL`` / ``OPENAI_MODEL`` /
-``OPENAI_API_KEY``) — the legacy ``VYCE_*`` names still work and are
-read as fallbacks, so existing deployments keep running unchanged.
+"""OpenAI-compatible chat-completions adapter for Ollama Cloud.
 
 Boundaries enforced for every call: hard request timeout, at most 2
 retries (429/5xx only) with capped backoff, https-only endpoint with
@@ -20,10 +13,11 @@ from typing import Optional
 
 import httpx
 
-from repomate_core.models.base import ModelError, ModelResult
+from repomate_core.models.base import ModelError, ModelProvider, ModelResult
 
-DEFAULT_BASE_URL = "https://vyceai.com/v1"
-DEFAULT_MODEL = "deepseek-v4.1"
+DEFAULT_BASE_URL = "https://ollama.com/v1"
+DEFAULT_MODEL = "gemma4:31b"
+DEFAULT_OLLAMA_MODELS = "gemma4:31b,gpt-oss:120b"
 _MAX_RETRIES = 2
 
 
@@ -38,19 +32,33 @@ def _env(*names: str, default: str = "") -> str:
 def model_timeout_from_env(default: float = 240.0) -> float:
     """Wall-time budget per gateway call. Evidence-heavy planner prompts on
     reasoning models can legitimately exceed a minute, so the default is
-    generous and tunable via ``OPENAI_TIMEOUT_SECONDS``."""
-    raw = _env("OPENAI_TIMEOUT_SECONDS", "VYCE_TIMEOUT_SECONDS")
+    generous and tunable via ``OLLAMA_TIMEOUT_SECONDS``."""
+    raw = _env("OLLAMA_TIMEOUT_SECONDS")
     try:
         return float(raw) if raw else default
     except ValueError:
         return default
 
 
-class OpenAIProvider:
-    """Verified live against the Vyce AI deployment of the OpenAI
-    chat-completions API (models list + completions); swapping gateways is
-    a config change, not a code change.
+def model_retries_from_env(default: int = _MAX_RETRIES) -> int:
+    """Retry budget for retryable gateway failures (429/5xx/524).
+
+    Cloudflare's 524 (origin timeout) is common on slow reasoning models:
+    the gateway is still working but the edge gave up. The default of 2
+    retries proved too thin in practice, so it is tunable via
+    ``OLLAMA_MAX_RETRIES`` and capped to keep a run bounded.
     """
+    raw = _env("OLLAMA_MAX_RETRIES")
+    if not raw:
+        return default
+    try:
+        return max(0, min(int(raw), 6))
+    except ValueError:
+        return default
+
+
+class OpenAIProvider:
+    """Chat-completions client verified against Ollama Cloud."""
 
     def __init__(
         self,
@@ -59,18 +67,21 @@ class OpenAIProvider:
         base_url: Optional[str] = None,
         model: Optional[str] = None,
         client: Optional[httpx.Client] = None,
+        max_retries: Optional[int] = None,
     ) -> None:
         if not api_key:
             raise ModelError("OpenAIProvider requires an API key")
         self._api_key = api_key
         self.base_url = (
-            base_url
-            or _env("OPENAI_BASE_URL", "VYCE_BASE_URL", default=DEFAULT_BASE_URL)
+            base_url or _env("OLLAMA_BASE_URL", default=DEFAULT_BASE_URL)
         ).rstrip("/")
-        self.model_id = model or _env("OPENAI_MODEL", "VYCE_MODEL", default=DEFAULT_MODEL)
+        self.model_id = model or _env("OLLAMA_MODEL", default=DEFAULT_MODEL)
         if not self.base_url.startswith("https://"):
-            raise ModelError("OPENAI_BASE_URL must be https")
+            raise ModelError("OLLAMA_BASE_URL must be https")
         self._injected_client = client
+        self._max_retries = (
+            max_retries if max_retries is not None else model_retries_from_env()
+        )
 
     @property
     def name(self) -> str:
@@ -109,13 +120,15 @@ class OpenAIProvider:
             timeout=timeout, follow_redirects=False
         )
         try:
-            for attempt in range(_MAX_RETRIES + 1):
+            for attempt in range(self._max_retries + 1):
                 result = _post_once(client, self.base_url, payload, headers)
                 if isinstance(result, ModelResult):
                     return result
-                if result.retryable and attempt < _MAX_RETRIES:
+                if result.retryable and attempt < self._max_retries:
                     last_error = result.error
-                    time.sleep(min(2.0 * (attempt + 1), 5.0))
+                    # Capped exponential backoff: 524s mean the origin is
+                    # still working, so a longer pause beats a fast retry.
+                    time.sleep(min(2.0 * (attempt + 1), 8.0))
                     continue
                 if result.drop_response_format and "response_format" in payload:
                     # Gateway rejects JSON mode — fall back to prompting only.
@@ -128,9 +141,45 @@ class OpenAIProvider:
                 client.close()
 
 
-# Legacy alias: the adapter shipped as VyceProvider before it was
-# generalized to the protocol name.
-VyceProvider = OpenAIProvider
+class FallbackProvider:
+    def __init__(self, providers: list[ModelProvider]) -> None:
+        self._providers = providers
+        self._active_index = 0
+
+    @property
+    def name(self) -> str:
+        return self._providers[self._active_index].name
+
+    @property
+    def model_id(self) -> str:
+        return self._providers[self._active_index].model_id
+
+    def complete(
+        self,
+        *,
+        system: str,
+        user: str,
+        max_output_tokens: int = 2048,
+        timeout: float = 60.0,
+        json_mode: bool = False,
+    ) -> ModelResult:
+        errors = []
+        for index in range(self._active_index, len(self._providers)):
+            provider = self._providers[index]
+            try:
+                result = provider.complete(
+                    system=system,
+                    user=user,
+                    max_output_tokens=max_output_tokens,
+                    timeout=timeout,
+                    json_mode=json_mode,
+                )
+            except ModelError as exc:
+                errors.append(f"{provider.name}/{provider.model_id}: {exc}")
+                continue
+            self._active_index = index
+            return result
+        raise ModelError("model fallback chain exhausted: " + " | ".join(errors))
 
 
 class _Attempt:
@@ -179,16 +228,23 @@ def _post_once(client: httpx.Client, base_url: str, payload: dict, headers: dict
     )
 
 
-def provider_from_env() -> Optional[OpenAIProvider]:
-    """Return a provider when configured, else ``None``.
-
-    ``None`` means the pipeline runs with the deterministic heuristic
-    planner — every artifact is then explicitly labelled as such.
-    """
-    api_key = _env("OPENAI_API_KEY", "VYCE_API_KEY")
+def provider_from_env() -> Optional[ModelProvider]:
+    """Return the configured Ollama model chain, else ``None`` for heuristics."""
+    api_key = _env("OLLAMA_API_KEY")
     if not api_key:
         return None
+    base_url = _env("OLLAMA_BASE_URL", default=DEFAULT_BASE_URL)
+    models = _env("OLLAMA_MODELS", default=DEFAULT_OLLAMA_MODELS)
     try:
-        return OpenAIProvider(api_key)
+        providers: list[ModelProvider] = [
+            OpenAIProvider(api_key, base_url=base_url, model=model.strip())
+            for model in models.split(",")
+            if model.strip()
+        ]
     except ModelError:
         return None
+    if not providers:
+        return None
+    if len(providers) == 1:
+        return providers[0]
+    return FallbackProvider(providers)

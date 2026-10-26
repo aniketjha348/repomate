@@ -1,0 +1,74 @@
+[
+  {
+    "id": "ev1",
+    "kind": "SOURCE",
+    "path": "tabulate/__init__.py",
+    "start_line": 2182,
+    "end_line": 2193,
+    "snippet": "\\\\end{tabular}\n\n    \"latex_longtable\" produces a tabular environment that can stretch along\n    multiple pages, using the longtable package for LaTeX.\n\n    >>> print(tabulate([[\"spam\", 41.9999], [\"eggs\", \"451.0\"]], tablefmt=\"latex_longtable\"))\n    \\\\begin{longtable}{lr}\n    \\\\hline\n     spam &  41.9999 \\\\\\\\\n     eggs & 451      \\\\\\\\\n    \\\\hline\n    \\\\end{longtable}",
+    "rationale": "matches task keywords: table"
+  },
+  {
+    "id": "ev2",
+    "kind": "DOC",
+    "path": "README.md",
+    "start_line": 1177,
+    "end_line": 1188,
+    "snippet": "-   has to \"guess\" how to print a particular tabular data type\n-   needs to keep the entire table in-memory\n-   has to \"transpose\" the table twice\n-   does much more work than it may appear\n\nIt may not be suitable for serializing really big tables (but who's\ngoing to do that, anyway?) or printing tables in performance sensitive\napplications. `tabulate` is about two orders of magnitude slower than\nsimply joining lists of values with a tab, comma, or other separator.\n\nAt the same time, `tabulate` is comparable to other table\npretty-printers. Given a 10x10 table (a list of lists) of mixed text and",
+    "rationale": "matches task keywords: table"
+  },
+  {
+    "id": "ev3",
+    "kind": "TEST",
+    "path": "test/test_api.py",
+    "start_line": 39,
+    "end_line": 50,
+    "snippet": "(\"tabular_data\", _empty),\n        (\"headers\", ()),\n        (\"tablefmt\", \"simple\"),\n        (\"floatfmt\", \"g\"),\n        (\"intfmt\", \"\"),\n        (\"numalign\", \"default\"),\n        (\"stralign\", \"default\"),\n        (\"missingval\", \"\"),\n        (\"showindex\", \"default\"),\n        (\"disable_numparse\", False),\n        (\"colglobalalign\", None),\n        (\"colalign\", None),",
+    "rationale": "matches task keywords: table"
+  },
+  {
+    "id": "ev4",
+    "kind": "TEST",
+    "path": "test/test_cli.py",
+    "start_line": 183,
+    "end_line": 194,
+    "snippet": "\"\"\"Command line utility: -1, --header option\"\"\"\n    for option in [\"-1\", \"--header\"]:\n        cmd = [sys.executable, \"tabulate/cli.py\", option]\n        raw_table = sample_input(with_headers=True)\n        out = run_and_capture_stdout(cmd, input=raw_table)\n        expected = SAMPLE_SIMPLE_FORMAT_WITH_HEADERS\n        print(out)\n        print(\"got:     \", repr(out))\n        print(\"expected:\", repr(expected))\n        assert_equal(out.splitlines(), expected.splitlines())",
+    "rationale": "matches task keywords: table"
+  },
+  {
+    "id": "ev5",
+    "kind": "TEST",
+    "path": "test/test_grapheme_clusters.py",
+    "start_line": 61,
+    "end_line": 72,
+    "snippet": "[family, \"emoji\"],\n        ]\n        result = tabulate(data, headers=[\"col\", \"desc\"], tablefmt=\"grid\")\n        lines = result.split(\"\\n\")\n\n        border_width = len(lines[0])\n        for line in lines:\n            from tabulate import _visible_width\n\n            assert _visible_width(line) == border_width\n\n    @requires_wcwidth",
+    "rationale": "matches task keywords: table"
+  },
+  {
+    "id": "ev6",
+    "kind": "TEST",
+    "path": "test/test_input.py",
+    "start_line": 431,
+    "end_line": 442,
+    "snippet": "expected1 = \"\\n\".join([\"  DIGITS  LETTERS\", \"--------  ---------\", \"   12345  ABCDE\"])\n    expected2 = \"\\n\".join([\"LETTERS      DIGITS\", \"---------  --------\", \"ABCDE         12345\"])\n    result = tabulate(table, headers=headers)\n    assert_in(result, [expected1, expected2])\n\n\ndef test_list_of_dicts_with_list_of_headers():\n    \"Input: ValueError on a list of headers with a list of dicts (issue #23)\"\n    table = [{\"letters\": \"ABCDE\", \"digits\": 12345}]\n    headers = [\"DIGITS\", \"LETTERS\"]\n    with raises(ValueError):\n        tabulate(table, headers=headers)",
+    "rationale": "matches task keywords: table"
+  },
+  {
+    "id": "ev7",
+    "kind": "TEST",
+    "path": "test/test_internal.py",
+    "start_line": 335,
+    "end_line": 346,
+    "snippet": "]\n    result, sep_lines = T._remove_separating_lines(with_rows)\n    expected = rows_to_pipe_table_str([[0, \"a\"], [1, \"b\"], [2, \"c\"], [3, \"c\"]])\n\n    assert_equal(expected, rows_to_pipe_table_str(result))\n    assert_equal(\"2|4|6\", cols_to_pipe_str(sep_lines))\n\n\ndef test__reinsert_separating_lines():\n    with_rows = [\n        [0, \"a\"],\n        [1, \"b\"],",
+    "rationale": "matches task keywords: table"
+  },
+  {
+    "id": "ev8",
+    "kind": "TEST",
+    "path": "test/test_output.py",
+    "start_line": 2696,
+    "end_line": 2707,
+    "snippet": "def test_latex_raw():\n    \"Output: raw latex with headers\"\n    raw_test_table_headers = list(_test_table_headers)\n    raw_test_table_headers[-1] += \" ($N_0$)\"\n    raw_test_table = list(map(list, _test_table))\n    raw_test_table[0][0] += \"$_1$\"\n    raw_test_table[1][0] = \"\\\\emph{\" + raw_test_table[1][0] + \"}\"\n    print(raw_test_table)\n    result = tabulate(raw_test_table, raw_test_table_headers, tablefmt=\"latex_raw\")\n    expected = \"\\n\".join(\n        [\n            r\"\\begin{tabular}{lr}\",",
+    "rationale": "matches task keywords: table"
+  }
+]

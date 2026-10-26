@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import HTTPException
 
 from repomate_core.contracts import ErrorCode
@@ -13,10 +15,17 @@ _STATUS_BY_CODE = {
 }
 
 
-def api_error(status_code: int, code: ErrorCode, message: str) -> HTTPException:
+def api_error(
+    status_code: int,
+    code: ErrorCode,
+    message: str,
+    *,
+    headers: Optional[dict[str, str]] = None,
+) -> HTTPException:
     return HTTPException(
         status_code=status_code,
         detail={"code": code.value, "message": message},
+        headers=headers,
     )
 
 

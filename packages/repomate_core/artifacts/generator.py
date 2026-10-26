@@ -36,6 +36,21 @@ def generate_docs_artifact(
     if change is None:
         raise ValueError("plan has no planned changes to render")
 
+    # A model sometimes labels a new documentation file as MODIFY. Creating
+    # the file is the sane interpretation for a docs task; silently failing
+    # the whole run would be worse. Record the correction so the plan and its
+    # downloadable markdown do not misreport what happened.
+    if change.change_type == "MODIFY" and not ws.exists(change.path):
+        index = plan.planned_changes.index(change)
+        plan.planned_changes[index] = change.model_copy(
+            update={"change_type": "CREATE"}
+        )
+        plan.limitations.append(
+            f"Planned path {change.path!r} did not exist at the pinned commit; "
+            "it was created as a new file."
+        )
+        change = plan.planned_changes[index]
+
     original = (
         ws.read_text(change.path, max_chars=None)
         if change.change_type == "MODIFY"

@@ -1,0 +1,11 @@
+{
+  "case_workspace": "var/eval-real/cases/github_rate_limit_injected",
+  "prepared_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "repo": "astanin/python-tabulate",
+  "upstream_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "base_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "planner_requested": "none",
+  "elapsed_seconds": 0.18,
+  "planner_observed": "none",
+  "sandbox_backend": "bwrap"
+}

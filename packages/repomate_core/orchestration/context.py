@@ -24,6 +24,7 @@ from repomate_core.contracts import (
 from repomate_core.orchestration.errors import RunCancelled
 from repomate_core.orchestration.pipeline_config import PipelineConfig
 from repomate_core.orchestration.store_factory import build_store
+from repomate_core.models import ModelBudget
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from repomate_core.orchestration.store import RunStore
@@ -41,6 +42,7 @@ class RunContext:
     config: PipelineConfig
     started: float = field(default_factory=time.monotonic)
     event_cb: Optional[EventCallback] = None
+    model_budget: ModelBudget = field(default_factory=ModelBudget)
     _seq: int = 0
 
     @classmethod
@@ -58,7 +60,13 @@ class RunContext:
         )
         store = build_store(config.runs_root, config.database_url)
         store.save_run(record)
-        return cls(record=record, store=store, config=config, event_cb=event_cb)
+        return cls(
+            record=record,
+            store=store,
+            config=config,
+            event_cb=event_cb,
+            model_budget=ModelBudget(config.model_limits),
+        )
 
     # -- progress ----------------------------------------------------------
 
@@ -90,6 +98,12 @@ class RunContext:
                 f"run exceeded the {int(self.config.max_run_seconds)}s budget",
             )
 
+    def remaining_seconds(self) -> float:
+        return max(
+            0.0,
+            self.config.max_run_seconds - (time.monotonic() - self.started),
+        )
+
     # -- workspace lifecycle ----------------------------------------------------
 
     @property
@@ -105,6 +119,15 @@ class RunContext:
         return keep
 
     def persist(self) -> None:
+        # Persist actual model spend on every terminal path, including
+        # failures: the fair-use report must survive the run it describes.
+        if self.model_budget.calls or self.model_budget.total_tokens:
+            self.record.model_usage = self.model_budget.report()
+        # Publish the plan/checklist documents before the final save so every
+        # store sees the same stable markdown snapshot.
+        from repomate_core.artifacts.documents import build_documents
+
+        self.record.documents = build_documents(self.record)
         if self.record.artifact is not None and self.record.receipt is not None:
             self.store.save_artifact(
                 self.record.run_id,

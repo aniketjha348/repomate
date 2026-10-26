@@ -1,14 +1,19 @@
-"""OpenAI-compatible gateway provider contract tests (no network).
+"""Ollama-compatible provider and model-chain contract tests (no network).
 
 Covers the behaviours the pipeline depends on: happy path, retry on 429,
-no retry on auth failures, hard timeout, malformed payloads, and the
-OPENAI_* → VYCE_* environment fallback chain.
+no retry on auth failures, hard timeout, malformed payloads, model
+fallback, and the ``OLLAMA_*`` environment configuration chain.
 """
 
 import httpx
 import pytest
 
-from repomate_core.models import ModelError, ModelResult, OpenAIProvider
+from repomate_core.models import (
+    FallbackProvider,
+    ModelError,
+    ModelResult,
+    OpenAIProvider,
+)
 
 KEY = "sk-test"
 OK_BODY = {
@@ -108,34 +113,91 @@ def test_non_https_base_url_rejected():
         OpenAIProvider(KEY, base_url="http://gateway.test/v1")
 
 
-class TestEnvFallback:
-    def test_openai_env_wins(self, monkeypatch):
-        monkeypatch.setenv("OPENAI_API_KEY", "k1")
-        monkeypatch.setenv("VYCE_API_KEY", "k2")
-        from repomate_core.models.openai import provider_from_env
+class _StubProvider:
+    name = "openai"
 
-        provider = provider_from_env()
-        assert provider is not None and provider._api_key == "k1"
+    def __init__(self, model_id: str, *outcomes: object) -> None:
+        self.model_id = model_id
+        self._outcomes = list(outcomes)
+        self.calls = 0
 
-    def test_legacy_vyce_env_still_works(self, monkeypatch):
-        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-        monkeypatch.setenv("VYCE_API_KEY", "k2")
-        monkeypatch.setenv("VYCE_BASE_URL", "https://legacy.test/v1")
-        from repomate_core.models.openai import provider_from_env
+    def complete(self, **kwargs) -> ModelResult:
+        self.calls += 1
+        outcome = self._outcomes.pop(0)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return ModelResult(text=str(outcome), provider=self.name, model=self.model_id)
 
-        provider = provider_from_env()
-        assert provider is not None
-        assert provider._api_key == "k2"
-        assert provider.base_url == "https://legacy.test/v1"
+
+def test_fallback_uses_next_model_and_remembers_success():
+    primary = _StubProvider("gemma4:31b", ModelError("down"))
+    fallback = _StubProvider("gpt-oss:120b", "first", "second")
+    provider = FallbackProvider([primary, fallback])
+
+    assert provider.complete(system="s", user="u").text == "first"
+    assert provider.model_id == "gpt-oss:120b"
+    assert provider.complete(system="s", user="u").text == "second"
+    assert primary.calls == 1
+    assert fallback.calls == 2
+
+
+def test_fallback_reports_all_model_failures():
+    primary = _StubProvider("gemma4:31b", ModelError("down"))
+    fallback = _StubProvider("gpt-oss:120b", ModelError("unavailable"))
+    provider = FallbackProvider([primary, fallback])
+
+    with pytest.raises(ModelError) as exc_info:
+        provider.complete(system="s", user="u")
+    assert "gemma4:31b: down" in str(exc_info.value)
+    assert "gpt-oss:120b: unavailable" in str(exc_info.value)
+
+
+def test_planner_name_tracks_successful_fallback():
+    from repomate_core.planning.model_planner import ModelPlanner
+
+    primary = _StubProvider("gemma4:31b", ModelError("down"))
+    fallback = _StubProvider("gpt-oss:120b", "ok")
+    planner = ModelPlanner(FallbackProvider([primary, fallback]))
+
+    assert planner.name == "model:openai/gemma4:31b"
+    planner.provider.complete(system="s", user="u")
+    assert planner.name == "model:openai/gpt-oss:120b"
+
+
+class TestOllamaEnvironment:
+    @pytest.fixture(autouse=True)
+    def clear_provider_environment(self, monkeypatch):
+        for key in (
+            "OLLAMA_API_KEY",
+            "OLLAMA_BASE_URL",
+            "OLLAMA_MODELS",
+            "OLLAMA_MODEL",
+        ):
+            monkeypatch.delenv(key, raising=False)
 
     def test_no_key_returns_none(self, monkeypatch):
-        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-        monkeypatch.delenv("VYCE_API_KEY", raising=False)
         from repomate_core.models.openai import provider_from_env
 
         assert provider_from_env() is None
 
-    def test_vyce_alias_is_openai_provider(self):
-        from repomate_core.models import VyceProvider
+    def test_ollama_models_are_tried_in_order(self, monkeypatch):
+        monkeypatch.setenv("OLLAMA_API_KEY", "ollama-key")
+        monkeypatch.setenv("OLLAMA_MODELS", "gemma4:31b,gpt-oss:120b")
+        from repomate_core.models.openai import provider_from_env
 
-        assert VyceProvider is OpenAIProvider
+        provider = provider_from_env()
+        assert isinstance(provider, FallbackProvider)
+        assert [p.model_id for p in provider._providers] == [
+            "gemma4:31b",
+            "gpt-oss:120b",
+        ]
+        assert all(p.base_url == "https://ollama.com/v1" for p in provider._providers)
+
+    def test_single_ollama_model_is_not_wrapped(self, monkeypatch):
+        monkeypatch.setenv("OLLAMA_API_KEY", "ollama-key")
+        monkeypatch.setenv("OLLAMA_MODELS", "gemma4:31b")
+        from repomate_core.models.openai import provider_from_env
+
+        provider = provider_from_env()
+        assert isinstance(provider, OpenAIProvider)
+        assert provider.model_id == "gemma4:31b"

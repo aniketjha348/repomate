@@ -1,0 +1,84 @@
+{
+  "checks": [
+    {
+      "name": "patch-path-policy",
+      "command": "internal:patch-policy",
+      "status": "PASSED",
+      "exit_code": null,
+      "duration_ms": null,
+      "output_tail": "",
+      "reason": ""
+    },
+    {
+      "name": "patch-applies-on-pinned-commit",
+      "command": "git apply --check",
+      "status": "PASSED",
+      "exit_code": 0,
+      "duration_ms": null,
+      "output_tail": "",
+      "reason": ""
+    },
+    {
+      "name": "sandbox-egress-isolation",
+      "command": "internal:egress-probe",
+      "status": "PASSED",
+      "exit_code": null,
+      "duration_ms": null,
+      "output_tail": "{\n  \"public_http\": \"blocked:OSError\",\n  \"cloud_metadata\": \"blocked:OSError\",\n  \"cloud_metadata_ipv6\": \"blocked:OSError\",\n  \"private_rfc1918_10\": \"blocked:OSError\",\n  \"private_rfc1918_172\": \"blocked:OSError\",\n  \"private_rfc1918_192\": \"blocked:OSError\",\n  \"loopback_postgres\": \"blocked:ConnectionRefusedError\",\n  \"loopback_redis\": \"blocked:ConnectionRefusedError\",\n  \"loopback_api\": \"blocked:ConnectionRefusedError\",\n  \"public_https\": \"blocked:gaierror\",\n  \"dns\": \"blocked:gaierror\"\n}",
+      "reason": "every egress attempt from inside the sandbox was refused"
+    },
+    {
+      "name": "repository-test-suite",
+      "command": "python -m pytest -q",
+      "status": "NOT_RUN",
+      "exit_code": null,
+      "duration_ms": 3239,
+      "output_tail": "==================================== ERRORS ====================================\n____________________ ERROR collecting tests/test_diagram.py ____________________\nImportError while importing test module '/tmp/repomate-verify-vbj3jl3m/patched/tests/test_diagram.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/lib/python3.14/importlib/__init__.py:88: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntests/test_diagram.py:10: in <module>\n    from pyparsing.diagram import to_railroad, railroad_to_html, NamedDiagram, AnnotatedItem\npyparsing/diagram/__init__.py:5: in <module>\n    import railroad\nE   ModuleNotFoundError: No module named 'railroad'\n=========================== short test summary info ============================\nERROR tests/test_diagram.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 1.66s",
+      "reason": "required test dependency is unavailable inside the network-disabled sandbox: No module named 'railroad'. Installing it would require network access, which the sandbox denies."
+    }
+  ],
+  "overall": "PASSED",
+  "environment": "process sandbox (wall-time, CPU and memory limits, scrubbed env; network egress denied (bwrap)) on Linux/x86_64",
+  "limitations": [
+    "The sandbox uses an unprivileged bwrap namespace: egress is denied, host socket directories are masked, the process table is private, and the repository's .git directory is read-only. It is not a full VM; the host kernel is shared.",
+    "Repository tests run with RepoMate's interpreter and installed dependencies; a repo-specific virtualenv is not created, so missing dependencies are reported NOT_RUN (they cannot be downloaded without network access)."
+  ],
+  "sandbox": {
+    "network_mode": "disabled",
+    "backend": "bwrap",
+    "policy_enforced": true,
+    "egress_validation": "PASSED",
+    "egress_detail": "every egress attempt from inside the sandbox was refused"
+  },
+  "base_commit": "810199f89bf916590426e1c5cb3d612584f11a2f",
+  "patch_sha256": "014720974c3b4b83aebcbb619203c7cb0f83720a501df0f9be31bce5d65376a8",
+  "comparison": {
+    "base_commit": "810199f89bf916590426e1c5cb3d612584f11a2f",
+    "patch_sha256": "014720974c3b4b83aebcbb619203c7cb0f83720a501df0f9be31bce5d65376a8",
+    "baseline": {
+      "phase": "baseline",
+      "commit_sha": "810199f89bf916590426e1c5cb3d612584f11a2f",
+      "command": "python -m pytest -q",
+      "status": "NOT_RUN",
+      "exit_code": null,
+      "duration_ms": 2457,
+      "output_summary": "==================================== ERRORS ====================================\n____________________ ERROR collecting tests/test_diagram.py ____________________\nImportError while importing test module '/tmp/repomate-verify-vbj3jl3m/baseline/tests/test_diagram.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/lib/python3.14/importlib/__init__.py:88: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntests/test_diagram.py:10: in <module>\n    from pyparsing.diagram import to_railroad, railroad_to_html, NamedDiagram, AnnotatedItem\npyparsing/diagram/__init__.py:5: in <module>\n    import railroad\nE   ModuleNotFoundError: No module named 'railroad'\n=========================== short test summary info ============================\nERROR tests/test_diagram.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 1.12s",
+      "reason": "required test dependency is unavailable inside the network-disabled sandbox: No module named 'railroad'. Installing it would require network access, which the sandbox denies."
+    },
+    "post_patch": {
+      "phase": "post_patch",
+      "commit_sha": "810199f89bf916590426e1c5cb3d612584f11a2f",
+      "command": "python -m pytest -q",
+      "status": "NOT_RUN",
+      "exit_code": null,
+      "duration_ms": 3239,
+      "output_summary": "==================================== ERRORS ====================================\n____________________ ERROR collecting tests/test_diagram.py ____________________\nImportError while importing test module '/tmp/repomate-verify-vbj3jl3m/patched/tests/test_diagram.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/lib/python3.14/importlib/__init__.py:88: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntests/test_diagram.py:10: in <module>\n    from pyparsing.diagram import to_railroad, railroad_to_html, NamedDiagram, AnnotatedItem\npyparsing/diagram/__init__.py:5: in <module>\n    import railroad\nE   ModuleNotFoundError: No module named 'railroad'\n=========================== short test summary info ============================\nERROR tests/test_diagram.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 1.66s",
+      "reason": "required test dependency is unavailable inside the network-disabled sandbox: No module named 'railroad'. Installing it would require network access, which the sandbox denies."
+    },
+    "outcome": "BASELINE_INCOMPLETE",
+    "interpretation": "the baseline check did not run, so post-patch results alone do not establish issue resolution",
+    "commands_match": true
+  },
+  "resolution_statement": "The baseline check did not run, so post-patch results alone do not establish issue resolution.",
+  "created_at": "2026-10-26T10:03:41.497248Z"
+}

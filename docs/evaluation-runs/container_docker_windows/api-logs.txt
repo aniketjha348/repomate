@@ -1,0 +1,21 @@
+﻿api-1  | INFO:     Started server process [8]
+api-1  | INFO:     Waiting for application startup.
+api-1  | INFO:     Application startup complete.
+api-1  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+api-1  | INFO:     172.21.0.1:54504 - "GET /api/health HTTP/1.1" 200 OK
+api-1  | INFO:     172.21.0.1:54512 - "GET /health HTTP/1.1" 404 Not Found
+api-1  | INFO:     172.21.0.1:51196 - "GET /health HTTP/1.1" 404 Not Found
+api-1  | INFO:     172.21.0.1:55614 - "POST /api/runs HTTP/1.1" 202 Accepted
+api-1  | INFO:     172.21.0.1:55630 - "GET /api/runs/run_20261026-103949_gxr0b2xr HTTP/1.1" 200 OK
+api-1  | INFO:     172.21.0.1:55632 - "GET /api/runs/run_20261026-103949_gxr0b2xr HTTP/1.1" 200 OK
+api-1  | INFO:     172.21.0.1:55648 - "GET /api/runs/run_20261026-103949_gxr0b2xr HTTP/1.1" 200 OK
+api-1  | INFO:     172.21.0.1:60888 - "GET /api/runs/run_20261026-103949_gxr0b2xr HTTP/1.1" 200 OK
+api-1  | INFO:     172.21.0.1:60896 - "GET /api/runs/run_20261026-103949_gxr0b2xr/artifacts HTTP/1.1" 200 OK
+api-1  | INFO:     172.21.0.1:60902 - "GET /api/runs/run_20261026-103949_gxr0b2xr/artifacts/patch HTTP/1.1" 200 OK
+api-1  | INFO:     172.21.0.1:60906 - "GET /api/runs/run_20261026-103949_gxr0b2xr/artifacts/CONTRIBUTION_PLAN.md HTTP/1.1" 200 OK
+api-1  | INFO:     172.21.0.1:60916 - "GET /health HTTP/1.1" 404 Not Found
+api-1  | INFO:     172.21.0.1:38694 - "GET /health HTTP/1.1" 404 Not Found
+api-1  | INFO:     172.21.0.1:59638 - "GET /api/health HTTP/1.1" 200 OK
+api-1  | INFO:     172.21.0.1:59638 - "GET /api/metrics HTTP/1.1" 200 OK
+api-1  | INFO:     172.21.0.1:42440 - "GET /api/health HTTP/1.1" 200 OK
+api-1  | INFO:     172.21.0.1:42440 - "GET /api/metrics HTTP/1.1" 200 OK

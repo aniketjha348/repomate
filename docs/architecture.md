@@ -22,7 +22,7 @@
                         │     │                        │            │
                         │     │                        ▼            │
                         │     │                    planning ◄─ models
-                        │     │                        │       (Vyce
+                        │     │                        │       (Ollama
                         │     ▼                        ▼       adapter)
                         │  artifacts ──────────► verification      │
                         │     └──────────► orchestration ◄─────────┘
@@ -44,16 +44,31 @@ emitting `RunEvent`s (persisted to `events.jsonl`, replayed over SSE):
    before any analysis. License, languages, README, entry points are
    recorded (`repository.inspect`).
 3. **RETRIEVE_EVIDENCE** — issue fetch (bounded rate-limit handling) and
-   keyword-driven retrieval of files/lines (`evidence.collector`).
-4. **PLAN** — `ModelPlanner` (Vyce/DeepSeek) or `HeuristicPlanner`
+   keyword-driven retrieval of files/lines (`evidence.collector`) under hard
+   file/byte/result/wall-clock budgets. A limit hit ends the run as `PARTIAL`
+   with a report of the work left unexamined; it never claims full analysis.
+   For model planners, a second bounded loop (`evidence.tools`) exposes typed
+   `search_text`/`read_file`/`inspect_manifest` tools; every returned file item
+   is re-read from the pinned workspace and re-validated
+   (`evidence.validation`) before it can become evidence. A global tool cap
+   hit also ends `PARTIAL`.
+4. **PLAN** — `ModelPlanner` (Ollama Cloud) or `HeuristicPlanner`
    (deterministic fallback, tests). No evidence ⇒ `NEED_MORE_INFO`;
-   unsupported task types are deferred, not forced.
-5. **GENERATE_ARTIFACT** — documentation diff today; the workspace is
-   reset afterwards so the patch text is the only lasting mutation.
-6. **VERIFY** — real checks with captured exit codes; anything not
-   executed is `NOT_RUN` with a reason (`verification.runner`).
-7. **PUBLISH** — run record, patch, receipt persisted; workspace cleaned
-   up unless `REPOMATE_KEEP_WORKSPACE=1`.
+   unsupported or underspecified tasks are deferred with questions, not
+   forced. `BUG_FIX`/`TEST`/`FEATURE`/`REFACTOR` plans may carry anchored
+   edits. Model calls and tool-loop research share one per-run call/token
+   budget (`models.base.ModelBudget`).
+5. **GENERATE_ARTIFACT** — a documentation diff, or an anchored code/test
+   patch (`PATCH_DIFF`/`TEST_DIFF`). The workspace is reset afterwards so the
+   patch text is the only lasting mutation. A plan with no executable edits
+   raises typed `UNSUPPORTED_INPUT` rather than inventing a diff.
+6. **VERIFY** — real checks with captured exit codes. The selected
+   repository check runs in a clean baseline checkout and a separate patched
+   checkout at the same pinned commit, and the receipt records the
+   deterministic comparison. Anything not executed is `NOT_RUN` with a reason
+   (`verification.runner`).
+7. **PUBLISH** — run record, patch, receipt and plan/checklist documents
+   persisted; workspace cleaned up unless `REPOMATE_KEEP_WORKSPACE=1`.
 
 Between every stage the pipeline checks a cooperative cancellation marker
 and a wall-clock budget (`REPOMATE_MAX_RUN_SECONDS`).
@@ -85,20 +100,23 @@ The reasoning for staying framework-free:
   deterministic, citable, and debuggable — swapping in embeddings later
   is a change inside `evidence/collector.py`, not an architecture
   change.
+- the optional model research loop is bounded by typed tools and hard
+  call/byte/time caps; retrieved items pass the same deterministic path,
+  line-range and snippet validation as static evidence, so "the model asked
+  for it" never upgrades untrusted text into a citation.
 
 If multi-step autonomous iteration (search → edit → run tests → self-
 correct across many turns) becomes a requirement, a graph runtime starts
 paying for itself; until then it would be ceremony, not capability.
 
-## Provider independence
+## Provider access
 
 `models.base.ModelProvider` is a small protocol (one `complete`
-method). `OpenAIProvider` (in `models/openai.py`, previously shipped as
-`VyceProvider`) speaks the standard OpenAI `/chat/completions` dialect —
-verified live against the Vyce AI gateway; configuration is purely
-environment-driven (`OPENAI_BASE_URL`, `OPENAI_MODEL`; legacy `VYCE_*`
-names still work as fallbacks). Swapping gateways is a config change —
-the pipeline, planner contract and tests are untouched.
+method). `OpenAIProvider` (in `models/openai.py`) speaks Ollama Cloud’s
+standard OpenAI `/chat/completions` dialect; configuration is
+environment-driven (`OLLAMA_BASE_URL`, `OLLAMA_MODELS`, `OLLAMA_API_KEY`).
+`FallbackProvider` attempts the configured models in order and sticks with
+the first model that succeeds for the remainder of the run.
 
 When no key is configured the `HeuristicPlanner` runs and every artifact
 carries `planned_by: heuristic-v1`, surfaced in the API and receipts.

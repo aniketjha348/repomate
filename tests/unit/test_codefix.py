@@ -21,7 +21,7 @@ def _plan(edits: list[ProposedEdit]) -> ContributionPlan:
         planned_changes=[PlannedChange(path=edits[0].path if edits else "x",
                                        change_type="MODIFY", rationale="")],
         proposed_edits=edits,
-        planned_by="model:openai/deepseek-v4.1",
+        planned_by="model:openai/gemma4:31b",
     )
 
 

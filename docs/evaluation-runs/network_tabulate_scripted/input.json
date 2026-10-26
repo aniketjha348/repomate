@@ -1,0 +1,13 @@
+{
+  "case": "network_tabulate_scripted",
+  "title": "Network attempt is blocked by the verification sandbox",
+  "repository": "astanin/python-tabulate",
+  "input": {
+    "source": "REPO_TASK",
+    "issue_url": null,
+    "repo_url": "https://github.com/astanin/python-tabulate",
+    "task": "Document how the network regression test is expected to behave."
+  },
+  "expected": "COMPLETED with a DOCS_DIFF; the injected egress test FAILS and the receipt shows a verified sandbox policy",
+  "notes": "The injected test tries to reach https://example.com. Under bubblewrap the suite fails; when no enforcing backend exists the sandbox must refuse with NOT_RUN instead."
+}

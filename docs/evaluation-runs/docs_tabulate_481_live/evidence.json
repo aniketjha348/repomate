@@ -1,0 +1,92 @@
+[
+  {
+    "id": "ev1",
+    "kind": "ISSUE",
+    "path": "issue#481",
+    "start_line": null,
+    "end_line": null,
+    "snippet": "README library-only installation option may no longer work with current packaging\n\nThe README documents setting `TABULATE_INSTALL=lib-only` when installing `tabulate` so that only the Python library is installed. It gives commands for Unix-like systems and Windows.\n\nHowever, the repository's current `pyproject.toml` uses `flit_scm:buildapi` and declares a console entry point unconditionally:\n\n```toml\n[project.scripts]\ntabulate = \"tabulate.cli:_main\"\n```\n\nI could not find a corresponding setting in the current packaging configuration that uses `TABULATE_INSTALL` to disable this entry point. The README option may be left over from a previous build system.\n\nRelevant files:\n\n- https://github.com/astanin/python-tabulate/blob/master/README.md\n- https://github.com/astanin/python-tabulate/blob/master/pyproject.toml\n\n## Expected behavior\n\nUsing the documented library-only installation option should omit the `tabulate` executable, or the README should clarify that the option is no longer supported.\n\n## Suggested verification\n\nIn a fresh virtual environment, compare two installs built from the current source: one with the `TABULATE_INSTALL=lib-only` environment variable and one without it. Then inspect the generated console entry point, such as in the environment's `bin` or `Scripts` directory. This would confirm whether the environment variable changes what gets installed.\n\n## Suggested improvement\n\nIf the setting is no longer supported, remove the library-only installation examples or explain the behavior supported by the current build system. If it is supported, it",
+    "rationale": "the GitHub issue this contribution addresses"
+  },
+  {
+    "id": "ev2",
+    "kind": "DOC",
+    "path": "README.md",
+    "start_line": 26,
+    "end_line": 37,
+    "snippet": "The command line utility will be installed as `tabulate` to `bin` on\nLinux (e.g. `/usr/bin`); or as `tabulate.exe` to `Scripts` in your\nPython installation on Windows (e.g. `C:\\Python39\\Scripts\\tabulate.exe`).\n\nYou may consider installing the library only for the current user:\n\n```shell\npip install tabulate --user\n```\n\nIn this case the command line utility will be installed to\n`~/.local/bin/tabulate` on Linux and to",
+    "rationale": "matches task keywords: installation, current, installing"
+  },
+  {
+    "id": "ev3",
+    "kind": "SOURCE",
+    "path": "tabulate/__init__.py",
+    "start_line": 268,
+    "end_line": 279,
+    "snippet": "header_list = ['cols=\"' + (\",\".join(asciidoc_column_specifiers)) + '\"']\n\n        # generate the list of options (currently only \"header\")\n        options_list = []\n\n        if is_header:\n            options_list.append(\"header\")\n\n        if options_list:\n            options_list = \",\".join(options_list)\n            header_list.append(f'options=\"{options_list}\"')",
+    "rationale": "matches task keywords: option, current"
+  },
+  {
+    "id": "ev4",
+    "kind": "TEST",
+    "path": "test/test_output.py",
+    "start_line": 102,
+    "end_line": 113,
+    "snippet": "def test_plain_maxcolwidth_autowraps():\n    \"Output: maxcolwidth will result in autowrapping longer cells\"\n    table = [[\"hdr\", \"fold\"], [\"1\", \"very long data\"]]\n    expected = \"\\n\".join([\"  hdr  fold\", \"    1  very long\", \"       data\"])\n    result = tabulate(table, headers=\"firstrow\", tablefmt=\"plain\", maxcolwidths=[10, 10])\n    assert_equal(expected, result)\n\n\ndef test_plain_maxcolwidth_autowraps_with_sep():\n    \"Output: maxcolwidth will result in autowrapping longer cells and separating line\"\n    table = [",
+    "rationale": "matches task keywords: longer"
+  },
+  {
+    "id": "ev5",
+    "kind": "TEST",
+    "path": "test/test_cli.py",
+    "start_line": 180,
+    "end_line": 191,
+    "snippet": "def test_script_header_option():\n    \"\"\"Command line utility: -1, --header option\"\"\"\n    for option in [\"-1\", \"--header\"]:\n        cmd = [sys.executable, \"tabulate/cli.py\", option]\n        raw_table = sample_input(with_headers=True)\n        out = run_and_capture_stdout(cmd, input=raw_table)\n        expected = SAMPLE_SIMPLE_FORMAT_WITH_HEADERS\n        print(out)\n        print(\"got:     \", repr(out))\n        print(\"expected:\", repr(expected))",
+    "rationale": "matches task keywords: option"
+  },
+  {
+    "id": "ev6",
+    "kind": "TEST",
+    "path": "test/test_regression.py",
+    "start_line": 586,
+    "end_line": 597,
+    "snippet": "\"Regression: asciidoc format output must not generate trailing whitespace (issue #408)\"\n    result = tabulate([[\"foo\"]], headers=(\"longheader\",), tablefmt=\"asciidoc\")\n    expected = '[cols=\"<14\",options=\"header\"]\\n|====\\n| longheader\\n| foo\\n|===='\n    assert_equal(expected, result)\n\n    result = tabulate([[\"longtext\"]], headers=(\"bar\",), tablefmt=\"asciidoc\")\n    expected = '[cols=\"<10\",options=\"header\"]\\n|====\\n| bar\\n| longtext\\n|===='\n    assert_equal(expected, result)\n\n\ndef test_github_escape_pipe_character():\n    \"Regression: github format must escape pipe character with a backslash (issue #241)\"",
+    "rationale": "matches task keywords: option"
+  },
+  {
+    "id": "ev7",
+    "kind": "TEST",
+    "path": "test/test_textwrapper.py",
+    "start_line": 303,
+    "end_line": 314,
+    "snippet": "def test_wrap_optional_bool_strs():\n    \"\"\"TextWrapper: Show that str bools and None can be wrapped without crashing\"\"\"\n    data = [\n        [\"First Entry\", \"True\"],\n        [\"Second Entry\", None],\n    ]\n    headers = [\"Title\", \"When\"]\n    result = tabulate(data, headers=headers, tablefmt=\"grid\", maxcolwidths=[7, 5])\n\n    expected = [",
+    "rationale": "matches task keywords: option"
+  },
+  {
+    "id": "ev8",
+    "kind": "SOURCE",
+    "path": "pyproject.toml",
+    "start_line": 27,
+    "end_line": 38,
+    "snippet": "Homepage = \"https://github.com/astanin/python-tabulate\"\n\n[project.optional-dependencies]\nwidechars = [\"wcwidth>=0.6.0\"]\n\n[project.scripts]\ntabulate = \"tabulate.cli:_main\"\n\n[tool.flit.sdist]\ninclude = [\"CHANGELOG\", \"test/\", \"tox.ini\"]\n\n[tool.setuptools_scm]",
+    "rationale": "matches task keywords: option"
+  },
+  {
+    "id": "ev9",
+    "kind": "DOC",
+    "path": "README.md",
+    "start_line": 41,
+    "end_line": 45,
+    "snippet": "\n```shell\nTABULATE_INSTALL=lib-only pip install tabulate\n```\n",
+    "rationale": "model tool search_text matched 'TABULATE_INSTALL' at line 43"
+  },
+  {
+    "id": "ev10",
+    "kind": "DOC",
+    "path": "README.md",
+    "start_line": 47,
+    "end_line": 51,
+    "snippet": "\n```shell\nset TABULATE_INSTALL=lib-only\npip install tabulate\n```",
+    "rationale": "model tool search_text matched 'TABULATE_INSTALL' at line 49"
+  }
+]

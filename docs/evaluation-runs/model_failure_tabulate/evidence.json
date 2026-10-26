@@ -1,0 +1,74 @@
+[
+  {
+    "id": "ev1",
+    "kind": "DOC",
+    "path": "README.md",
+    "start_line": 826,
+    "end_line": 837,
+    "snippet": "To properly align tables which contain wide characters (typically\nfullwidth glyphs from Chinese, Japanese or Korean languages), the user\nshould install `wcwidth` library. To install it together with\n`tabulate`:\n\n```shell\npip install tabulate[widechars]\n```\n\nWide character support is enabled automatically if `wcwidth` library is\nalready installed. To disable wide characters support without\nuninstalling `wcwidth`, set the global module-level flag",
+    "rationale": "matches task keywords: width"
+  },
+  {
+    "id": "ev2",
+    "kind": "TEST",
+    "path": "test/test_api.py",
+    "start_line": 50,
+    "end_line": 61,
+    "snippet": "(\"colalign\", None),\n        (\"preserve_whitespace\", False),\n        (\"maxcolwidths\", None),\n        (\"headersglobalalign\", None),\n        (\"headersalign\", None),\n        (\"rowalign\", None),\n        (\"maxheadercolwidths\", None),\n        (\"break_long_words\", True),\n        (\"break_on_hyphens\", True),\n    ]\n    _check_signature(tabulate, expected_sig)",
+    "rationale": "matches task keywords: width"
+  },
+  {
+    "id": "ev3",
+    "kind": "TEST",
+    "path": "test/test_grapheme_clusters.py",
+    "start_line": 10,
+    "end_line": 21,
+    "snippet": "import wcwidth\n\n    HAS_WCWIDTH = True\n    HAS_WCWIDTH_030 = hasattr(wcwidth, \"wrap\")\n    HAS_WCWIDTH_WIDTH = hasattr(wcwidth, \"width\")\nexcept ImportError:\n    wcwidth = None\n    HAS_WCWIDTH = False\n    HAS_WCWIDTH_030 = False\n    HAS_WCWIDTH_WIDTH = False\n\nrequires_wcwidth = pytest.mark.skipif(not HAS_WCWIDTH, reason=\"requires wcwidth\")",
+    "rationale": "matches task keywords: width"
+  },
+  {
+    "id": "ev4",
+    "kind": "TEST",
+    "path": "test/test_internal.py",
+    "start_line": 78,
+    "end_line": 89,
+    "snippet": "\"Internal: Aligning a single height cell is same regardless of alignment value\"\n    lines = [\"one line\"]\n    column_width = 8\n\n    top = T._align_cell_veritically(lines, 1, column_width, \"top\")\n    center = T._align_cell_veritically(lines, 1, column_width, \"center\")\n    bottom = T._align_cell_veritically(lines, 1, column_width, \"bottom\")\n    none = T._align_cell_veritically(lines, 1, column_width, None)\n\n    expected = [\"one line\"]\n    assert top == center == bottom == none == expected",
+    "rationale": "matches task keywords: width"
+  },
+  {
+    "id": "ev5",
+    "kind": "TEST",
+    "path": "test/test_output.py",
+    "start_line": 101,
+    "end_line": 112,
+    "snippet": "def test_plain_maxcolwidth_autowraps():\n    \"Output: maxcolwidth will result in autowrapping longer cells\"\n    table = [[\"hdr\", \"fold\"], [\"1\", \"very long data\"]]\n    expected = \"\\n\".join([\"  hdr  fold\", \"    1  very long\", \"       data\"])\n    result = tabulate(table, headers=\"firstrow\", tablefmt=\"plain\", maxcolwidths=[10, 10])\n    assert_equal(expected, result)\n\n\ndef test_plain_maxcolwidth_autowraps_with_sep():\n    \"Output: maxcolwidth will result in autowrapping longer cells and separating line\"",
+    "rationale": "matches task keywords: width"
+  },
+  {
+    "id": "ev6",
+    "kind": "TEST",
+    "path": "test/test_regression.py",
+    "start_line": 519,
+    "end_line": 530,
+    "snippet": ")\n    # test with maxcolwidths as a list\n    result = tabulate(table, tablefmt=\"grid\", maxcolwidths=[12, 8])\n    assert_equal(expected, result)\n    # test with maxcolwidths as a tuple\n    result = tabulate(table, tablefmt=\"grid\", maxcolwidths=(12, 8))\n    assert_equal(expected, result)\n\n\ndef test_exception_on_empty_data_with_maxcolwidths():\n    \"Regression: exception on empty data when using maxcolwidths (github issue #180)\"\n    result = tabulate([], maxcolwidths=5)",
+    "rationale": "matches task keywords: width"
+  },
+  {
+    "id": "ev7",
+    "kind": "TEST",
+    "path": "test/test_textwrapper.py",
+    "start_line": 341,
+    "end_line": 352,
+    "snippet": "for line in lines:\n            display_width = wcwidth.wcswidth(line)\n            assert display_width <= width, (\n                f\"Line {line!r} has display width {display_width} \"\n                f\"which exceeds requested column width {width}\"\n            )\n\n\ndef test_wrap_wide_char_narrower_than_char_width():\n    \"\"\"TextWrapper: column width smaller than a single wide char must not hang (issue #399).\n\n    When the requested width is 1 but every character is 2 display columns",
+    "rationale": "matches task keywords: width"
+  },
+  {
+    "id": "ev8",
+    "kind": "SOURCE",
+    "path": "benchmark/benchmark.py",
+    "start_line": 47,
+    "end_line": 58,
+    "snippet": "def run_tabulate(table, widechars=False):\n    tabulate.WIDE_CHARS_MODE = tabulate.wcwidth is not None and widechars\n    return tabulate.tabulate(table)\n\n\n\"\"\"\n\nmethods = [\n    (\"join with tabs and newlines\", \"join_table(table)\"),\n    (\"csv to StringIO\", \"csv_table(table)\"),\n    (f\"tabulate ({tabulate.__version__})\", \"run_tabulate(table)\"),",
+    "rationale": "matches task keywords: width"
+  }
+]

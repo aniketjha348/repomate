@@ -1,0 +1,13 @@
+{
+  "case": "model_failure_tabulate",
+  "title": "Unreachable model gateway maps to a typed MODEL_ERROR",
+  "repository": "astanin/python-tabulate",
+  "input": {
+    "source": "REPO_TASK",
+    "issue_url": null,
+    "repo_url": "https://github.com/astanin/python-tabulate",
+    "task": "Document the width guard in the README."
+  },
+  "expected": "FAILED with ErrorCode.MODEL_ERROR and no artifact",
+  "notes": "The planner points at https://127.0.0.1:9/v1 with retries disabled. The transport failure is real; the endpoint is a deliberately unreachable loopback address."
+}

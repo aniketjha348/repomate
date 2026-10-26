@@ -69,6 +69,48 @@ class RepoWorkspace:
     def from_local(cls, path: Union[str, Path]) -> "RepoWorkspace":
         return cls(path)
 
+    def clone_to(
+        self,
+        dest: Union[str, Path],
+        *,
+        timeout: int = CLONE_TIMEOUT_SECONDS,
+    ) -> "RepoWorkspace":
+        """Create an independent checkout pinned to this workspace's HEAD.
+
+        Verification uses this to run the baseline and patched checks in
+        separate, equivalent workspaces. ``--no-hardlinks`` copies the object
+        store rather than sharing files, so one working tree cannot mutate the
+        other's git data. The clone is verified to be at the same commit and
+        any clone-side leftovers are cleaned before it is returned.
+        """
+        expected = self.commit_sha
+        dest = Path(dest).absolute()
+        if dest.exists():
+            raise WorkspaceError(f"destination already exists: {dest}")
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        result = run_git(
+            "clone",
+            "--no-hardlinks",
+            "--quiet",
+            str(self.root),
+            str(dest),
+            timeout=timeout,
+            cwd=dest.parent,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise WorkspaceError(
+                f"git clone of {self.root} failed (exit {result.returncode})"
+            )
+        clone = type(self)(dest)
+        actual = clone.commit_sha
+        if actual != expected:
+            raise WorkspaceError(
+                f"cloned workspace is at {actual}, expected the pinned commit {expected}"
+            )
+        clone.reset_hard()
+        return clone
+
     # -- git plumbing --------------------------------------------------------
 
     @property
@@ -104,6 +146,23 @@ class RepoWorkspace:
             raise WorkspaceError(f"file not found in workspace: {rel_path}")
         text = target.read_text(encoding="utf-8", errors="replace")
         return text if max_chars is None else text[:max_chars]
+
+    def read_text_bounded(
+        self, rel_path: str, *, max_bytes: int
+    ) -> tuple[str, int, bool]:
+        """Read at most ``max_bytes`` from a repository file.
+
+        Returns ``(text, file_size, truncated)``. The file size is the actual
+        on-disk size, so callers can report exactly how much was left unread
+        without loading the remainder into memory.
+        """
+        target = self._resolve(rel_path)
+        if not target.is_file():
+            raise WorkspaceError(f"file not found in workspace: {rel_path}")
+        size = target.stat().st_size
+        with target.open("rb") as handle:
+            data = handle.read(max_bytes)
+        return data.decode("utf-8", errors="replace"), size, size > max_bytes
 
     def exists(self, rel_path: str) -> bool:
         return self._resolve(rel_path).exists()

@@ -1,0 +1,84 @@
+{
+  "checks": [
+    {
+      "name": "patch-path-policy",
+      "command": "internal:patch-policy",
+      "status": "PASSED",
+      "exit_code": null,
+      "duration_ms": null,
+      "output_tail": "",
+      "reason": ""
+    },
+    {
+      "name": "patch-applies-on-pinned-commit",
+      "command": "git apply --check",
+      "status": "PASSED",
+      "exit_code": 0,
+      "duration_ms": null,
+      "output_tail": "",
+      "reason": ""
+    },
+    {
+      "name": "sandbox-egress-isolation",
+      "command": "internal:egress-probe",
+      "status": "PASSED",
+      "exit_code": null,
+      "duration_ms": null,
+      "output_tail": "{\n  \"public_http\": \"blocked:OSError\",\n  \"cloud_metadata\": \"blocked:OSError\",\n  \"cloud_metadata_ipv6\": \"blocked:OSError\",\n  \"private_rfc1918_10\": \"blocked:OSError\",\n  \"private_rfc1918_172\": \"blocked:OSError\",\n  \"private_rfc1918_192\": \"blocked:OSError\",\n  \"loopback_postgres\": \"blocked:ConnectionRefusedError\",\n  \"loopback_redis\": \"blocked:ConnectionRefusedError\",\n  \"loopback_api\": \"blocked:ConnectionRefusedError\",\n  \"public_https\": \"blocked:gaierror\",\n  \"dns\": \"blocked:gaierror\"\n}",
+      "reason": "every egress attempt from inside the sandbox was refused"
+    },
+    {
+      "name": "repository-test-suite",
+      "command": null,
+      "status": "NOT_RUN",
+      "exit_code": null,
+      "duration_ms": null,
+      "output_tail": "",
+      "reason": "no recognized test command for this repository (process sandbox supports pytest and make)"
+    }
+  ],
+  "overall": "PASSED",
+  "environment": "process sandbox (wall-time, CPU and memory limits, scrubbed env; network egress denied (bwrap)) on Linux/x86_64",
+  "limitations": [
+    "The sandbox uses an unprivileged bwrap namespace: egress is denied, host socket directories are masked, the process table is private, and the repository's .git directory is read-only. It is not a full VM; the host kernel is shared.",
+    "Repository tests run with RepoMate's interpreter and installed dependencies; a repo-specific virtualenv is not created, so missing dependencies are reported NOT_RUN (they cannot be downloaded without network access)."
+  ],
+  "sandbox": {
+    "network_mode": "disabled",
+    "backend": "bwrap",
+    "policy_enforced": true,
+    "egress_validation": "PASSED",
+    "egress_detail": "every egress attempt from inside the sandbox was refused"
+  },
+  "base_commit": "d0dd1f61b33d64e29d8bc1372a94ef6a2fee76a9",
+  "patch_sha256": "5af01d3c43ed122e920dcbdb96efc4ac6a88dde8e6b626a22659e06906ccb083",
+  "comparison": {
+    "base_commit": "d0dd1f61b33d64e29d8bc1372a94ef6a2fee76a9",
+    "patch_sha256": "5af01d3c43ed122e920dcbdb96efc4ac6a88dde8e6b626a22659e06906ccb083",
+    "baseline": {
+      "phase": "baseline",
+      "commit_sha": "d0dd1f61b33d64e29d8bc1372a94ef6a2fee76a9",
+      "command": null,
+      "status": "NOT_RUN",
+      "exit_code": null,
+      "duration_ms": null,
+      "output_summary": "",
+      "reason": "no recognized test command for this repository (process sandbox supports pytest and make)"
+    },
+    "post_patch": {
+      "phase": "post_patch",
+      "commit_sha": "d0dd1f61b33d64e29d8bc1372a94ef6a2fee76a9",
+      "command": null,
+      "status": "NOT_RUN",
+      "exit_code": null,
+      "duration_ms": null,
+      "output_summary": "",
+      "reason": "no recognized test command for this repository (process sandbox supports pytest and make)"
+    },
+    "outcome": "BASELINE_INCOMPLETE",
+    "interpretation": "the baseline check did not run, so post-patch results alone do not establish issue resolution",
+    "commands_match": null
+  },
+  "resolution_statement": "The baseline check did not run, so post-patch results alone do not establish issue resolution.",
+  "created_at": "2026-10-26T10:03:25.591075Z"
+}

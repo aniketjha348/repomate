@@ -14,16 +14,15 @@ services:
     plan: free
     autoDeploy: true
     envVars:
-      # OpenAI-compatible gateway key (Vyce AI). Optional: without it the
-      # deterministic heuristic planner runs and every artifact is labelled
-      # with the planner identity.
-      - key: OPENAI_API_KEY
+      # Ollama Cloud key. Optional: without it the deterministic heuristic
+      # planner runs and every artifact is labelled with the planner identity.
+      - key: OLLAMA_API_KEY
         sync: false
-      - key: OPENAI_BASE_URL
-        value: https://vyceai.com/v1
-      - key: OPENAI_MODEL
-        value: deepseek-v4.1
-      - key: OPENAI_TIMEOUT_SECONDS
+      - key: OLLAMA_BASE_URL
+        value: https://ollama.com/v1
+      - key: OLLAMA_MODELS
+        value: gemma4:31b,gpt-oss:120b
+      - key: OLLAMA_TIMEOUT_SECONDS
         value: "240"
       # Optional PAT. Recommended: Render egress IPs are shared and share
       # GitHub's 60 req/h unauthenticated REST budget.

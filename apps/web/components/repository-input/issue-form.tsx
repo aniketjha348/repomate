@@ -51,7 +51,8 @@ export function IssueForm() {
         <CardTitle>Start from a GitHub issue</CardTitle>
         <CardDescription>
           RepoMate snapshots the repository, gathers evidence, plans the
-          change, and proposes a verified patch.
+          change, and proposes a patch for review. Verification runs the
+          selected checks before and after the patch.
         </CardDescription>
       </CardHeader>
       <CardContent>

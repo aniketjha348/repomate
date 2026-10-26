@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Request
 
 from repomate_core.contracts import (
     ErrorCode,
@@ -14,6 +14,7 @@ from repomate_core.contracts import (
 )
 from repomate_core.orchestration.store_factory import build_store
 from repomate_core.safety.url_guard import UnsafeInputError, parse_github_url
+from services.api import fair_use
 from services.api.config import Settings, read_settings
 from services.api.errors import api_error
 from services.api.schemas import CancelledResponse, CreateRunRequest, RunCreatedResponse
@@ -22,18 +23,36 @@ router = APIRouter(prefix="/api/runs")
 
 
 @router.post("", status_code=202, response_model=RunCreatedResponse)
-async def create_run(body: CreateRunRequest, background: BackgroundTasks) -> RunCreatedResponse:
-    run_input = _to_run_input(body)
-    _validate_urls(run_input)
-
+async def create_run(
+    body: CreateRunRequest, background: BackgroundTasks, request: Request
+) -> RunCreatedResponse:
     settings = read_settings()
     store = build_store(settings.runs_root, settings.database_url)
-    run_id = new_run_id()
-    store.save_run(RunRecord(run_id=run_id, input=run_input, status=RunStatus.PENDING))
+    client_key = fair_use.client_identity(request, settings.trusted_proxies)
 
-    from services.api.dispatch import dispatch_run
+    try:
+        # Admission covers validation, record creation and dispatch. A
+        # rejected submission gets a typed 429 with Retry-After and never
+        # creates a run record.
+        with fair_use.admission(settings, store, client_key=client_key):
+            run_input = _to_run_input(body)
+            _validate_urls(run_input)
 
-    dispatch_run(background, run_input, _pipeline_config(settings), run_id)
+            run_id = new_run_id()
+            store.save_run(
+                RunRecord(run_id=run_id, input=run_input, status=RunStatus.PENDING)
+            )
+
+            from services.api.dispatch import dispatch_run
+
+            dispatch_run(background, run_input, _pipeline_config(settings), run_id)
+    except fair_use.FairUseError as exc:
+        raise api_error(
+            429,
+            ErrorCode.RATE_LIMITED,
+            str(exc),
+            headers={"Retry-After": str(exc.retry_after)},
+        )
 
     base = f"/api/runs/{run_id}"
     return RunCreatedResponse(

@@ -135,6 +135,20 @@ class RunStore:
                 counts[record.status.value] = counts.get(record.status.value, 0) + 1
         return counts
 
+    def count_active_runs(self) -> int:
+        """Count runs that still hold an execution slot.
+
+        ``PENDING`` counts after admission and before the worker starts;
+        ``RUNNING`` counts while the pipeline executes. Used by API fair-use
+        admission to cap concurrent work.
+        """
+        return sum(
+            1
+            for run_id in self.list_run_ids()
+            if (record := self.load_run(run_id)) is not None
+            and record.status in (RunStatus.PENDING, RunStatus.RUNNING)
+        )
+
     def sweep_stale_workspaces(self, *, max_age_hours: float = 24.0) -> list[str]:
         """Delete workspace directories of terminal runs older than the cap."""
         import time
@@ -148,3 +162,36 @@ class RunStore:
                 self.cleanup_workspace(run_id)
                 removed.append(run_id)
         return removed
+
+    def reconcile_stale_runs(self) -> list[str]:
+        """Close out runs left RUNNING/PENDING by a previous process.
+
+        In-process execution cannot survive a restart, so a run that was
+        mid-flight when the process died would report RUNNING forever and
+        the UI would poll a run that can never move. Mark them FAILED with
+        an explicit reason: an honest terminal state beats a permanent lie.
+        """
+        from repomate_core.contracts import ErrorCode, RunError, RunStatus
+
+        reconciled: list[str] = []
+        for run_id in self.list_run_ids():
+            record = self.load_run(run_id)
+            if record is None or record.is_terminal:
+                continue
+            record.status = RunStatus.FAILED
+            record.error = RunError(
+                code=ErrorCode.INTERNAL,
+                message=(
+                    "run was interrupted by a process restart and never "
+                    "reached a terminal state"
+                ),
+                detail=(
+                    "RepoMate reconciled this run at startup. With in-process "
+                    "execution a restart loses the worker thread, so the run "
+                    "cannot be resumed; re-submit the task to retry."
+                ),
+            )
+            self.save_run(record)
+            self.cleanup_workspace(run_id)
+            reconciled.append(run_id)
+        return reconciled

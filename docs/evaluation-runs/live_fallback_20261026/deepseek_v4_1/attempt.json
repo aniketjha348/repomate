@@ -1,0 +1,19 @@
+{
+  "attempt_model": "deepseek-v4.1",
+  "attempt_base_url": "https://vyceai.com/v1",
+  "attempt_key_name": "OPENAI_API_KEY",
+  "planner_observed": "model:openai/deepseek-v4.1",
+  "status": "FAILED",
+  "error": {
+    "code": "MODEL_ERROR",
+    "message": "model gateway error (status 524): <!DOCTYPE html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 8]>    <html class=\"no-js ie8 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if gt IE 8]><!--> <html class=\"no-js\" lang=\"en-US\"> <!",
+    "detail": ""
+  },
+  "artifact_kind": null,
+  "documents": [],
+  "passed": false,
+  "explanation": "live gateway failure preserved as a typed MODEL_ERROR: model gateway error (status 524): <!DOCTYPE html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]-->\n; no artifact is claimed",
+  "elapsed_seconds": 390.91,
+  "case_dir": "D:\\repomate\\docs\\evaluation-runs\\live_fallback_20261026\\deepseek_v4_1\\docs_tabulate_481_live",
+  "run_id": "run_20261026-105422_azty6r9l"
+}

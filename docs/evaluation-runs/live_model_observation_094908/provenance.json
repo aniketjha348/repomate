@@ -1,0 +1,13 @@
+{
+  "case_workspace": "var/eval-real/cases/docs_tabulate_481_live",
+  "repo": "astanin/python-tabulate",
+  "upstream_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "base_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "prepared_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "planner_requested": "live",
+  "planner_observed": "model:openai/deepseek-v4.1",
+  "elapsed_seconds": 280.12,
+  "sandbox_backend": "bwrap",
+  "source_run_id": "run_20261026-094908_you5xf3f",
+  "not_in_final_matrix": true
+}

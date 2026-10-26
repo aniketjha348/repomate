@@ -1,0 +1,74 @@
+[
+  {
+    "id": "ev1",
+    "kind": "TEST",
+    "path": "test/test_output.py",
+    "start_line": 2694,
+    "end_line": 2705,
+    "snippet": "def test_latex_raw():\n    \"Output: raw latex with headers\"\n    raw_test_table_headers = list(_test_table_headers)\n    raw_test_table_headers[-1] += \" ($N_0$)\"\n    raw_test_table = list(map(list, _test_table))\n    raw_test_table[0][0] += \"$_1$\"\n    raw_test_table[1][0] = \"\\\\emph{\" + raw_test_table[1][0] + \"}\"\n    print(raw_test_table)\n    result = tabulate(raw_test_table, raw_test_table_headers, tablefmt=\"latex_raw\")\n    expected = \"\\n\".join(",
+    "rationale": "matches task keywords: test, output"
+  },
+  {
+    "id": "ev2",
+    "kind": "TEST",
+    "path": "test/test_regression.py",
+    "start_line": 6,
+    "end_line": 17,
+    "snippet": "def test_ansi_color_in_table_cells():\n    \"Regression: ANSI color in table cells (issue #5).\"\n    colortable = [(\"test\", \"\\x1b[31mtest\\x1b[0m\", \"\\x1b[32mtest\\x1b[0m\")]\n    colorlessheaders = (\"test\", \"test\", \"test\")\n    formatted = tabulate(colortable, colorlessheaders, \"pipe\")\n    expected = \"\\n\".join(\n        [\n            \"| test   | test   | test   |\",\n            \"|:-------|:-------|:-------|\",\n            \"| test   | \\x1b[31mtest\\x1b[0m   | \\x1b[32mtest\\x1b[0m   |\",",
+    "rationale": "matches task keywords: regression, test"
+  },
+  {
+    "id": "ev3",
+    "kind": "DOC",
+    "path": "README.md",
+    "start_line": 173,
+    "end_line": 184,
+    "snippet": "-   \"simple\"\n-   \"github\"\n-   \"grid\"\n-   \"simple\\_grid\"\n-   \"rounded\\_grid\"\n-   \"heavy\\_grid\"\n-   \"mixed\\_grid\"\n-   \"double\\_grid\"\n-   \"fancy\\_grid\"\n-   \"outline\"\n-   \"simple\\_outline\"\n-   \"rounded\\_outline\"",
+    "rationale": "matches task keywords: simple, grid"
+  },
+  {
+    "id": "ev4",
+    "kind": "TEST",
+    "path": "test/test_cli.py",
+    "start_line": 372,
+    "end_line": 383,
+    "snippet": "input_file.write(sample_input())\n            input_file.flush()\n            run_main_in_process([\"-o\", output_file.name, input_file.name])\n            output_file.seek(0)\n            out = output_file.file.read()\n            assert_equal(out.splitlines(), SAMPLE_SIMPLE_FORMAT.splitlines())\n\n\ndef test_inprocess_jsonl_from_stdin():\n    \"\"\"In-process: JSONL input from stdin, grid format\"\"\"\n    out = run_main_in_process([\"-r\", \"jsonl\", \"-f\", \"grid\"], input_text=SAMPLE_INPUT_JSONL)\n    assert_equal(out.splitlines(), SAMPLE_GRID_FORMAT.splitlines())",
+    "rationale": "matches task keywords: test, simple, grid, output"
+  },
+  {
+    "id": "ev5",
+    "kind": "TEST",
+    "path": "test/test_textwrapper.py",
+    "start_line": 9,
+    "end_line": 20,
+    "snippet": "def test_wrap_multiword_non_wide():\n    \"\"\"TextWrapper: non-wide character regression tests\"\"\"\n    data = \"this is a test string for regression splitting\"\n    for width in range(1, len(data)):\n        orig = OTW(width=width)\n        cust = CTW(width=width)\n\n        assert [line.rstrip() for line in orig.wrap(data)] == [\n            line.rstrip() for line in cust.wrap(data)\n        ], f\"Failure on non-wide char multiword regression check for width {width}\"",
+    "rationale": "matches task keywords: regression, test"
+  },
+  {
+    "id": "ev6",
+    "kind": "SOURCE",
+    "path": "tabulate/__init__.py",
+    "start_line": 720,
+    "end_line": 731,
+    "snippet": "multiline_formats = {\n    \"plain\": \"plain\",\n    \"simple\": \"simple\",\n    \"grid\": \"grid\",\n    \"simple_grid\": \"simple_grid\",\n    \"rounded_grid\": \"rounded_grid\",\n    \"heavy_grid\": \"heavy_grid\",\n    \"mixed_grid\": \"mixed_grid\",\n    \"double_grid\": \"double_grid\",\n    \"fancy_grid\": \"fancy_grid\",\n    \"colon_grid\": \"colon_grid\",\n    \"pipe\": \"pipe\",",
+    "rationale": "matches task keywords: simple, grid"
+  },
+  {
+    "id": "ev7",
+    "kind": "TEST",
+    "path": "test/test_api.py",
+    "start_line": 61,
+    "end_line": 67,
+    "snippet": "def test_simple_separated_format_signature():\n    \"API: simple_separated_format() type signature is unchanged\"\n    assert type(simple_separated_format) is type(lambda: None)\n    expected_sig = [(\"separator\", _empty)]\n    _check_signature(simple_separated_format, expected_sig)",
+    "rationale": "matches task keywords: test, simple"
+  },
+  {
+    "id": "ev8",
+    "kind": "TEST",
+    "path": "test/test_grapheme_clusters.py",
+    "start_line": 21,
+    "end_line": 32,
+    "snippet": "requires_wcwidth = pytest.mark.skipif(not HAS_WCWIDTH, reason=\"requires wcwidth\")\n\nrequires_wcwidth_030 = pytest.mark.skipif(not HAS_WCWIDTH_030, reason=\"requires wcwidth >= 0.3.0\")\n\nrequires_wcwidth_width = pytest.mark.skipif(\n    not HAS_WCWIDTH_WIDTH, reason=\"requires wcwidth with width() API\"\n)\n\n\nclass TestGraphemeClusterWidth:\n    \"\"\"Tests for correct width calculation of grapheme clusters.\"\"\"",
+    "rationale": "matches task keywords: test"
+  }
+]

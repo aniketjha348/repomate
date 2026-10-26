@@ -56,13 +56,27 @@ workflow is reliable.
   `NEED_MORE_INFO`. **Never force a code change without evidence.**
 - Verification statuses (`PASSED`/`FAILED`/`NOT_RUN`) derive only from real
   execution or deterministic evaluation; `NOT_RUN` always carries a reason.
+- Repository retrieval is bounded (files, bytes/file, total bytes, search
+  results, wall-clock). A reached limit produces `PARTIAL` plus the remaining
+  work — never `COMPLETED` and never a claim of full analysis.
+- Model research is bounded too: typed read-only tools only, hard caps on tool
+  calls/bytes/time, and a per-run model call/token budget shared by research
+  and planning. Exhaustion produces a typed `BUDGET_EXCEEDED` or `PARTIAL`,
+  never a silently truncated "complete" result.
+- Every file item returned by a model tool call is re-read from the pinned
+  workspace and its snippet rebuilt by deterministic validation. A fabricated
+  path, line range or snippet is rejected and cannot become evidence.
+- Run submission is fair-use controlled: per-client request rate, a global
+  concurrent-run cap, cancellation, and workspace cleanup on terminal paths.
 - The planner identity (model vs heuristic) is recorded on every plan and
   artifact and surfaced to the user.
 - Model-proposed edits are exact-anchor search/replace: `old_text` must
   match the pinned snapshot verbatim and uniquely, or the run fails with a
   typed `MODEL_ERROR` — never a silently partial patch.
-- The test suite executes against the **patched** tree, so a fix's effect
-  on the suite is actually measured.
+- The selected repository check executes in a clean checkout of the pinned
+  commit and in a separate checkout with the validated patch applied. Both
+  runs use the same command and sandbox; the receipt records the deterministic
+  comparison. A patched pass alone is never presented as a "verified fix".
 - License status is displayed explicitly for every run.
 - Malformed input, model failure, GitHub throttling and unsupported tasks
   produce controlled, typed errors.
@@ -86,8 +100,9 @@ run state persists server-side so refresh/disconnect resumes the same run.
 - Repository execution isolation: untrusted test scripts never run on the
   API server; disposable sandbox with resource + time limits (Phase 4).
 - Secret management: model keys server-side only; never in frontend or logs.
-- Bounded AI runs: step limits, model timeouts, capped retries, budgets,
-  cancellation.
+- Bounded AI runs: step limits, model timeouts, capped retries, per-run
+  model-call/token budgets, bounded typed tool retrieval, cancellation, and
+  fair-use admission (per-client rate limit + concurrent-run cap).
 - Patch integrity: diffs validated on a clean snapshot; forbidden paths and
   unexpected changes rejected.
 - Durable run lifecycle: status, errors, artifacts persisted; stale

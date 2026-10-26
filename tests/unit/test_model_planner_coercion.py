@@ -1,6 +1,6 @@
 """ModelPlanner robustness: models with partial schema compliance.
 
-Real-world finding (docs/model-matrix.md): deepseek-v4-flash returns
+Real-world gateway finding: some models return
 ``planned_changes`` as an array of plain strings. The planner must use
 whatever valid object entries exist, and fail honestly (ModelError) when
 the model produces none at all.

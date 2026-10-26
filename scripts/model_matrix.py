@@ -1,8 +1,7 @@
 """Model matrix evaluation: run one real open issue through every
-OpenAI-compatible gateway model and record outcomes in docs/model-matrix.md.
+configured Ollama Cloud model and record outcomes in docs/model-matrix.md.
 
-Usage (env from .env):
-    set -a; source .env; set +a
+Usage (configuration comes from ``.env`` automatically):
     python scripts/model_matrix.py --issue https://github.com/psf/black/issues/2365
 """
 
@@ -20,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "packages"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from repomate_core.contracts import RepositoryInput, RunStatus, TaskSource
+from repomate_core.env import load_env_file
 from repomate_core.models import OpenAIProvider
 from repomate_core.orchestration.pipeline import run_pipeline
 from repomate_core.orchestration.pipeline_config import PipelineConfig
@@ -28,15 +28,16 @@ from repomate_core.repository.workspace import RepoWorkspace
 from repomate_core.safety.url_guard import parse_github_url
 
 MODELS = [
-    "deepseek-v4.1",
-    "deepseek-v4-flash",
-    "glm-5.3-flash",
-    "beam-1.0",
-    "nemotron-3.5-super-vl",
+    "gemma4:31b",
+    "gpt-oss:120b",
 ]
 
 
 def main() -> int:
+    # Gateway credentials come from ``.env`` when the harness is run from a
+    # checkout; an exported environment still wins.
+    load_env_file()
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--issue", required=True)
     parser.add_argument("--out", default="docs/model-matrix.md")
@@ -44,14 +45,10 @@ def main() -> int:
 
     import os
 
-    api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("VYCE_API_KEY", "")
-    base_url = (
-        os.environ.get("OPENAI_BASE_URL")
-        or os.environ.get("VYCE_BASE_URL")
-        or "https://vyceai.com/v1"
-    )
+    api_key = os.environ.get("OLLAMA_API_KEY", "")
+    base_url = os.environ.get("OLLAMA_BASE_URL") or "https://ollama.com/v1"
     if not api_key:
-        print("OPENAI_API_KEY not set", file=sys.stderr)
+        print("OLLAMA_API_KEY not set", file=sys.stderr)
         return 2
 
     run_input = RepositoryInput(
@@ -101,6 +98,11 @@ def main() -> int:
                     ) if record.receipt else "-"
                 ),
                 "suite": suite.status.value if suite else "-",
+                "comparison": (
+                    record.receipt.comparison.outcome.value
+                    if record.receipt and record.receipt.comparison
+                    else "-"
+                ),
                 "error": record.error.code.value if record.error else "",
                 "seconds": round(duration, 1),
                 "summary": (record.plan.summary if record.plan else "")[:200],
@@ -115,14 +117,15 @@ def main() -> int:
         f"Issue: {args.issue} (open, MIT-licensed repository psf/black)",
         f"Generated {datetime.now(timezone.utc).isoformat()} by `scripts/model_matrix.py`.",
         "",
-        "| Model | Status | Task type | Planned file | Patch lines | Patch checks | Suite | Time |",
-        "|-------|--------|-----------|--------------|-------------|-------------|-------|------|",
+        "| Model | Status | Task type | Planned file | Patch lines | Patch checks | Suite | Comparison | Time |",
+        "|-------|--------|-----------|--------------|-------------|-------------|-------|------------|------|",
     ]
     for r in rows:
         lines.append(
             f"| `{r['model']}` | {r['status']}{' · ' + r['error'] if r['error'] else ''} "
             f"| {r['task_type']} | `{r['paths']}` | {r['patch_lines']} "
-            f"| {r['patch_checks']} | {r['suite']} | {r['seconds']}s |"
+            f"| {r['patch_checks']} | {r['suite']} | {r['comparison']} "
+            f"| {r['seconds']}s |"
         )
     lines += ["", "## Plan summaries", ""]
     for r in rows:
@@ -130,8 +133,10 @@ def main() -> int:
     lines += [
         "",
         "The repository test suite fails for every model in this bare environment",
-        "(black's dependencies are not installed) — an honest FAILED with the",
-        "captured output, per the verification contract.",
+        "(black's dependencies are not installed). Because the clean baseline",
+        "fails for the same reason, the comparison is UNRESOLVED rather than an",
+        "improvement; each run is an honest FAILED with captured output, per the",
+        "verification contract.",
         "",
     ]
 

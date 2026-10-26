@@ -175,6 +175,15 @@ class SqlRunStore:
             conn.execute("SELECT status, COUNT(*) FROM runs GROUP BY status")
             return {row[0]: row[1] for row in conn.fetchall()}
 
+    def count_active_runs(self) -> int:
+        """Count runs that still hold an execution slot (PENDING/RUNNING)."""
+        with self._conn() as conn:
+            conn.execute(
+                "SELECT COUNT(*) FROM runs WHERE status IN ('PENDING', 'RUNNING')"
+            )
+            row = conn.fetchall()
+        return int(row[0][0]) if row else 0
+
     # -- events -----------------------------------------------------------------
 
     def append_event(self, run_id: str, event: RunEvent) -> None:
@@ -260,6 +269,39 @@ class SqlRunStore:
                 self.cleanup_workspace(run_id)
                 removed.append(run_id)
         return removed
+
+    def reconcile_stale_runs(self) -> list[str]:
+        """Close out runs left RUNNING/PENDING by a previous process.
+
+        In-process execution cannot survive a restart, so a run that was
+        mid-flight when the process died would report RUNNING forever and
+        the UI would poll a run that can never move. Mark them FAILED with
+        an explicit reason: an honest terminal state beats a permanent lie.
+        """
+        from repomate_core.contracts import ErrorCode, RunError, RunStatus
+
+        reconciled: list[str] = []
+        for run_id in self.list_run_ids():
+            record = self.load_run(run_id)
+            if record is None or record.is_terminal:
+                continue
+            record.status = RunStatus.FAILED
+            record.error = RunError(
+                code=ErrorCode.INTERNAL,
+                message=(
+                    "run was interrupted by a process restart and never "
+                    "reached a terminal state"
+                ),
+                detail=(
+                    "RepoMate reconciled this run at startup. With in-process "
+                    "execution a restart loses the worker thread, so the run "
+                    "cannot be resumed; re-submit the task to retry."
+                ),
+            )
+            self.save_run(record)
+            self.cleanup_workspace(run_id)
+            reconciled.append(run_id)
+        return reconciled
 
     def dump_json(self, value) -> str:
         return json.dumps(value, indent=2, default=str)

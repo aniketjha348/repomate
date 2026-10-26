@@ -1,0 +1,102 @@
+{
+  "run_id": "run_20261026-100400_givl1lxg",
+  "status": "FAILED",
+  "input": {
+    "source": "GITHUB_ISSUE",
+    "issue_url": "https://github.com/astanin/python-tabulate/issues/481",
+    "repo_url": null,
+    "task": null
+  },
+  "created_at": "2026-10-26T10:04:00.033868Z",
+  "updated_at": "2026-10-26T10:04:00.208885Z",
+  "snapshot": {
+    "owner": "astanin",
+    "name": "python-tabulate",
+    "url": "https://github.com/astanin/python-tabulate",
+    "default_branch": "master",
+    "commit_sha": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+    "license": {
+      "status": "RECOGNIZED",
+      "spdx_id": "MIT",
+      "file_path": "LICENSE",
+      "note": "recognized as MIT from license file content"
+    },
+    "languages": {
+      "py": 100.0
+    },
+    "file_count": 26,
+    "readme_path": "README.md",
+    "contributing_path": null,
+    "entry_points": [
+      {
+        "path": "pyproject.toml",
+        "kind": "manifest",
+        "detail": "pyproject.toml scripts: tabulate"
+      }
+    ],
+    "pinned_at": "2026-10-26T10:04:00.176207Z"
+  },
+  "issue": null,
+  "evidence": [],
+  "retrieval": null,
+  "orientation": null,
+  "test_guidance": null,
+  "tool_loop": null,
+  "model_usage": null,
+  "plan": null,
+  "grounding": null,
+  "artifact": null,
+  "documents": [],
+  "receipt": null,
+  "events": [
+    {
+      "seq": 1,
+      "stage": "VALIDATE_INPUT",
+      "status": "STARTED",
+      "message": "Validating task input",
+      "at": "2026-10-26T10:04:00.039714Z"
+    },
+    {
+      "seq": 2,
+      "stage": "VALIDATE_INPUT",
+      "status": "COMPLETED",
+      "message": "Input accepted: astanin/python-tabulate issue #481",
+      "at": "2026-10-26T10:04:00.051365Z"
+    },
+    {
+      "seq": 3,
+      "stage": "PIN_SNAPSHOT",
+      "status": "STARTED",
+      "message": "Cloning astanin/python-tabulate (shallow, pinned to HEAD)",
+      "at": "2026-10-26T10:04:00.062941Z"
+    },
+    {
+      "seq": 4,
+      "stage": "PIN_SNAPSHOT",
+      "status": "COMPLETED",
+      "message": "Pinned astanin/python-tabulate@268615a5c2 (license: RECOGNIZED, 26 files)",
+      "at": "2026-10-26T10:04:00.176247Z"
+    },
+    {
+      "seq": 5,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "STARTED",
+      "message": "Collecting issue and repository evidence",
+      "at": "2026-10-26T10:04:00.187326Z"
+    },
+    {
+      "seq": 6,
+      "stage": null,
+      "status": "FAILED",
+      "message": "RATE_LIMITED: injected GitHub rate-limit response (evaluation only)",
+      "at": "2026-10-26T10:04:00.197924Z"
+    }
+  ],
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "injected GitHub rate-limit response (evaluation only)",
+    "detail": ""
+  },
+  "planner": "",
+  "workspace_kept": false
+}

@@ -75,3 +75,20 @@ def test_duplicate_section_is_refused(local_repo, local_workspace):
             _evidence(),
         )
     local_workspace.reset_hard()
+
+
+def test_missing_modify_target_becomes_new_document(local_workspace):
+    plan = _plan("docs/new-guide.md")
+
+    artifact = generate_docs_artifact(
+        local_workspace,
+        plan,
+        "Document the timeout option in a new guide",
+        _evidence(),
+    )
+
+    assert artifact.affected_paths == ["docs/new-guide.md"]
+    assert "new file mode" in artifact.patch
+    assert plan.planned_changes[0].change_type == "CREATE"
+    assert any("did not exist" in item for item in plan.limitations)
+    assert local_workspace.git("status", "--porcelain").stdout == ""

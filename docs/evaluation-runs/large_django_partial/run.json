@@ -1,0 +1,271 @@
+{
+  "run_id": "run_20261026-100303_53xblo5w",
+  "status": "PARTIAL",
+  "input": {
+    "source": "REPO_TASK",
+    "issue_url": null,
+    "repo_url": "https://github.com/django/django",
+    "task": "Add a note about running the test suite to the contributing documentation."
+  },
+  "created_at": "2026-10-26T10:03:03.821517Z",
+  "updated_at": "2026-10-26T10:03:23.392545Z",
+  "snapshot": {
+    "owner": "django",
+    "name": "django",
+    "url": "https://github.com/django/django",
+    "default_branch": "main",
+    "commit_sha": "a2a0b4f2764f7b192bff4bb75ed56ce017931a71",
+    "license": {
+      "status": "RECOGNIZED",
+      "spdx_id": "BSD-3-Clause",
+      "file_path": "LICENSE",
+      "note": "recognized as BSD-3-Clause from license file content"
+    },
+    "languages": {
+      "py": 96.3,
+      "js": 3.6,
+      "sh": 0.1
+    },
+    "file_count": 7089,
+    "readme_path": "README.rst",
+    "contributing_path": "CONTRIBUTING.rst",
+    "entry_points": [
+      {
+        "path": "package.json",
+        "kind": "manifest",
+        "detail": "no main/bin declared"
+      },
+      {
+        "path": "pyproject.toml",
+        "kind": "manifest",
+        "detail": "pyproject.toml scripts: django-admin"
+      }
+    ],
+    "pinned_at": "2026-10-26T10:03:03.988599Z"
+  },
+  "issue": null,
+  "evidence": [
+    {
+      "id": "ev1",
+      "kind": "DOC",
+      "path": "README.rst",
+      "start_line": 38,
+      "end_line": 49,
+      "snippet": "To contribute to Django:\n\n* Check out https://docs.djangoproject.com/en/dev/internals/contributing/ for\n  information about getting involved.\n\nTo run Django's test suite:\n\n* Follow the instructions in the \"Unit tests\" section of\n  ``docs/internals/contributing/writing-code/unit-tests.txt``, published online at\n  https://docs.djangoproject.com/en/dev/internals/contributing/writing-code/unit-tests/#running-the-unit-tests\n\nSupporting the Development of Django",
+      "rationale": "matches task keywords: about, running, test, suite, contributing"
+    },
+    {
+      "id": "ev2",
+      "kind": "TEST",
+      "path": "django/core/management/commands/testserver.py",
+      "start_line": 40,
+      "end_line": 51,
+      "snippet": "interactive = options[\"interactive\"]\n\n        # Create a test database.\n        db_name = connection.creation.create_test_db(\n            verbosity=verbosity, autoclobber=not interactive\n        )\n\n        # Import the fixture data into the test database.\n        call_command(\"loaddata\", *fixture_labels, verbosity=verbosity)\n\n        # Run the development server. Turn off auto-reloading because it causes\n        # a strange error -- it causes this handle() method to be called",
+      "rationale": "matches task keywords: test"
+    },
+    {
+      "id": "ev3",
+      "kind": "SOURCE",
+      "path": "django/conf/global_settings.py",
+      "start_line": 614,
+      "end_line": 625,
+      "snippet": "###########\n# TESTING #\n###########\n\n# The name of the class to use to run the test suite\nTEST_RUNNER = \"django.test.runner.DiscoverRunner\"\n\n# Apps that don't need to be serialized at test database creation time\n# (only apps with migrations are to start with)\nTEST_NON_SERIALIZED_APPS = []",
+      "rationale": "matches task keywords: test, suite"
+    },
+    {
+      "id": "ev4",
+      "kind": "SOURCE",
+      "path": "django/core/cache/backends/db.py",
+      "start_line": 143,
+      "end_line": 154,
+      "snippet": "b64encoded = base64.b64encode(pickled).decode(\"latin1\")\n            try:\n                # Note: typecasting for datetimes is needed by some 3rd party\n                # database backends. All core backends work without\n                # typecasting, so be careful about changes here - test suite\n                # will NOT pick regressions.\n                with transaction.atomic(using=db):\n                    cursor.execute(\n                        \"SELECT %s, %s FROM %s WHERE %s = %%s\"\n                        % (\n                            quote_name(\"cache_key\"),\n                            quote_name(\"expires\"),",
+      "rationale": "matches task keywords: note, about, test, suite"
+    },
+    {
+      "id": "ev5",
+      "kind": "SOURCE",
+      "path": "django/db/backends/base/features.py",
+      "start_line": 437,
+      "end_line": 448,
+      "snippet": "pattern_lookup_needs_param_pattern = True\n\n    # A set of dotted paths to tests in Django's test suite that are expected\n    # to fail on this database.\n    django_test_expected_failures = set()\n    # A map of reasons to sets of dotted paths to tests in Django's test suite\n    # that should be skipped for this database.\n    django_test_skips = {}\n\n    # DatabaseWrapper methods that should raise an error if accessed in\n    # django.test.SimpleTestCase.\n    disallowed_simple_test_case_connection_methods = [",
+      "rationale": "matches task keywords: test, suite"
+    },
+    {
+      "id": "ev6",
+      "kind": "SOURCE",
+      "path": "django/db/models/query.py",
+      "start_line": 1237,
+      "end_line": 1248,
+      "snippet": "def latest(self, *fields):\n        \"\"\"\n        Return the latest object according to fields (if given) or by the\n        model's Meta.get_latest_by.\n        \"\"\"\n        if self.query.is_sliced:\n            raise TypeError(\"Cannot change a query once a slice has been taken.\")\n        return self.reverse()._earliest(*fields)\n\n    async def alatest(self, *fields):\n        return await sync_to_async(self.latest)(*fields)",
+      "rationale": "matches task keywords: test"
+    },
+    {
+      "id": "ev7",
+      "kind": "SOURCE",
+      "path": "django/middleware/csrf.py",
+      "start_line": 79,
+      "end_line": 90,
+      "snippet": "chars = CSRF_ALLOWED_CHARS\n    pairs = zip((chars.index(x) for x in token), (chars.index(x) for x in mask))\n    return \"\".join(chars[x - y] for x, y in pairs)  # Note negative values are ok\n\n\ndef _add_new_csrf_cookie(request):\n    \"\"\"Generate a new random CSRF_COOKIE value, and add it to request.META.\"\"\"\n    csrf_secret = _get_new_csrf_string()\n    request.META.update(\n        {\n            \"CSRF_COOKIE\": csrf_secret,\n            \"CSRF_COOKIE_NEEDS_UPDATE\": True,",
+      "rationale": "matches task keywords: note"
+    },
+    {
+      "id": "ev8",
+      "kind": "SOURCE",
+      "path": "django/apps/registry.py",
+      "start_line": 79,
+      "end_line": 90,
+      "snippet": "# compare and set operation below is atomic.\n            if self.loading:\n                # Prevent reentrant calls to avoid running AppConfig.ready()\n                # methods twice.\n                raise RuntimeError(\"populate() isn't reentrant\")\n            self.loading = True\n\n            # Phase 1: initialize app configs and import app modules.\n            for entry in installed_apps:\n                if isinstance(entry, AppConfig):\n                    app_config = entry\n                else:",
+      "rationale": "matches task keywords: running"
+    }
+  ],
+  "retrieval": {
+    "status": "PARTIAL",
+    "limits": {
+      "max_files": 2000,
+      "max_bytes_per_file": 200000,
+      "max_total_bytes": 32000000,
+      "max_search_results": 200,
+      "max_seconds": 30.0
+    },
+    "files_total": 7089,
+    "files_eligible": 3776,
+    "files_examined": 822,
+    "bytes_read": 5065824,
+    "search_results": 200,
+    "evidence_records": 8,
+    "elapsed_ms": 19314,
+    "limit_hits": [
+      {
+        "limit": "MAX_SEARCH_RESULTS",
+        "allowed": 200,
+        "observed": 201,
+        "remaining_work": "django/tasks/exceptions.py matched but was not retained, and any lower-ranked matches were not considered; 2954 eligible file(s) were not examined because the 200-result search cap was reached."
+      }
+    ],
+    "summary": "Retrieval is PARTIAL: examined 822 of 3776 eligible file(s) from 7089 tracked file(s), read 5065824 byte(s), and retained 200 matching file(s). 2954 eligible file(s) were not examined. Limits reached: MAX_SEARCH_RESULTS. This analysis does not cover the whole repository."
+  },
+  "orientation": {
+    "summary": "django/django is a py-dominant repository (7089 tracked files, default branch main). The README opens with: \"======\" License: BSD-3-Clause (recognized). 8 evidence location(s) connect this task to the codebase.",
+    "key_paths": [
+      {
+        "path": "README.rst",
+        "role": "project overview and quickstart"
+      },
+      {
+        "path": "CONTRIBUTING.rst",
+        "role": "contributor instructions"
+      },
+      {
+        "path": "django/conf/global_settings.py",
+        "role": "relevant to this task (matches task keywords: test, suite)"
+      },
+      {
+        "path": "django/core/cache/backends/db.py",
+        "role": "relevant to this task (matches task keywords: note, about, test, suite)"
+      },
+      {
+        "path": "django/db/backends/base/features.py",
+        "role": "relevant to this task (matches task keywords: test, suite)"
+      },
+      {
+        "path": "django/db/models/query.py",
+        "role": "relevant to this task (matches task keywords: test)"
+      }
+    ],
+    "languages": {
+      "py": 96.3,
+      "js": 3.6,
+      "sh": 0.1
+    },
+    "entry_points": [
+      {
+        "path": "package.json",
+        "role": "manifest: no main/bin declared"
+      },
+      {
+        "path": "pyproject.toml",
+        "role": "manifest: pyproject.toml scripts: django-admin"
+      }
+    ],
+    "generated_by": "snapshot-v1"
+  },
+  "test_guidance": {
+    "run_command": "python -m pytest -q",
+    "focused_command": "python -m pytest -q django/core/management/commands/testserver.py",
+    "relevant_tests": [
+      {
+        "path": "django/core/management/commands/testserver.py",
+        "reason": "matches task keywords: test"
+      }
+    ],
+    "note": "Selection is keyword-based — start with the files above, then run the full suite as the authoritative check. Whether the full suite actually executed is recorded in the verification receipt (python -m pytest -q)."
+  },
+  "tool_loop": null,
+  "model_usage": null,
+  "plan": null,
+  "grounding": null,
+  "artifact": null,
+  "documents": [],
+  "receipt": null,
+  "events": [
+    {
+      "seq": 1,
+      "stage": "VALIDATE_INPUT",
+      "status": "STARTED",
+      "message": "Validating task input",
+      "at": "2026-10-26T10:03:03.825731Z"
+    },
+    {
+      "seq": 2,
+      "stage": "VALIDATE_INPUT",
+      "status": "COMPLETED",
+      "message": "Input accepted: django/django",
+      "at": "2026-10-26T10:03:03.835180Z"
+    },
+    {
+      "seq": 3,
+      "stage": "PIN_SNAPSHOT",
+      "status": "STARTED",
+      "message": "Cloning django/django (shallow, pinned to HEAD)",
+      "at": "2026-10-26T10:03:03.846354Z"
+    },
+    {
+      "seq": 4,
+      "stage": "PIN_SNAPSHOT",
+      "status": "COMPLETED",
+      "message": "Pinned django/django@a2a0b4f276 (license: RECOGNIZED, 7089 files)",
+      "at": "2026-10-26T10:03:03.988782Z"
+    },
+    {
+      "seq": 5,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "STARTED",
+      "message": "Collecting issue and repository evidence",
+      "at": "2026-10-26T10:03:03.999926Z"
+    },
+    {
+      "seq": 6,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "COMPLETED",
+      "message": "Collected 8 evidence record(s)",
+      "at": "2026-10-26T10:03:23.324287Z"
+    },
+    {
+      "seq": 7,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "INFO",
+      "message": "Retrieval is PARTIAL: examined 822 of 3776 eligible file(s) from 7089 tracked file(s), read 5065824 byte(s), and retained 200 matching file(s). 2954 eligible file(s) were not examined. Limits reached: MAX_SEARCH_RESULTS. This analysis does not cover the whole repository.",
+      "at": "2026-10-26T10:03:23.336765Z"
+    },
+    {
+      "seq": 8,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "INFO",
+      "message": "Retrieval limits reached; run marked PARTIAL without claiming full analysis",
+      "at": "2026-10-26T10:03:23.380447Z"
+    }
+  ],
+  "error": null,
+  "planner": "",
+  "workspace_kept": false
+}

@@ -1,0 +1,13 @@
+diff --git a/test/test_grid_contract.py b/test/test_grid_contract.py
+new file mode 100644
+index 0000000..280d77b
+--- /dev/null
++++ b/test/test_grid_contract.py
+@@ -0,0 +1,7 @@
++from tabulate import tabulate
++
++
++def test_grid_output_for_simple_rows():
++    assert tabulate([["a", "b"]], tablefmt="grid") == (
++        "+---+---+\n| a | b |\n+---+---+"
++    )

@@ -12,23 +12,29 @@ from typing import Callable, Optional
 
 from repomate_core.artifacts.generator import generate_docs_artifact
 from repomate_core.contracts import (
+    ArtifactKind,
     ContributionArtifact,
     ContributionPlan,
     ErrorCode,
     EvidenceRecord,
     GitHubIssue,
+    GroundingReport,
     RepositoryInput,
     RepositorySnapshot,
+    RetrievalStatus,
     StageName,
     TaskSource,
+    TaskType,
+    ToolLoopStatus,
     VerificationReceipt,
 )
-from repomate_core.evidence.collector import collect_evidence
+from repomate_core.evidence.collector import collect_evidence_with_report
 from repomate_core.insights import build_orientation, build_test_guidance
 from repomate_core.orchestration.context import RunContext
 from repomate_core.orchestration.errors import PipelineError
 from repomate_core.orchestration.pipeline_config import PipelineConfig
 from repomate_core.planning.heuristic import HeuristicPlanner
+from repomate_core.planning.types import Planner
 from repomate_core.repository.github import fetch_issue
 from repomate_core.repository.inspect import inspect_repository
 from repomate_core.repository.workspace import RepoWorkspace
@@ -74,32 +80,191 @@ def stage_retrieve_evidence(
             f"Fetched issue #{issue.number}: {issue.title[:80]}",
         )
 
-    evidence = collect_evidence(workspace, ctx.record.snapshot, task_text, issue)
-    ctx.record.evidence = evidence
+    evidence = collect_evidence_with_report(
+        workspace,
+        ctx.record.snapshot,
+        task_text,
+        issue,
+        limits=ctx.config.retrieval_limits,
+    )
+    ctx.record.evidence = evidence.records
+    ctx.record.retrieval = evidence.report
     ctx.emit(
         StageName.RETRIEVE_EVIDENCE,
         "COMPLETED",
-        f"Collected {len(evidence)} evidence record(s)"
-        + ("" if evidence else " — none matched the task"),
+        f"Collected {len(evidence.records)} evidence record(s)"
+        + ("" if evidence.records else " — none matched the task"),
     )
+    if evidence.report.status is RetrievalStatus.PARTIAL:
+        ctx.emit(StageName.RETRIEVE_EVIDENCE, "INFO", evidence.report.summary)
 
     # Newcomer orientation + which-tests-to-run guidance (PS04 background):
     # deterministic, snapshot/evidence-derived, never overstated.
-    ctx.record.orientation = build_orientation(workspace, ctx.record.snapshot, evidence)
-    ctx.record.test_guidance = build_test_guidance(workspace, ctx.record.snapshot, evidence)
-    return task_text, evidence
+    ctx.record.orientation = build_orientation(
+        workspace, ctx.record.snapshot, evidence.records
+    )
+    ctx.record.test_guidance = build_test_guidance(
+        workspace, ctx.record.snapshot, evidence.records
+    )
+    return task_text, evidence.records
+
+
+def stage_expand_evidence(
+    ctx: RunContext,
+    workspace: RepoWorkspace,
+    task_text: str,
+    evidence: list[EvidenceRecord],
+    planner: Planner,
+) -> list[EvidenceRecord]:
+    """Let a model planner request bounded supplementary context.
+
+    Only the typed ``search_text``/``read_file``/``inspect_manifest`` tools
+    are available, every file item is re-validated against the pinned
+    workspace, and a global tool-budget hit returns ``PARTIAL`` rather than
+    pretending the extra context was examined. Heuristic runs skip this
+    stage entirely.
+    """
+    from repomate_core.evidence.tools import run_tool_loop
+    from repomate_core.planning.model_planner import ModelPlanner
+
+    if not isinstance(planner, ModelPlanner):
+        return evidence
+
+    planner.bind_runtime(
+        budget=ctx.model_budget,
+        guard=ctx.guard,
+        remaining_seconds=ctx.remaining_seconds,
+    )
+    ctx.emit(
+        StageName.RETRIEVE_EVIDENCE,
+        "STARTED",
+        "Running bounded model tool loop for supplementary context",
+    )
+    outcome = run_tool_loop(
+        workspace,
+        ctx.record.snapshot or _empty_snapshot(ctx),
+        task_text,
+        planner.provider,
+        evidence,
+        ctx.config.tool_limits,
+        budget=ctx.model_budget,
+        guard=ctx.guard,
+        remaining_seconds=ctx.remaining_seconds,
+    )
+    ctx.record.tool_loop = outcome.report
+    merged = _merge_evidence(evidence, outcome.records)
+    ctx.record.evidence = merged
+
+    # Rebuild the deterministic newcomer views from the combined evidence.
+    ctx.record.orientation = build_orientation(
+        workspace, ctx.record.snapshot or _empty_snapshot(ctx), merged
+    )
+    ctx.record.test_guidance = build_test_guidance(
+        workspace, ctx.record.snapshot or _empty_snapshot(ctx), merged
+    )
+
+    status = "COMPLETED" if outcome.report.status is ToolLoopStatus.COMPLETE else "INFO"
+    ctx.emit(
+        StageName.RETRIEVE_EVIDENCE,
+        status,
+        f"Tool retrieval {outcome.report.status.value}: "
+        f"{outcome.report.tool_calls} tool call(s), "
+        f"{outcome.report.records_added} validated record(s) added"
+        + (
+            f" — {outcome.report.stop_reason}"
+            if outcome.report.stop_reason not in ("", "model_done")
+            else ""
+        ),
+    )
+    if outcome.report.status is ToolLoopStatus.PARTIAL:
+        ctx.emit(StageName.RETRIEVE_EVIDENCE, "INFO", outcome.report.summary)
+    return merged
+
+
+def _merge_evidence(
+    initial: list[EvidenceRecord], extra: list[EvidenceRecord]
+) -> list[EvidenceRecord]:
+    """De-duplicate and re-number evidence in deterministic order.
+
+    The collector and the tool loop both assign temporary ids; plans are
+    produced after this merge, so re-numbering here cannot invalidate a
+    citation. Initial evidence stays first, which keeps ids stable for the
+    common (no-tool) case.
+    """
+    merged: list[EvidenceRecord] = []
+    seen: set[tuple] = set()
+    for record in [*initial, *extra]:
+        key = (
+            record.path,
+            record.start_line,
+            record.end_line,
+            record.snippet,
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(record.model_copy(update={"id": f"ev{len(merged) + 1}"}))
+    return merged
+
+
+def stage_validate_grounding(
+    ctx: RunContext,
+    plan: ContributionPlan,
+    evidence: list[EvidenceRecord],
+    workspace: RepoWorkspace,
+) -> GroundingReport:
+    """Validate every citation in the plan against this run's evidence.
+
+    This is the enforcement half of the evidence-first contract: a claim
+    whose citations do not resolve (or do not relate to it) is recorded as
+    a hypothesis, and the warning is persisted with the run so a report can
+    never present an unresolved reference as a verified citation.
+    """
+    from repomate_core.evidence.grounding import validate_plan_grounding
+
+    ctx.emit(StageName.PLAN, "STARTED", "Validating plan citations against evidence")
+    snapshot = ctx.record.snapshot or _empty_snapshot(ctx)
+    report = validate_plan_grounding(plan, evidence, snapshot, workspace=workspace)
+    ctx.record.grounding = report
+
+    unresolved = report.unresolved_evidence_ids
+    ctx.emit(
+        StageName.PLAN,
+        "INFO" if not unresolved else "FAILED",
+        f"Grounding: {report.supported_claims} supported / "
+        f"{report.hypothesis_claims} hypothesis claim(s), "
+        f"{len(report.resolved_evidence_ids)} resolved citation(s)"
+        + (f", {len(unresolved)} unresolved: {', '.join(unresolved[:5])}" if unresolved else ""),
+    )
+    return report
 
 
 def stage_plan(
-    ctx: RunContext, task_text: str, evidence: list[EvidenceRecord]
+    ctx: RunContext,
+    task_text: str,
+    evidence: list[EvidenceRecord],
+    planner: Optional[Planner] = None,
 ) -> ContributionPlan:
     from repomate_core.orchestration.pipeline import resolve_planner
 
     ctx.emit(StageName.PLAN, "STARTED", "Building contribution plan from evidence")
-    planner = ctx.config.planner or resolve_planner()
+    planner = planner or ctx.config.planner or resolve_planner()
     ctx.record.planner = planner.name
     plan = planner.plan(task_text, ctx.record.snapshot, evidence)
     ctx.record.plan = plan
+    ctx.record.planner = plan.planned_by
+    if ctx.record.tool_loop is not None:
+        loop = ctx.record.tool_loop
+        if loop.stop_reason == "invalid_model_output":
+            plan.limitations.append(
+                "model tool loop stopped on an invalid tool call; additional "
+                "repository context may be missing"
+            )
+        if loop.rejected_items:
+            plan.limitations.append(
+                f"{loop.rejected_items} retrieved item(s) were rejected by "
+                "evidence validation and were not used in this plan"
+            )
     ctx.emit(
         StageName.PLAN,
         "COMPLETED",
@@ -132,6 +297,10 @@ def stage_generate_artifact(
                 "model edit did not anchor to the pinned snapshot",
                 detail=str(exc),
             ) from exc
+        # The diff is the same anchored format; the kind records the task the
+        # contribution answers. TEST tasks are downloadable as TEST_DIFF.
+        if plan.task_type is TaskType.TEST:
+            artifact = artifact.model_copy(update={"kind": ArtifactKind.TEST_DIFF})
     else:
         raise PipelineError(
             ErrorCode.UNSUPPORTED_INPUT,
@@ -157,18 +326,25 @@ def stage_verify(
     outcome — the environment or the repository is broken, not the
     artifact — so the run completes and the receipt carries the FAILED
     check with its captured output.
+
+    The selected repository check runs once against a clean baseline
+    checkout and once against a separate patched checkout. The receipt
+    records the deterministic comparison; a successful patched run alone is
+    never presented as proof that the issue is resolved.
     """
     from repomate_core.artifacts.patch import (
         CODE_FIX_PATCH_POLICY,
         DOCS_PATCH_POLICY,
+        TEST_PATCH_POLICY,
     )
 
     ctx.emit(StageName.VERIFY, "STARTED", "Running verification checks")
-    policy = (
-        DOCS_PATCH_POLICY
-        if artifact.kind.value == "DOCS_DIFF"
-        else CODE_FIX_PATCH_POLICY
-    )
+    if artifact.kind is ArtifactKind.DOCS_DIFF:
+        policy = DOCS_PATCH_POLICY
+    elif artifact.kind is ArtifactKind.TEST_DIFF:
+        policy = TEST_PATCH_POLICY
+    else:
+        policy = CODE_FIX_PATCH_POLICY
     receipt = run_verification(
         workspace, artifact, policy, sandbox_enabled=ctx.config.sandbox_enabled
     )
@@ -184,6 +360,14 @@ def stage_verify(
             StageName.VERIFY, "INFO",
             f"Repository test suite FAILED (exit {suite.exit_code}); "
             "run completes with an honest receipt",
+        )
+    if receipt.comparison is not None:
+        comparison = receipt.comparison
+        ctx.emit(
+            StageName.VERIFY,
+            "INFO",
+            f"Baseline {comparison.baseline.status.value} -> post-patch "
+            f"{comparison.post_patch.status.value}: {comparison.outcome.value}",
         )
     ctx.emit(
         StageName.VERIFY,

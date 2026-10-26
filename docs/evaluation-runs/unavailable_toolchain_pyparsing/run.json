@@ -1,0 +1,478 @@
+{
+  "run_id": "run_20261026-100329_r50gxovh",
+  "status": "COMPLETED",
+  "input": {
+    "source": "REPO_TASK",
+    "issue_url": null,
+    "repo_url": "https://github.com/pyparsing/pyparsing",
+    "task": "Document the original_text_for helper in the README."
+  },
+  "created_at": "2026-10-26T10:03:29.594978Z",
+  "updated_at": "2026-10-26T10:03:41.537054Z",
+  "snapshot": {
+    "owner": "pyparsing",
+    "name": "pyparsing",
+    "url": "https://github.com/pyparsing/pyparsing",
+    "default_branch": "master",
+    "commit_sha": "810199f89bf916590426e1c5cb3d612584f11a2f",
+    "license": {
+      "status": "RECOGNIZED",
+      "spdx_id": "MIT",
+      "file_path": "LICENSE",
+      "note": "recognized as MIT from license file content"
+    },
+    "languages": {
+      "py": 98.7,
+      "h": 0.6,
+      "sh": 0.6
+    },
+    "file_count": 293,
+    "readme_path": "README.rst",
+    "contributing_path": "CONTRIBUTING.md",
+    "entry_points": [
+      {
+        "path": "pyproject.toml",
+        "kind": "manifest",
+        "detail": "pyproject.toml"
+      }
+    ],
+    "pinned_at": "2026-10-26T10:03:29.739108Z"
+  },
+  "issue": null,
+  "evidence": [
+    {
+      "id": "ev1",
+      "kind": "DOC",
+      "path": "docs/HowToUsePyparsing.rst",
+      "start_line": 1238,
+      "end_line": 1249,
+      "snippet": ".. _originalTextFor:\n\n- ``original_text_for(expr)`` - helper function to preserve the originally parsed text, regardless of any\n  token processing or conversion done by the contained expression.  For instance, the following expression::\n\n        full_name = Word(alphas) + Word(alphas)\n\n  will return the parse of \"John Smith\" as ['John', 'Smith'].  In some applications, the actual name as it\n  was given in the input string is what is desired.  To do this, use ``original_text_for``::\n\n        full_name = original_text_for(Word(alphas) + Word(alphas))",
+      "rationale": "matches task keywords: original_text_for, helper"
+    },
+    {
+      "id": "ev2",
+      "kind": "DOC",
+      "path": "docs/pyparsing_classes.md",
+      "start_line": 206,
+      "end_line": 212,
+      "snippet": "Contains `pyparsing_unicode`, which provides `unicode_set` definitions for various languages and character sets (Latin, Greek, Cyrillic, CJK, etc.).\n\n### `helpers.py`\nOffers high-level helper functions and classes for constructing complex parsers, such as `infix_notation`, `nested_expr`, `delimited_list`, and `original_text_for`.\n\n### `actions.py`\nProvides useful parse actions and decorators, such as `replace_with`, `remove_quotes`, and `with_attribute`.",
+      "rationale": "matches task keywords: original_text_for, helper"
+    },
+    {
+      "id": "ev3",
+      "kind": "DOC",
+      "path": "docs/whats_new_in_3_0_0.rst",
+      "start_line": 172,
+      "end_line": 183,
+      "snippet": "pp.enable_diag(pp.Diagnostics.warn_multiple_tokens_in_named_alternation)\n\n- ``pyparsing.enable_all_warnings()`` is another helper that sets\n  all \"warn*\" diagnostics to ``True``::\n\n        pp.enable_all_warnings()\n\n- added support for calling ``enable_all_warnings()`` if warnings are enabled\n  using the Python ``-W`` switch, or setting a non-empty value to the environment\n  variable ``PYPARSINGENABLEALLWARNINGS``. (If using ``-Wd`` for testing, but\n  wishing to disable pyparsing warnings, add ``-Wi:::pyparsing``.)",
+      "rationale": "matches task keywords: helper"
+    },
+    {
+      "id": "ev4",
+      "kind": "SOURCE",
+      "path": "pyparsing/helpers.py",
+      "start_line": 25,
+      "end_line": 36,
+      "snippet": "#\n# global helpers\n#\ndef counted_array(\n    expr: ParserElement, int_expr: typing.Optional[ParserElement] = None, **kwargs\n) -> ParserElement:\n    \"\"\"Helper to define a counted list of expressions.\n\n    This helper defines a pattern of the form::\n\n        integer expr expr expr...",
+      "rationale": "matches task keywords: helper"
+    },
+    {
+      "id": "ev5",
+      "kind": "TEST",
+      "path": "tests/test_pre_pep8_deprecation_warnings.py",
+      "start_line": 286,
+      "end_line": 297,
+      "snippet": "def test_original_text_for_asString_kwarg_emits_DeprecationWarning():\n    # Using original_text_for with deprecated 'asString' kwarg\n    inner = Word(alphas) + \",\" + Word(alphas)\n    with pytest.warns(DeprecationWarning, match=\"'asString' argument is deprecated, use 'as_string'\"):\n        expr = original_text_for(inner, asString=False)\n        res = expr.parse_string(\"ab,cd\")\n        # Returns original matched text as sole token\n        assert res[0] == \"ab,cd\"",
+      "rationale": "matches task keywords: original_text_for"
+    },
+    {
+      "id": "ev6",
+      "kind": "TEST",
+      "path": "tests/test_unit.py",
+      "start_line": 9957,
+      "end_line": 9968,
+      "snippet": "with self.assertDoesNotWarn(\n                msg=f\"raised {pp.Diagnostics.warn_ungrouped_named_tokens_in_collection}\"\n                f\" warning when warn on ungrouped named tokens was suppressed (original_text_for)\"\n            ):\n                pp.original_text_for(pp.Word(\"ABC\")[...])(\"words\")\n\n    def testWarnNameSetOnEmptyForward(self):\n        \"\"\"\n        - warn_name_set_on_empty_Forward - flag to enable warnings when a Forward is defined\n          with a results name, but has no contents defined (default=False)\n        \"\"\"",
+      "rationale": "matches task keywords: original_text_for"
+    },
+    {
+      "id": "ev7",
+      "kind": "SOURCE",
+      "path": "pyparsing/__init__.py",
+      "start_line": 150,
+      "end_line": 161,
+      "snippet": "from .core import *\nfrom .core import _builtin_exprs as core_builtin_exprs\nfrom .helpers import *\nfrom .helpers import _builtin_exprs as helper_builtin_exprs\n\nfrom .unicode import unicode_set, UnicodeRangeList, pyparsing_unicode as unicode\nfrom .testing import pyparsing_test as testing\nfrom .common import (\n    pyparsing_common as common,\n    _builtin_exprs as common_builtin_exprs,\n)\nfrom importlib import resources",
+      "rationale": "matches task keywords: helper"
+    },
+    {
+      "id": "ev8",
+      "kind": "DOC",
+      "path": "examples/tiny/docs/transcript_2_tiny_interpreter.md",
+      "start_line": 273,
+      "end_line": 284,
+      "snippet": "- In `eval_expr`, when encountering a `ParseResults` with `type == 'func_call'`, evaluate arguments left-to-right and delegate to a new `engine.call_function(name, args)` method. *\n    - Implement `call_function(name, args)` to look up the function, push a new frame, bind parameters by declaring them with their declared types and the coerced argument values, execute the body statements one by one (building each as a `TinyNode` and calling `execute(engine)`), return on `ReturnStmtNode` or any non-`None` result, and finally pop the frame. If no explicit return occurs, return the default value for the declared return type. *\n    - Provide a small helper `_build_stmt_node(stmt_group)` that maps a statement `ParseResults` group to its `TinyNode` subclass instance via `TinyNode.from_statement_type`. *\n  - Keep existing identifier/number/string handling and operator semantics intact. ✓\n  - Do not implement `CallStmtNode.execute` yet; ensure the engine API is ready to be reused there. ✓\n\n  Actions taken:\n  - Edited `examples/tiny/tiny_engine.py`:\n    - Imported `TinyNode` and `ReturnStmtNode` from `tiny_ast`.\n    - In `eval_expr`, added handling for `func_call` to evaluate argument expressions and call `self.call_function(name, arg_values)`.\n    - Implemented `_build_stmt_node` helper for converting statement groups into `TinyNode` instances.\n    - Added `call_function(name, args)` implementing function invocation: lookup, frame push, parameter binding with type coercion, sequential execution of body statements with early-return propagation, default return value when necessary, and frame pop in a `finally` block.",
+      "rationale": "matches task keywords: helper"
+    }
+  ],
+  "retrieval": {
+    "status": "COMPLETE",
+    "limits": {
+      "max_files": 2000,
+      "max_bytes_per_file": 1000000,
+      "max_total_bytes": 32000000,
+      "max_search_results": 200,
+      "max_seconds": 30.0
+    },
+    "files_total": 293,
+    "files_eligible": 192,
+    "files_examined": 192,
+    "bytes_read": 2085671,
+    "search_results": 28,
+    "evidence_records": 8,
+    "elapsed_ms": 2754,
+    "limit_hits": [],
+    "summary": "Retrieval is COMPLETE: examined 192 of 192 eligible file(s) from 293 tracked file(s), read 2085671 byte(s), and retained 28 matching file(s). No retrieval limit was reached."
+  },
+  "orientation": {
+    "summary": "pyparsing/pyparsing is a py-dominant repository (293 tracked files, default branch master). The README opens with: \"PyParsing -- A Python Parsing Module\" License: MIT (recognized). 8 evidence location(s) connect this task to the codebase.",
+    "key_paths": [
+      {
+        "path": "README.rst",
+        "role": "project overview and quickstart"
+      },
+      {
+        "path": "CONTRIBUTING.md",
+        "role": "contributor instructions"
+      },
+      {
+        "path": "docs/HowToUsePyparsing.rst",
+        "role": "relevant to this task (matches task keywords: original_text_for, helper)"
+      },
+      {
+        "path": "docs/pyparsing_classes.md",
+        "role": "relevant to this task (matches task keywords: original_text_for, helper)"
+      },
+      {
+        "path": "docs/whats_new_in_3_0_0.rst",
+        "role": "relevant to this task (matches task keywords: helper)"
+      },
+      {
+        "path": "pyparsing/helpers.py",
+        "role": "relevant to this task (matches task keywords: helper)"
+      }
+    ],
+    "languages": {
+      "py": 98.7,
+      "h": 0.6,
+      "sh": 0.6
+    },
+    "entry_points": [
+      {
+        "path": "pyproject.toml",
+        "role": "manifest: pyproject.toml"
+      }
+    ],
+    "generated_by": "snapshot-v1"
+  },
+  "test_guidance": {
+    "run_command": "python -m pytest -q",
+    "focused_command": "python -m pytest -q tests/test_pre_pep8_deprecation_warnings.py tests/test_unit.py",
+    "relevant_tests": [
+      {
+        "path": "tests/test_pre_pep8_deprecation_warnings.py",
+        "reason": "matches task keywords: original_text_for"
+      },
+      {
+        "path": "tests/test_unit.py",
+        "reason": "matches task keywords: original_text_for"
+      }
+    ],
+    "note": "Selection is keyword-based — start with the files above, then run the full suite as the authoritative check. Whether the full suite actually executed is recorded in the verification receipt (python -m pytest -q)."
+  },
+  "tool_loop": null,
+  "model_usage": null,
+  "plan": {
+    "task_type": "DOCUMENTATION",
+    "summary": "Add a focused documentation section to README.rst.",
+    "planned_changes": [
+      {
+        "path": "README.rst",
+        "change_type": "MODIFY",
+        "rationale": "the requested behavior belongs with the existing documentation"
+      }
+    ],
+    "acceptance_criteria": [
+      "the new section is present and readable in the rendered file"
+    ],
+    "evidence_ids": [
+      "ev1"
+    ],
+    "limitations": [],
+    "need_more_info": false,
+    "questions": [],
+    "planned_by": "scripted-eval-v1",
+    "proposed_claims": [],
+    "raw_response": "",
+    "content_draft": null,
+    "proposed_edits": []
+  },
+  "grounding": {
+    "claims": [
+      {
+        "text": "Add a focused documentation section to README.rst.",
+        "evidence_ids": [
+          "ev1"
+        ],
+        "support_status": "hypothesis",
+        "matched_evidence_ids": [],
+        "matched_keywords": []
+      },
+      {
+        "text": "the new section is present and readable in the rendered file",
+        "evidence_ids": [
+          "ev1"
+        ],
+        "support_status": "hypothesis",
+        "matched_evidence_ids": [],
+        "matched_keywords": []
+      }
+    ],
+    "warnings": [
+      {
+        "code": "CLAIM_NOT_SUPPORTED_BY_EVIDENCE",
+        "message": "claim cites 'ev1' (docs/HowToUsePyparsing.rst), but that evidence shares no distinctive vocabulary with the claim",
+        "evidence_id": "ev1",
+        "claim_text": "Add a focused documentation section to README.rst."
+      }
+    ],
+    "resolved_evidence_ids": [
+      "ev1"
+    ],
+    "unresolved_evidence_ids": []
+  },
+  "artifact": {
+    "kind": "DOCS_DIFF",
+    "patch": "diff --git a/README.rst b/README.rst\nindex 559c9de..49e8f2b 100644\n--- a/README.rst\n+++ b/README.rst\n@@ -108,3 +108,18 @@ For usage instructions and details on the performance benchmark suite, see\n .. |Snyk Score| image:: https://snyk.io//advisor/python/pyparsing/badge.svg\n    :target: https://snyk.io//advisor/python/pyparsing\n    :alt: pyparsing\n+\n+The original_text_for helper in the README\n+==========================================\n+\n+This section addresses the following contribution task:\n+\n+* Document the original_text_for helper in the README.\n+\n+Sources consulted while writing this section:\n+\n+- docs/HowToUsePyparsing.rst, lines 1238-1249\n+- docs/pyparsing_classes.md, lines 206-212\n+- docs/whats_new_in_3_0_0.rst, lines 172-183\n+\n+<!-- Generated by RepoMate; verify wording against project conventions. -->\n",
+    "affected_paths": [
+      "README.rst"
+    ],
+    "based_on_commit": "810199f89bf916590426e1c5cb3d612584f11a2f",
+    "generated_by": "scripted-eval-v1"
+  },
+  "documents": [
+    {
+      "name": "CONTRIBUTION_PLAN.md",
+      "kind": "CONTRIBUTION_PLAN",
+      "media_type": "text/markdown; charset=utf-8",
+      "content": "# Contribution Plan\n\n- **Repository:** `pyparsing/pyparsing`\n- **Pinned commit:** `810199f89bf916590426e1c5cb3d612584f11a2f`\n- **Planner:** `scripted-eval-v1`\n- **Task type:** `DOCUMENTATION`\n- **Run status:** `COMPLETED`\n- **License:** `RECOGNIZED` (MIT)\n\n## Task\n\nDocument the original_text_for helper in the README.\n\n## Summary\n\nAdd a focused documentation section to README.rst.\n\n## Planned changes\n\n| Path | Change | Rationale |\n|---|---|---|\n| `README.rst` | MODIFY | the requested behavior belongs with the existing documentation |\n\n## Acceptance criteria\n\n- the new section is present and readable in the rendered file\n\n## Evidence consulted\n\n- `ev1` — `docs/HowToUsePyparsing.rst:1238-1249` — matches task keywords: original_text_for, helper\n\n  ```\n  .. _originalTextFor:\n  \n  - ``original_text_for(expr)`` - helper function to preserve the originally parsed text, regardless of any\n    token processing or conversion done by the contained expression.  For instance, the following expression::\n  \n          full_name = Word(alphas) + Word(alphas)\n  \n    will return the parse of \"John Smith\" as ['John', 'Smith'].  In some applications, the actual name as it\n    was given in the input string is what is desired.  To do this, use ``original_text_for``::\n  \n          full_name = original_text_for(Word(alphas) + Word(alphas))\n  ```\n- `ev2` — `docs/pyparsing_classes.md:206-212` — matches task keywords: original_text_for, helper\n\n  ```\n  Contains `pyparsing_unicode`, which provides `unicode_set` definitions for various languages and character sets (Latin, Greek, Cyrillic, CJK, etc.).\n  \n  ### `helpers.py`\n  Offers high-level helper functions and classes for constructing complex parsers, such as `infix_notation`, `nested_expr`, `delimited_list`, and `original_text_for`.\n  \n  ### `actions.py`\n  Provides useful parse actions and decorators, such as `replace_with`, `remove_quotes`, and `with_attribute`.\n  ```\n- `ev3` — `docs/whats_new_in_3_0_0.rst:172-183` — matches task keywords: helper\n\n  ```\n  pp.enable_diag(pp.Diagnostics.warn_multiple_tokens_in_named_alternation)\n  \n  - ``pyparsing.enable_all_warnings()`` is another helper that sets\n    all \"warn*\" diagnostics to ``True``::\n  \n          pp.enable_all_warnings()\n  \n  - added support for calling ``enable_all_warnings()`` if warnings are enabled\n    using the Python ``-W`` switch, or setting a non-empty value to the environment\n    variable ``PYPARSINGENABLEALLWARNINGS``. (If using ``-Wd`` for testing, but\n    wishing to disable pyparsing warnings, add ``-Wi:::pyparsing``.)\n  ```\n- `ev4` — `pyparsing/helpers.py:25-36` — matches task keywords: helper\n\n  ```\n  #\n  # global helpers\n  #\n  def counted_array(\n      expr: ParserElement, int_expr: typing.Optional[ParserElement] = None, **kwargs\n  ) -> ParserElement:\n      \"\"\"Helper to define a counted list of expressions.\n  \n      This helper defines a pattern of the form::\n  \n          integer expr expr expr...\n  ```\n- `ev5` — `tests/test_pre_pep8_deprecation_warnings.py:286-297` — matches task keywords: original_text_for\n\n  ```\n  def test_original_text_for_asString_kwarg_emits_DeprecationWarning():\n      # Using original_text_for with deprecated 'asString' kwarg\n      inner = Word(alphas) + \",\" + Word(alphas)\n      with pytest.warns(DeprecationWarning, match=\"'asString' argument is deprecated, use 'as_string'\"):\n          expr = original_text_for(inner, asString=False)\n          res = expr.parse_string(\"ab,cd\")\n          # Returns original matched text as sole token\n          assert res[0] == \"ab,cd\"\n  ```\n- `ev6` — `tests/test_unit.py:9957-9968` — matches task keywords: original_text_for\n\n  ```\n  with self.assertDoesNotWarn(\n                  msg=f\"raised {pp.Diagnostics.warn_ungrouped_named_tokens_in_collection}\"\n                  f\" warning when warn on ungrouped named tokens was suppressed (original_text_for)\"\n              ):\n                  pp.original_text_for(pp.Word(\"ABC\")[...])(\"words\")\n  \n      def testWarnNameSetOnEmptyForward(self):\n          \"\"\"\n          - warn_name_set_on_empty_Forward - flag to enable warnings when a Forward is defined\n            with a results name, but has no contents defined (default=False)\n          \"\"\"\n  ```\n- `ev7` — `pyparsing/__init__.py:150-161` — matches task keywords: helper\n\n  ```\n  from .core import *\n  from .core import _builtin_exprs as core_builtin_exprs\n  from .helpers import *\n  from .helpers import _builtin_exprs as helper_builtin_exprs\n  \n  from .unicode import unicode_set, UnicodeRangeList, pyparsing_unicode as unicode\n  from .testing import pyparsing_test as testing\n  from .common import (\n      pyparsing_common as common,\n      _builtin_exprs as common_builtin_exprs,\n  )\n  from importlib import resources\n  ```\n- `ev8` — `examples/tiny/docs/transcript_2_tiny_interpreter.md:273-284` — matches task keywords: helper\n\n  ```\n  - In `eval_expr`, when encountering a `ParseResults` with `type == 'func_call'`, evaluate arguments left-to-right and delegate to a new `engine.call_function(name, args)` method. *\n      - Implement `call_function(name, args)` to look up the function, push a new frame, bind parameters by declaring them with their declared types and the coerced argument values, execute the body statements one by one (building each as a `TinyNode` and calling `execute(engine)`), return on `ReturnStmtNode` or any non-`None` result, and finally pop the frame. If no explicit return occurs, return the default value fo…\n  ```\n\n## Grounding\n\n- Resolved citations: 1 of 1\n- `hypothesis` — Add a focused documentation section to README.rst.\n- `hypothesis` — the new section is present and readable in the rendered file\n- Warning `CLAIM_NOT_SUPPORTED_BY_EVIDENCE`: claim cites 'ev1' (docs/HowToUsePyparsing.rst), but that evidence shares no distinctive vocabulary with the claim\n\n## Honest status\n\nThe selected checks do not establish a resolution. Read the comparison and the receipt's reasons before relying on this artifact.\n\n<!-- Generated by RepoMate from persisted run data. -->\n",
+      "generated_by": "scripted-eval-v1"
+    }
+  ],
+  "receipt": {
+    "checks": [
+      {
+        "name": "patch-path-policy",
+        "command": "internal:patch-policy",
+        "status": "PASSED",
+        "exit_code": null,
+        "duration_ms": null,
+        "output_tail": "",
+        "reason": ""
+      },
+      {
+        "name": "patch-applies-on-pinned-commit",
+        "command": "git apply --check",
+        "status": "PASSED",
+        "exit_code": 0,
+        "duration_ms": null,
+        "output_tail": "",
+        "reason": ""
+      },
+      {
+        "name": "sandbox-egress-isolation",
+        "command": "internal:egress-probe",
+        "status": "PASSED",
+        "exit_code": null,
+        "duration_ms": null,
+        "output_tail": "{\n  \"public_http\": \"blocked:OSError\",\n  \"cloud_metadata\": \"blocked:OSError\",\n  \"cloud_metadata_ipv6\": \"blocked:OSError\",\n  \"private_rfc1918_10\": \"blocked:OSError\",\n  \"private_rfc1918_172\": \"blocked:OSError\",\n  \"private_rfc1918_192\": \"blocked:OSError\",\n  \"loopback_postgres\": \"blocked:ConnectionRefusedError\",\n  \"loopback_redis\": \"blocked:ConnectionRefusedError\",\n  \"loopback_api\": \"blocked:ConnectionRefusedError\",\n  \"public_https\": \"blocked:gaierror\",\n  \"dns\": \"blocked:gaierror\"\n}",
+        "reason": "every egress attempt from inside the sandbox was refused"
+      },
+      {
+        "name": "repository-test-suite",
+        "command": "python -m pytest -q",
+        "status": "NOT_RUN",
+        "exit_code": null,
+        "duration_ms": 3239,
+        "output_tail": "==================================== ERRORS ====================================\n____________________ ERROR collecting tests/test_diagram.py ____________________\nImportError while importing test module '/tmp/repomate-verify-vbj3jl3m/patched/tests/test_diagram.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/lib/python3.14/importlib/__init__.py:88: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntests/test_diagram.py:10: in <module>\n    from pyparsing.diagram import to_railroad, railroad_to_html, NamedDiagram, AnnotatedItem\npyparsing/diagram/__init__.py:5: in <module>\n    import railroad\nE   ModuleNotFoundError: No module named 'railroad'\n=========================== short test summary info ============================\nERROR tests/test_diagram.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 1.66s",
+        "reason": "required test dependency is unavailable inside the network-disabled sandbox: No module named 'railroad'. Installing it would require network access, which the sandbox denies."
+      }
+    ],
+    "overall": "PASSED",
+    "environment": "process sandbox (wall-time, CPU and memory limits, scrubbed env; network egress denied (bwrap)) on Linux/x86_64",
+    "limitations": [
+      "The sandbox uses an unprivileged bwrap namespace: egress is denied, host socket directories are masked, the process table is private, and the repository's .git directory is read-only. It is not a full VM; the host kernel is shared.",
+      "Repository tests run with RepoMate's interpreter and installed dependencies; a repo-specific virtualenv is not created, so missing dependencies are reported NOT_RUN (they cannot be downloaded without network access)."
+    ],
+    "sandbox": {
+      "network_mode": "disabled",
+      "backend": "bwrap",
+      "policy_enforced": true,
+      "egress_validation": "PASSED",
+      "egress_detail": "every egress attempt from inside the sandbox was refused"
+    },
+    "base_commit": "810199f89bf916590426e1c5cb3d612584f11a2f",
+    "patch_sha256": "014720974c3b4b83aebcbb619203c7cb0f83720a501df0f9be31bce5d65376a8",
+    "comparison": {
+      "base_commit": "810199f89bf916590426e1c5cb3d612584f11a2f",
+      "patch_sha256": "014720974c3b4b83aebcbb619203c7cb0f83720a501df0f9be31bce5d65376a8",
+      "baseline": {
+        "phase": "baseline",
+        "commit_sha": "810199f89bf916590426e1c5cb3d612584f11a2f",
+        "command": "python -m pytest -q",
+        "status": "NOT_RUN",
+        "exit_code": null,
+        "duration_ms": 2457,
+        "output_summary": "==================================== ERRORS ====================================\n____________________ ERROR collecting tests/test_diagram.py ____________________\nImportError while importing test module '/tmp/repomate-verify-vbj3jl3m/baseline/tests/test_diagram.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/lib/python3.14/importlib/__init__.py:88: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntests/test_diagram.py:10: in <module>\n    from pyparsing.diagram import to_railroad, railroad_to_html, NamedDiagram, AnnotatedItem\npyparsing/diagram/__init__.py:5: in <module>\n    import railroad\nE   ModuleNotFoundError: No module named 'railroad'\n=========================== short test summary info ============================\nERROR tests/test_diagram.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 1.12s",
+        "reason": "required test dependency is unavailable inside the network-disabled sandbox: No module named 'railroad'. Installing it would require network access, which the sandbox denies."
+      },
+      "post_patch": {
+        "phase": "post_patch",
+        "commit_sha": "810199f89bf916590426e1c5cb3d612584f11a2f",
+        "command": "python -m pytest -q",
+        "status": "NOT_RUN",
+        "exit_code": null,
+        "duration_ms": 3239,
+        "output_summary": "==================================== ERRORS ====================================\n____________________ ERROR collecting tests/test_diagram.py ____________________\nImportError while importing test module '/tmp/repomate-verify-vbj3jl3m/patched/tests/test_diagram.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/lib/python3.14/importlib/__init__.py:88: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntests/test_diagram.py:10: in <module>\n    from pyparsing.diagram import to_railroad, railroad_to_html, NamedDiagram, AnnotatedItem\npyparsing/diagram/__init__.py:5: in <module>\n    import railroad\nE   ModuleNotFoundError: No module named 'railroad'\n=========================== short test summary info ============================\nERROR tests/test_diagram.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 1.66s",
+        "reason": "required test dependency is unavailable inside the network-disabled sandbox: No module named 'railroad'. Installing it would require network access, which the sandbox denies."
+      },
+      "outcome": "BASELINE_INCOMPLETE",
+      "interpretation": "the baseline check did not run, so post-patch results alone do not establish issue resolution",
+      "commands_match": true
+    },
+    "resolution_statement": "The baseline check did not run, so post-patch results alone do not establish issue resolution.",
+    "created_at": "2026-10-26T10:03:41.497248Z"
+  },
+  "events": [
+    {
+      "seq": 1,
+      "stage": "VALIDATE_INPUT",
+      "status": "STARTED",
+      "message": "Validating task input",
+      "at": "2026-10-26T10:03:29.599924Z"
+    },
+    {
+      "seq": 2,
+      "stage": "VALIDATE_INPUT",
+      "status": "COMPLETED",
+      "message": "Input accepted: pyparsing/pyparsing",
+      "at": "2026-10-26T10:03:29.610525Z"
+    },
+    {
+      "seq": 3,
+      "stage": "PIN_SNAPSHOT",
+      "status": "STARTED",
+      "message": "Cloning pyparsing/pyparsing (shallow, pinned to HEAD)",
+      "at": "2026-10-26T10:03:29.621488Z"
+    },
+    {
+      "seq": 4,
+      "stage": "PIN_SNAPSHOT",
+      "status": "COMPLETED",
+      "message": "Pinned pyparsing/pyparsing@810199f89b (license: RECOGNIZED, 293 files)",
+      "at": "2026-10-26T10:03:29.739144Z"
+    },
+    {
+      "seq": 5,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "STARTED",
+      "message": "Collecting issue and repository evidence",
+      "at": "2026-10-26T10:03:29.750490Z"
+    },
+    {
+      "seq": 6,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "COMPLETED",
+      "message": "Collected 8 evidence record(s)",
+      "at": "2026-10-26T10:03:32.515810Z"
+    },
+    {
+      "seq": 7,
+      "stage": "PLAN",
+      "status": "STARTED",
+      "message": "Building contribution plan from evidence",
+      "at": "2026-10-26T10:03:32.553188Z"
+    },
+    {
+      "seq": 8,
+      "stage": "PLAN",
+      "status": "COMPLETED",
+      "message": "Plan (DOCUMENTATION) by scripted-eval-v1: Add a focused documentation section to README.rst.",
+      "at": "2026-10-26T10:03:32.562444Z"
+    },
+    {
+      "seq": 9,
+      "stage": "PLAN",
+      "status": "STARTED",
+      "message": "Validating plan citations against evidence",
+      "at": "2026-10-26T10:03:32.573662Z"
+    },
+    {
+      "seq": 10,
+      "stage": "PLAN",
+      "status": "INFO",
+      "message": "Grounding: 0 supported / 2 hypothesis claim(s), 1 resolved citation(s)",
+      "at": "2026-10-26T10:03:32.814203Z"
+    },
+    {
+      "seq": 11,
+      "stage": "GENERATE_ARTIFACT",
+      "status": "STARTED",
+      "message": "Generating contribution artifact",
+      "at": "2026-10-26T10:03:32.826508Z"
+    },
+    {
+      "seq": 12,
+      "stage": "GENERATE_ARTIFACT",
+      "status": "COMPLETED",
+      "message": "Generated DOCS_DIFF touching README.rst",
+      "at": "2026-10-26T10:03:33.537135Z"
+    },
+    {
+      "seq": 13,
+      "stage": "VERIFY",
+      "status": "STARTED",
+      "message": "Running verification checks",
+      "at": "2026-10-26T10:03:33.548367Z"
+    },
+    {
+      "seq": 14,
+      "stage": "VERIFY",
+      "status": "INFO",
+      "message": "Baseline NOT_RUN -> post-patch NOT_RUN: BASELINE_INCOMPLETE",
+      "at": "2026-10-26T10:03:41.497332Z"
+    },
+    {
+      "seq": 15,
+      "stage": "VERIFY",
+      "status": "COMPLETED",
+      "message": "Verification overall: PASSED",
+      "at": "2026-10-26T10:03:41.506138Z"
+    },
+    {
+      "seq": 16,
+      "stage": "PUBLISH",
+      "status": "STARTED",
+      "message": "Publishing run record and artifacts",
+      "at": "2026-10-26T10:03:41.516291Z"
+    },
+    {
+      "seq": 17,
+      "stage": "PUBLISH",
+      "status": "COMPLETED",
+      "message": "Run run_20261026-100329_r50gxovh completed",
+      "at": "2026-10-26T10:03:41.537045Z"
+    }
+  ],
+  "error": null,
+  "planner": "scripted-eval-v1",
+  "workspace_kept": false
+}

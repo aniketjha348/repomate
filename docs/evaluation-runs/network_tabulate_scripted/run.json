@@ -1,0 +1,473 @@
+{
+  "run_id": "run_20261026-100343_pehz59xy",
+  "status": "COMPLETED",
+  "input": {
+    "source": "REPO_TASK",
+    "issue_url": null,
+    "repo_url": "https://github.com/astanin/python-tabulate",
+    "task": "Document how the network regression test is expected to behave."
+  },
+  "created_at": "2026-10-26T10:03:43.237926Z",
+  "updated_at": "2026-10-26T10:03:58.696400Z",
+  "snapshot": {
+    "owner": "astanin",
+    "name": "python-tabulate",
+    "url": "https://github.com/astanin/python-tabulate",
+    "default_branch": "master",
+    "commit_sha": "8d0ab6b20716cf69c03139c8ca15777723d89c1f",
+    "license": {
+      "status": "RECOGNIZED",
+      "spdx_id": "MIT",
+      "file_path": "LICENSE",
+      "note": "recognized as MIT from license file content"
+    },
+    "languages": {
+      "py": 100.0
+    },
+    "file_count": 27,
+    "readme_path": "README.md",
+    "contributing_path": null,
+    "entry_points": [
+      {
+        "path": "pyproject.toml",
+        "kind": "manifest",
+        "detail": "pyproject.toml scripts: tabulate"
+      }
+    ],
+    "pinned_at": "2026-10-26T10:03:43.420689Z"
+  },
+  "issue": null,
+  "evidence": [
+    {
+      "id": "ev1",
+      "kind": "TEST",
+      "path": "test/test_regression.py",
+      "start_line": 6,
+      "end_line": 17,
+      "snippet": "def test_ansi_color_in_table_cells():\n    \"Regression: ANSI color in table cells (issue #5).\"\n    colortable = [(\"test\", \"\\x1b[31mtest\\x1b[0m\", \"\\x1b[32mtest\\x1b[0m\")]\n    colorlessheaders = (\"test\", \"test\", \"test\")\n    formatted = tabulate(colortable, colorlessheaders, \"pipe\")\n    expected = \"\\n\".join(\n        [\n            \"| test   | test   | test   |\",\n            \"|:-------|:-------|:-------|\",\n            \"| test   | \\x1b[31mtest\\x1b[0m   | \\x1b[32mtest\\x1b[0m   |\",",
+      "rationale": "matches task keywords: regression, test, expected"
+    },
+    {
+      "id": "ev2",
+      "kind": "TEST",
+      "path": "test/test_output.py",
+      "start_line": 2694,
+      "end_line": 2705,
+      "snippet": "def test_latex_raw():\n    \"Output: raw latex with headers\"\n    raw_test_table_headers = list(_test_table_headers)\n    raw_test_table_headers[-1] += \" ($N_0$)\"\n    raw_test_table = list(map(list, _test_table))\n    raw_test_table[0][0] += \"$_1$\"\n    raw_test_table[1][0] = \"\\\\emph{\" + raw_test_table[1][0] + \"}\"\n    print(raw_test_table)\n    result = tabulate(raw_test_table, raw_test_table_headers, tablefmt=\"latex_raw\")\n    expected = \"\\n\".join(",
+      "rationale": "matches task keywords: test, expected"
+    },
+    {
+      "id": "ev3",
+      "kind": "TEST",
+      "path": "test/test_textwrapper.py",
+      "start_line": 109,
+      "end_line": 120,
+      "snippet": "def test_wrap_full_line_color():\n    \"\"\"TextWrapper: Wrap a line when the full thing is enclosed in color tags\"\"\"\n    # This has both a text color and a background color\n    data = \"\\033[31m\\033[104mThis is a test string for testing TextWrap with colors\\033[0m\"\n\n    expected = [\n        \"\\033[31m\\033[104mThis is a test\\033[0m\",\n        \"\\033[31m\\033[104mstring for testing\\033[0m\",\n        \"\\033[31m\\033[104mTextWrap with colors\\033[0m\",\n    ]",
+      "rationale": "matches task keywords: test, expected"
+    },
+    {
+      "id": "ev4",
+      "kind": "TEST",
+      "path": "test/test_api.py",
+      "start_line": 27,
+      "end_line": 38,
+      "snippet": "print(f\"expected: {expected_sig}\\nactual: {actual_sig}\\n\")\n\n    assert len(actual_sig.parameters) == len(expected_sig)\n\n    for (e, ev), (a, av) in zip(expected_sig, actual_sig.parameters.items()):\n        assert e == a and ev == av.default\n\n\ndef test_tabulate_signature():\n    \"API: tabulate() type signature is unchanged\"\n    assert type(tabulate) is type(lambda: None)\n    expected_sig = [",
+      "rationale": "matches task keywords: test, expected"
+    },
+    {
+      "id": "ev5",
+      "kind": "TEST",
+      "path": "test/test_cli.py",
+      "start_line": 169,
+      "end_line": 180,
+      "snippet": "expected = \"\"\n            print(\"got:     \", repr(out))\n            print(\"expected:\", repr(expected))\n            assert_equal(out.splitlines(), expected.splitlines())\n            # check that the output was written to file\n            output_file.seek(0)\n            out = output_file.file.read()\n            expected = SAMPLE_SIMPLE_FORMAT\n            print(\"got:     \", repr(out))\n            print(\"expected:\", repr(expected))\n            assert_equal(out.splitlines(), expected.splitlines())",
+      "rationale": "matches task keywords: expected"
+    },
+    {
+      "id": "ev6",
+      "kind": "TEST",
+      "path": "test/test_input.py",
+      "start_line": 360,
+      "end_line": 371,
+      "snippet": "expected = \"\\n\".join([\"  foo    bar\", \"-----  -----\", \"    1      2\", \"    3      4\"])\n    result = tabulate(lt, headers=\"keys\")\n    assert_equal(expected, result)\n\n\ndef test_list_of_dicts():\n    \"Input: a list of dictionaries.\"\n    lod = [{\"foo\": 1, \"bar\": 2}, {\"foo\": 3, \"bar\": 4}]\n    expected1 = \"\\n\".join([\"-  -\", \"1  2\", \"3  4\", \"-  -\"])\n    expected2 = \"\\n\".join([\"-  -\", \"2  1\", \"4  3\", \"-  -\"])\n    result = tabulate(lod)\n    assert_in(result, [expected1, expected2])",
+      "rationale": "matches task keywords: test, expected"
+    },
+    {
+      "id": "ev7",
+      "kind": "TEST",
+      "path": "test/test_internal.py",
+      "start_line": 63,
+      "end_line": 74,
+      "snippet": "column = [\"123.4\", \"56.7890\"]\n    output = T._align_column(column, None)\n    expected = [\"123.4\", \"56.7890\"]\n    assert_equal(expected, output)\n\n\ndef test_align_column_multiline():\n    \"Internal: _align_column(..., is_multiline=True)\"\n    column = [\"1\", \"123\", \"12345\\n6\"]\n    output = T._align_column(column, \"center\", is_multiline=True)\n    expected = [\"  1  \", \" 123 \", \"12345\" + \"\\n\" + \"  6  \"]\n    assert_equal(expected, output)",
+      "rationale": "matches task keywords: test, expected"
+    },
+    {
+      "id": "ev8",
+      "kind": "TEST",
+      "path": "test/test_network_egress.py",
+      "start_line": 2,
+      "end_line": 6,
+      "snippet": "def test_public_https_is_reachable():\n    with urllib.request.urlopen(\"https://example.com\", timeout=5) as response:\n        assert response.status == 200",
+      "rationale": "matches task keywords: test"
+    }
+  ],
+  "retrieval": {
+    "status": "COMPLETE",
+    "limits": {
+      "max_files": 2000,
+      "max_bytes_per_file": 200000,
+      "max_total_bytes": 32000000,
+      "max_search_results": 200,
+      "max_seconds": 30.0
+    },
+    "files_total": 27,
+    "files_eligible": 19,
+    "files_examined": 19,
+    "bytes_read": 369795,
+    "search_results": 14,
+    "evidence_records": 8,
+    "elapsed_ms": 293,
+    "limit_hits": [],
+    "summary": "Retrieval is COMPLETE: examined 19 of 19 eligible file(s) from 27 tracked file(s), read 369795 byte(s), and retained 14 matching file(s). No retrieval limit was reached."
+  },
+  "orientation": {
+    "summary": "astanin/python-tabulate is a py-dominant repository (27 tracked files, default branch master). The README opens with: \"python-tabulate\" License: MIT (recognized). 8 evidence location(s) connect this task to the codebase.",
+    "key_paths": [
+      {
+        "path": "README.md",
+        "role": "project overview and quickstart"
+      }
+    ],
+    "languages": {
+      "py": 100.0
+    },
+    "entry_points": [
+      {
+        "path": "pyproject.toml",
+        "role": "manifest: pyproject.toml scripts: tabulate"
+      }
+    ],
+    "generated_by": "snapshot-v1"
+  },
+  "test_guidance": {
+    "run_command": "python -m pytest -q",
+    "focused_command": "python -m pytest -q test/test_regression.py test/test_output.py test/test_textwrapper.py",
+    "relevant_tests": [
+      {
+        "path": "test/test_regression.py",
+        "reason": "matches task keywords: regression, test, expected"
+      },
+      {
+        "path": "test/test_output.py",
+        "reason": "matches task keywords: test, expected"
+      },
+      {
+        "path": "test/test_textwrapper.py",
+        "reason": "matches task keywords: test, expected"
+      },
+      {
+        "path": "test/test_api.py",
+        "reason": "matches task keywords: test, expected"
+      },
+      {
+        "path": "test/test_cli.py",
+        "reason": "matches task keywords: expected"
+      }
+    ],
+    "note": "Selection is keyword-based — start with the files above, then run the full suite as the authoritative check. Whether the full suite actually executed is recorded in the verification receipt (python -m pytest -q)."
+  },
+  "tool_loop": null,
+  "model_usage": null,
+  "plan": {
+    "task_type": "DOCUMENTATION",
+    "summary": "Add a focused documentation section to README.md.",
+    "planned_changes": [
+      {
+        "path": "README.md",
+        "change_type": "MODIFY",
+        "rationale": "the requested behavior belongs with the existing documentation"
+      }
+    ],
+    "acceptance_criteria": [
+      "the new section is present and readable in the rendered file"
+    ],
+    "evidence_ids": [
+      "ev1"
+    ],
+    "limitations": [],
+    "need_more_info": false,
+    "questions": [],
+    "planned_by": "scripted-eval-v1",
+    "proposed_claims": [],
+    "raw_response": "",
+    "content_draft": "## Verifying network isolation\n\nThe evaluation harness adds this note to exercise verification after a documentation-only change. It makes no claim about repository behavior and is not intended for upstream submission.",
+    "proposed_edits": []
+  },
+  "grounding": {
+    "claims": [
+      {
+        "text": "Add a focused documentation section to README.md.",
+        "evidence_ids": [
+          "ev1"
+        ],
+        "support_status": "hypothesis",
+        "matched_evidence_ids": [],
+        "matched_keywords": []
+      },
+      {
+        "text": "the new section is present and readable in the rendered file",
+        "evidence_ids": [
+          "ev1"
+        ],
+        "support_status": "hypothesis",
+        "matched_evidence_ids": [],
+        "matched_keywords": []
+      }
+    ],
+    "warnings": [
+      {
+        "code": "CLAIM_NOT_SUPPORTED_BY_EVIDENCE",
+        "message": "claim cites 'ev1' (test/test_regression.py), but that evidence shares no distinctive vocabulary with the claim",
+        "evidence_id": "ev1",
+        "claim_text": "Add a focused documentation section to README.md."
+      }
+    ],
+    "resolved_evidence_ids": [
+      "ev1"
+    ],
+    "unresolved_evidence_ids": []
+  },
+  "artifact": {
+    "kind": "DOCS_DIFF",
+    "patch": "diff --git a/README.md b/README.md\nindex 0283a0c..f41871e 100644\n--- a/README.md\n+++ b/README.md\n@@ -1297,3 +1297,7 @@ Dan Nicholson, Frederik Scheerer, cdar07 (cdar), Racerroar888,\n Perry Kundert, Hnasar, Jun Koo, Jo2234, Bjorn Olsen, George Schizas,\n Kadir Can Ozden, Jeff Quast, Mayukha Vadari, Rebecca Jean Herman,\n Ján Jančár (J08nY).\n+\n+## Verifying network isolation\n+\n+The evaluation harness adds this note to exercise verification after a documentation-only change. It makes no claim about repository behavior and is not intended for upstream submission.\n",
+    "affected_paths": [
+      "README.md"
+    ],
+    "based_on_commit": "8d0ab6b20716cf69c03139c8ca15777723d89c1f",
+    "generated_by": "scripted-eval-v1"
+  },
+  "documents": [
+    {
+      "name": "CONTRIBUTION_PLAN.md",
+      "kind": "CONTRIBUTION_PLAN",
+      "media_type": "text/markdown; charset=utf-8",
+      "content": "# Contribution Plan\n\n- **Repository:** `astanin/python-tabulate`\n- **Pinned commit:** `8d0ab6b20716cf69c03139c8ca15777723d89c1f`\n- **Planner:** `scripted-eval-v1`\n- **Task type:** `DOCUMENTATION`\n- **Run status:** `COMPLETED`\n- **License:** `RECOGNIZED` (MIT)\n\n## Task\n\nDocument how the network regression test is expected to behave.\n\n## Summary\n\nAdd a focused documentation section to README.md.\n\n## Planned changes\n\n| Path | Change | Rationale |\n|---|---|---|\n| `README.md` | MODIFY | the requested behavior belongs with the existing documentation |\n\n## Acceptance criteria\n\n- the new section is present and readable in the rendered file\n\n## Evidence consulted\n\n- `ev1` — `test/test_regression.py:6-17` — matches task keywords: regression, test, expected\n\n  ```\n  def test_ansi_color_in_table_cells():\n      \"Regression: ANSI color in table cells (issue #5).\"\n      colortable = [(\"test\", \"\\x1b[31mtest\\x1b[0m\", \"\\x1b[32mtest\\x1b[0m\")]\n      colorlessheaders = (\"test\", \"test\", \"test\")\n      formatted = tabulate(colortable, colorlessheaders, \"pipe\")\n      expected = \"\\n\".join(\n          [\n              \"| test   | test   | test   |\",\n              \"|:-------|:-------|:-------|\",\n              \"| test   | \\x1b[31mtest\\x1b[0m   | \\x1b[32mtest\\x1b[0m   |\",\n  ```\n- `ev2` — `test/test_output.py:2694-2705` — matches task keywords: test, expected\n\n  ```\n  def test_latex_raw():\n      \"Output: raw latex with headers\"\n      raw_test_table_headers = list(_test_table_headers)\n      raw_test_table_headers[-1] += \" ($N_0$)\"\n      raw_test_table = list(map(list, _test_table))\n      raw_test_table[0][0] += \"$_1$\"\n      raw_test_table[1][0] = \"\\\\emph{\" + raw_test_table[1][0] + \"}\"\n      print(raw_test_table)\n      result = tabulate(raw_test_table, raw_test_table_headers, tablefmt=\"latex_raw\")\n      expected = \"\\n\".join(\n  ```\n- `ev3` — `test/test_textwrapper.py:109-120` — matches task keywords: test, expected\n\n  ```\n  def test_wrap_full_line_color():\n      \"\"\"TextWrapper: Wrap a line when the full thing is enclosed in color tags\"\"\"\n      # This has both a text color and a background color\n      data = \"\\033[31m\\033[104mThis is a test string for testing TextWrap with colors\\033[0m\"\n  \n      expected = [\n          \"\\033[31m\\033[104mThis is a test\\033[0m\",\n          \"\\033[31m\\033[104mstring for testing\\033[0m\",\n          \"\\033[31m\\033[104mTextWrap with colors\\033[0m\",\n      ]\n  ```\n- `ev4` — `test/test_api.py:27-38` — matches task keywords: test, expected\n\n  ```\n  print(f\"expected: {expected_sig}\\nactual: {actual_sig}\\n\")\n  \n      assert len(actual_sig.parameters) == len(expected_sig)\n  \n      for (e, ev), (a, av) in zip(expected_sig, actual_sig.parameters.items()):\n          assert e == a and ev == av.default\n  \n  \n  def test_tabulate_signature():\n      \"API: tabulate() type signature is unchanged\"\n      assert type(tabulate) is type(lambda: None)\n      expected_sig = [\n  ```\n- `ev5` — `test/test_cli.py:169-180` — matches task keywords: expected\n\n  ```\n  expected = \"\"\n              print(\"got:     \", repr(out))\n              print(\"expected:\", repr(expected))\n              assert_equal(out.splitlines(), expected.splitlines())\n              # check that the output was written to file\n              output_file.seek(0)\n              out = output_file.file.read()\n              expected = SAMPLE_SIMPLE_FORMAT\n              print(\"got:     \", repr(out))\n              print(\"expected:\", repr(expected))\n              assert_equal(out.splitlines(), expected.splitlines())\n  ```\n- `ev6` — `test/test_input.py:360-371` — matches task keywords: test, expected\n\n  ```\n  expected = \"\\n\".join([\"  foo    bar\", \"-----  -----\", \"    1      2\", \"    3      4\"])\n      result = tabulate(lt, headers=\"keys\")\n      assert_equal(expected, result)\n  \n  \n  def test_list_of_dicts():\n      \"Input: a list of dictionaries.\"\n      lod = [{\"foo\": 1, \"bar\": 2}, {\"foo\": 3, \"bar\": 4}]\n      expected1 = \"\\n\".join([\"-  -\", \"1  2\", \"3  4\", \"-  -\"])\n      expected2 = \"\\n\".join([\"-  -\", \"2  1\", \"4  3\", \"-  -\"])\n      result = tabulate(lod)\n      assert_in(result, [expected1, expected2])\n  ```\n- `ev7` — `test/test_internal.py:63-74` — matches task keywords: test, expected\n\n  ```\n  column = [\"123.4\", \"56.7890\"]\n      output = T._align_column(column, None)\n      expected = [\"123.4\", \"56.7890\"]\n      assert_equal(expected, output)\n  \n  \n  def test_align_column_multiline():\n      \"Internal: _align_column(..., is_multiline=True)\"\n      column = [\"1\", \"123\", \"12345\\n6\"]\n      output = T._align_column(column, \"center\", is_multiline=True)\n      expected = [\"  1  \", \" 123 \", \"12345\" + \"\\n\" + \"  6  \"]\n      assert_equal(expected, output)\n  ```\n- `ev8` — `test/test_network_egress.py:2-6` — matches task keywords: test\n\n  ```\n  def test_public_https_is_reachable():\n      with urllib.request.urlopen(\"https://example.com\", timeout=5) as response:\n          assert response.status == 200\n  ```\n\n## Grounding\n\n- Resolved citations: 1 of 1\n- `hypothesis` — Add a focused documentation section to README.md.\n- `hypothesis` — the new section is present and readable in the rendered file\n- Warning `CLAIM_NOT_SUPPORTED_BY_EVIDENCE`: claim cites 'ev1' (test/test_regression.py), but that evidence shares no distinctive vocabulary with the claim\n\n## Honest status\n\nThe selected checks do not establish a resolution. Read the comparison and the receipt's reasons before relying on this artifact.\n\n<!-- Generated by RepoMate from persisted run data. -->\n",
+      "generated_by": "scripted-eval-v1"
+    }
+  ],
+  "receipt": {
+    "checks": [
+      {
+        "name": "patch-path-policy",
+        "command": "internal:patch-policy",
+        "status": "PASSED",
+        "exit_code": null,
+        "duration_ms": null,
+        "output_tail": "",
+        "reason": ""
+      },
+      {
+        "name": "patch-applies-on-pinned-commit",
+        "command": "git apply --check",
+        "status": "PASSED",
+        "exit_code": 0,
+        "duration_ms": null,
+        "output_tail": "",
+        "reason": ""
+      },
+      {
+        "name": "sandbox-egress-isolation",
+        "command": "internal:egress-probe",
+        "status": "PASSED",
+        "exit_code": null,
+        "duration_ms": null,
+        "output_tail": "{\n  \"public_http\": \"blocked:OSError\",\n  \"cloud_metadata\": \"blocked:OSError\",\n  \"cloud_metadata_ipv6\": \"blocked:OSError\",\n  \"private_rfc1918_10\": \"blocked:OSError\",\n  \"private_rfc1918_172\": \"blocked:OSError\",\n  \"private_rfc1918_192\": \"blocked:OSError\",\n  \"loopback_postgres\": \"blocked:ConnectionRefusedError\",\n  \"loopback_redis\": \"blocked:ConnectionRefusedError\",\n  \"loopback_api\": \"blocked:ConnectionRefusedError\",\n  \"public_https\": \"blocked:gaierror\",\n  \"dns\": \"blocked:gaierror\"\n}",
+        "reason": "every egress attempt from inside the sandbox was refused"
+      },
+      {
+        "name": "repository-test-suite",
+        "command": "python -m pytest -q",
+        "status": "FAILED",
+        "exit_code": 1,
+        "duration_ms": 6322,
+        "output_tail": "iven')\n    \n        # will parse host:port\n        h = http_class(host, timeout=req.timeout, **http_conn_args)\n        h.set_debuglevel(self._debuglevel)\n    \n        headers = dict(req.unredirected_hdrs)\n        headers.update({k: v for k, v in req.headers.items()\n                        if k not in headers})\n    \n        # TODO(jhylton): Should this be redesigned to handle\n        # persistent connections?\n    \n        # We want to make an HTTP/1.1 request, but the addinfourl\n        # class isn't prepared to deal with a persistent connection.\n        # It will try to read all remaining data from the socket,\n        # which will block while the server waits for the next request.\n        # So make sure the connection gets closed after the (only)\n        # request.\n        headers[\"Connection\"] = \"close\"\n        headers = {name.title(): val for name, val in headers.items()}\n    \n        if req._tunnel_host:\n            tunnel_headers = {}\n            proxy_auth_hdr = \"Proxy-Authorization\"\n            if proxy_auth_hdr in headers:\n                tunnel_headers[proxy_auth_hdr] = headers[proxy_auth_hdr]\n                # Proxy-Authorization should not be sent to origin\n                # server.\n                del headers[proxy_auth_hdr]\n            h.set_tunnel(req._tunnel_host, headers=tunnel_headers)\n    \n        try:\n            try:\n                h.request(req.get_method(), req.selector, req.data, headers,\n                          encode_chunked=req.has_header('Transfer-encoding'))\n            except OSError as err: # timeout error\n>               raise URLError(err)\nE               urllib.error.URLError: <urlopen error [Errno -3] Temporary failure in name resolution>\n\n/usr/lib/python3.14/urllib/request.py:1324: URLError\n=========================== short test summary info ============================\nFAILED test/test_network_egress.py::test_public_https_is_reachable - urllib.e...\n================== 1 failed, 366 passed, 17 skipped in 4.63s ===================",
+        "reason": ""
+      }
+    ],
+    "overall": "FAILED",
+    "environment": "process sandbox (wall-time, CPU and memory limits, scrubbed env; network egress denied (bwrap)) on Linux/x86_64",
+    "limitations": [
+      "The sandbox uses an unprivileged bwrap namespace: egress is denied, host socket directories are masked, the process table is private, and the repository's .git directory is read-only. It is not a full VM; the host kernel is shared.",
+      "Repository tests run with RepoMate's interpreter and installed dependencies; a repo-specific virtualenv is not created, so missing dependencies are reported NOT_RUN (they cannot be downloaded without network access)."
+    ],
+    "sandbox": {
+      "network_mode": "disabled",
+      "backend": "bwrap",
+      "policy_enforced": true,
+      "egress_validation": "PASSED",
+      "egress_detail": "every egress attempt from inside the sandbox was refused"
+    },
+    "base_commit": "8d0ab6b20716cf69c03139c8ca15777723d89c1f",
+    "patch_sha256": "60a11b553b308dc2c8af0bbcd7059ea345664e1ca0f11964dfedbda51fb95edc",
+    "comparison": {
+      "base_commit": "8d0ab6b20716cf69c03139c8ca15777723d89c1f",
+      "patch_sha256": "60a11b553b308dc2c8af0bbcd7059ea345664e1ca0f11964dfedbda51fb95edc",
+      "baseline": {
+        "phase": "baseline",
+        "commit_sha": "8d0ab6b20716cf69c03139c8ca15777723d89c1f",
+        "command": "python -m pytest -q",
+        "status": "FAILED",
+        "exit_code": 1,
+        "duration_ms": 6716,
+        "output_summary": "iven')\n    \n        # will parse host:port\n        h = http_class(host, timeout=req.timeout, **http_conn_args)\n        h.set_debuglevel(self._debuglevel)\n    \n        headers = dict(req.unredirected_hdrs)\n        headers.update({k: v for k, v in req.headers.items()\n                        if k not in headers})\n    \n        # TODO(jhylton): Should this be redesigned to handle\n        # persistent connections?\n    \n        # We want to make an HTTP/1.1 request, but the addinfourl\n        # class isn't prepared to deal with a persistent connection.\n        # It will try to read all remaining data from the socket,\n        # which will block while the server waits for the next request.\n        # So make sure the connection gets closed after the (only)\n        # request.\n        headers[\"Connection\"] = \"close\"\n        headers = {name.title(): val for name, val in headers.items()}\n    \n        if req._tunnel_host:\n            tunnel_headers = {}\n            proxy_auth_hdr = \"Proxy-Authorization\"\n            if proxy_auth_hdr in headers:\n                tunnel_headers[proxy_auth_hdr] = headers[proxy_auth_hdr]\n                # Proxy-Authorization should not be sent to origin\n                # server.\n                del headers[proxy_auth_hdr]\n            h.set_tunnel(req._tunnel_host, headers=tunnel_headers)\n    \n        try:\n            try:\n                h.request(req.get_method(), req.selector, req.data, headers,\n                          encode_chunked=req.has_header('Transfer-encoding'))\n            except OSError as err: # timeout error\n>               raise URLError(err)\nE               urllib.error.URLError: <urlopen error [Errno -3] Temporary failure in name resolution>\n\n/usr/lib/python3.14/urllib/request.py:1324: URLError\n=========================== short test summary info ============================\nFAILED test/test_network_egress.py::test_public_https_is_reachable - urllib.e...\n================== 1 failed, 366 passed, 17 skipped in 4.89s ===================",
+        "reason": ""
+      },
+      "post_patch": {
+        "phase": "post_patch",
+        "commit_sha": "8d0ab6b20716cf69c03139c8ca15777723d89c1f",
+        "command": "python -m pytest -q",
+        "status": "FAILED",
+        "exit_code": 1,
+        "duration_ms": 6322,
+        "output_summary": "iven')\n    \n        # will parse host:port\n        h = http_class(host, timeout=req.timeout, **http_conn_args)\n        h.set_debuglevel(self._debuglevel)\n    \n        headers = dict(req.unredirected_hdrs)\n        headers.update({k: v for k, v in req.headers.items()\n                        if k not in headers})\n    \n        # TODO(jhylton): Should this be redesigned to handle\n        # persistent connections?\n    \n        # We want to make an HTTP/1.1 request, but the addinfourl\n        # class isn't prepared to deal with a persistent connection.\n        # It will try to read all remaining data from the socket,\n        # which will block while the server waits for the next request.\n        # So make sure the connection gets closed after the (only)\n        # request.\n        headers[\"Connection\"] = \"close\"\n        headers = {name.title(): val for name, val in headers.items()}\n    \n        if req._tunnel_host:\n            tunnel_headers = {}\n            proxy_auth_hdr = \"Proxy-Authorization\"\n            if proxy_auth_hdr in headers:\n                tunnel_headers[proxy_auth_hdr] = headers[proxy_auth_hdr]\n                # Proxy-Authorization should not be sent to origin\n                # server.\n                del headers[proxy_auth_hdr]\n            h.set_tunnel(req._tunnel_host, headers=tunnel_headers)\n    \n        try:\n            try:\n                h.request(req.get_method(), req.selector, req.data, headers,\n                          encode_chunked=req.has_header('Transfer-encoding'))\n            except OSError as err: # timeout error\n>               raise URLError(err)\nE               urllib.error.URLError: <urlopen error [Errno -3] Temporary failure in name resolution>\n\n/usr/lib/python3.14/urllib/request.py:1324: URLError\n=========================== short test summary info ============================\nFAILED test/test_network_egress.py::test_public_https_is_reachable - urllib.e...\n================== 1 failed, 366 passed, 17 skipped in 4.63s ===================",
+        "reason": ""
+      },
+      "outcome": "UNRESOLVED",
+      "interpretation": "the selected check failed before and after the patch; the failure is unresolved or a different failure is present",
+      "commands_match": true
+    },
+    "resolution_statement": "Selected checks failed before and after the patch; the failure remains unresolved. One or more verification checks failed.",
+    "created_at": "2026-10-26T10:03:58.625164Z"
+  },
+  "events": [
+    {
+      "seq": 1,
+      "stage": "VALIDATE_INPUT",
+      "status": "STARTED",
+      "message": "Validating task input",
+      "at": "2026-10-26T10:03:43.242368Z"
+    },
+    {
+      "seq": 2,
+      "stage": "VALIDATE_INPUT",
+      "status": "COMPLETED",
+      "message": "Input accepted: astanin/python-tabulate",
+      "at": "2026-10-26T10:03:43.253354Z"
+    },
+    {
+      "seq": 3,
+      "stage": "PIN_SNAPSHOT",
+      "status": "STARTED",
+      "message": "Cloning astanin/python-tabulate (shallow, pinned to HEAD)",
+      "at": "2026-10-26T10:03:43.265974Z"
+    },
+    {
+      "seq": 4,
+      "stage": "PIN_SNAPSHOT",
+      "status": "COMPLETED",
+      "message": "Pinned astanin/python-tabulate@8d0ab6b207 (license: RECOGNIZED, 27 files)",
+      "at": "2026-10-26T10:03:43.420722Z"
+    },
+    {
+      "seq": 5,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "STARTED",
+      "message": "Collecting issue and repository evidence",
+      "at": "2026-10-26T10:03:43.433052Z"
+    },
+    {
+      "seq": 6,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "COMPLETED",
+      "message": "Collected 8 evidence record(s)",
+      "at": "2026-10-26T10:03:43.737271Z"
+    },
+    {
+      "seq": 7,
+      "stage": "PLAN",
+      "status": "STARTED",
+      "message": "Building contribution plan from evidence",
+      "at": "2026-10-26T10:03:43.783889Z"
+    },
+    {
+      "seq": 8,
+      "stage": "PLAN",
+      "status": "COMPLETED",
+      "message": "Plan (DOCUMENTATION) by scripted-eval-v1: Add a focused documentation section to README.md.",
+      "at": "2026-10-26T10:03:43.795075Z"
+    },
+    {
+      "seq": 9,
+      "stage": "PLAN",
+      "status": "STARTED",
+      "message": "Validating plan citations against evidence",
+      "at": "2026-10-26T10:03:43.806175Z"
+    },
+    {
+      "seq": 10,
+      "stage": "PLAN",
+      "status": "INFO",
+      "message": "Grounding: 0 supported / 2 hypothesis claim(s), 1 resolved citation(s)",
+      "at": "2026-10-26T10:03:44.015833Z"
+    },
+    {
+      "seq": 11,
+      "stage": "GENERATE_ARTIFACT",
+      "status": "STARTED",
+      "message": "Generating contribution artifact",
+      "at": "2026-10-26T10:03:44.027260Z"
+    },
+    {
+      "seq": 12,
+      "stage": "GENERATE_ARTIFACT",
+      "status": "COMPLETED",
+      "message": "Generated DOCS_DIFF touching README.md",
+      "at": "2026-10-26T10:03:44.431341Z"
+    },
+    {
+      "seq": 13,
+      "stage": "VERIFY",
+      "status": "STARTED",
+      "message": "Running verification checks",
+      "at": "2026-10-26T10:03:44.445797Z"
+    },
+    {
+      "seq": 14,
+      "stage": "VERIFY",
+      "status": "INFO",
+      "message": "Repository test suite FAILED (exit 1); run completes with an honest receipt",
+      "at": "2026-10-26T10:03:58.625254Z"
+    },
+    {
+      "seq": 15,
+      "stage": "VERIFY",
+      "status": "INFO",
+      "message": "Baseline FAILED -> post-patch FAILED: UNRESOLVED",
+      "at": "2026-10-26T10:03:58.638894Z"
+    },
+    {
+      "seq": 16,
+      "stage": "VERIFY",
+      "status": "COMPLETED",
+      "message": "Verification overall: FAILED",
+      "at": "2026-10-26T10:03:58.652122Z"
+    },
+    {
+      "seq": 17,
+      "stage": "PUBLISH",
+      "status": "STARTED",
+      "message": "Publishing run record and artifacts",
+      "at": "2026-10-26T10:03:58.667795Z"
+    },
+    {
+      "seq": 18,
+      "stage": "PUBLISH",
+      "status": "COMPLETED",
+      "message": "Run run_20261026-100343_pehz59xy completed",
+      "at": "2026-10-26T10:03:58.696389Z"
+    }
+  ],
+  "error": null,
+  "planner": "scripted-eval-v1",
+  "workspace_kept": false
+}

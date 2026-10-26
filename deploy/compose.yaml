@@ -14,14 +14,31 @@ services:
       dockerfile: deploy/Dockerfile.api
     ports:
       - "8000:8000"
+    # The default Docker seccomp profile blocks the namespace syscalls
+    # bubblewrap needs for the verification sandbox. This profile is Docker's
+    # default plus namespace/mount syscalls; without it the sandbox fails
+    # closed and repository tests are NOT_RUN.
+    security_opt:
+      - seccomp=./seccomp-bwrap.json
     environment:
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://vyceai.com/v1}
-      OPENAI_MODEL: ${OPENAI_MODEL:-deepseek-v4.1}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-https://ollama.com/v1}
+      OLLAMA_MODELS: ${OLLAMA_MODELS:-gemma4:31b,gpt-oss:120b}
+      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-240}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
       REPOMATE_MAX_RUN_SECONDS: ${REPOMATE_MAX_RUN_SECONDS:-900}
       REPOMATE_EXECUTION: ${REPOMATE_EXECUTION:-inproc}
+      REPOMATE_RATE_LIMIT_REQUESTS: ${REPOMATE_RATE_LIMIT_REQUESTS:-20}
+      REPOMATE_RATE_LIMIT_WINDOW_SECONDS: ${REPOMATE_RATE_LIMIT_WINDOW_SECONDS:-60}
+      REPOMATE_MAX_CONCURRENT_RUNS: ${REPOMATE_MAX_CONCURRENT_RUNS:-2}
+      REPOMATE_TRUSTED_PROXIES: ${REPOMATE_TRUSTED_PROXIES:-}
+      REPOMATE_MODEL_MAX_CALLS: ${REPOMATE_MODEL_MAX_CALLS:-10}
+      REPOMATE_MODEL_MAX_TOKENS: ${REPOMATE_MODEL_MAX_TOKENS:-120000}
+      REPOMATE_TOOL_MAX_CALLS: ${REPOMATE_TOOL_MAX_CALLS:-8}
+      REPOMATE_TOOL_MAX_TOTAL_BYTES: ${REPOMATE_TOOL_MAX_TOTAL_BYTES:-4000000}
+      REPOMATE_TOOL_MAX_SECONDS: ${REPOMATE_TOOL_MAX_SECONDS:-180}
+      REPOMATE_TOOL_MAX_RESULTS: ${REPOMATE_TOOL_MAX_RESULTS:-20}
       REDIS_URL: redis://redis:6379/0
       REPOMATE_DATABASE_URL: ${REPOMATE_DATABASE_URL:-}
     volumes:
@@ -36,12 +53,25 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.worker
+    security_opt:
+      - seccomp=./seccomp-bwrap.json
     environment:
       REDIS_URL: redis://redis:6379/0
       REPOMATE_DATABASE_URL: ${REPOMATE_DATABASE_URL:-}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-https://ollama.com/v1}
+      OLLAMA_MODELS: ${OLLAMA_MODELS:-gemma4:31b,gpt-oss:120b}
+      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-240}
+      REPOMATE_MAX_RUN_SECONDS: ${REPOMATE_MAX_RUN_SECONDS:-900}
+      REPOMATE_MAX_CONCURRENT_RUNS: ${REPOMATE_MAX_CONCURRENT_RUNS:-2}
       REPOMATE_WORKER_CONCURRENCY: ${REPOMATE_WORKER_CONCURRENCY:-2}
+      REPOMATE_MODEL_MAX_CALLS: ${REPOMATE_MODEL_MAX_CALLS:-10}
+      REPOMATE_MODEL_MAX_TOKENS: ${REPOMATE_MODEL_MAX_TOKENS:-120000}
+      REPOMATE_TOOL_MAX_CALLS: ${REPOMATE_TOOL_MAX_CALLS:-8}
+      REPOMATE_TOOL_MAX_TOTAL_BYTES: ${REPOMATE_TOOL_MAX_TOTAL_BYTES:-4000000}
+      REPOMATE_TOOL_MAX_SECONDS: ${REPOMATE_TOOL_MAX_SECONDS:-180}
+      REPOMATE_TOOL_MAX_RESULTS: ${REPOMATE_TOOL_MAX_RESULTS:-20}
     volumes:
       - repomate-runs:/var/lib/repomate
     depends_on:

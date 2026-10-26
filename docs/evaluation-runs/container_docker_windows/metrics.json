@@ -1,0 +1,22 @@
+﻿{
+    "runs_by_status":  {
+                           "COMPLETED":  1
+                       },
+    "runs_by_planner":  {
+                            "heuristic-v1":  1
+                        },
+    "fair_use":  {
+                     "active_runs":  0,
+                     "reservations":  0,
+                     "max_concurrent_runs":  2,
+                     "rate_limit_requests":  20,
+                     "rate_limit_window_seconds":  60.0,
+                     "clients_in_window":  1,
+                     "admitted":  1,
+                     "rate_limited":  0,
+                     "concurrency_limited":  0
+                 },
+    "execution":  "inproc",
+    "sandbox_enabled":  true,
+    "process_started_at":  "2026-10-26T10:40:49.234235+00:00"
+}

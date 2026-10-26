@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import type { Plan } from "@/lib/types";
+import type { GroundingReport, Plan } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -26,7 +26,109 @@ function ChangeTypeBadge({ changeType }: { changeType: string }) {
   );
 }
 
-export function PlanPanel({ plan }: { plan: Plan }) {
+function GroundingPanel({ grounding }: { grounding: GroundingReport }) {
+  const unresolved = grounding.unresolved_evidence_ids;
+  const hypotheses = grounding.claims.filter(
+    (claim) => claim.support_status === "hypothesis",
+  );
+  const clean = unresolved.length === 0 && hypotheses.length === 0;
+
+  return (
+    <div
+      className={cn(
+        "rounded-lg border p-4",
+        clean
+          ? "border-emerald-500/30 bg-emerald-500/5"
+          : "border-amber-500/30 bg-amber-500/5",
+      )}
+    >
+      <SectionLabel>Evidence grounding</SectionLabel>
+      <p className="text-sm text-foreground/90">
+        {grounding.claims.length} claim(s):{" "}
+        <span className="text-emerald-400">
+          {grounding.claims.length - hypotheses.length} supported
+        </span>
+        {hypotheses.length > 0 ? (
+          <>
+            {", "}
+            <span className="text-amber-400">
+              {hypotheses.length} hypothesis
+            </span>
+          </>
+        ) : null}
+        . {grounding.resolved_evidence_ids.length} citation(s) resolved
+        {unresolved.length > 0 ? (
+          <>
+            ,{" "}
+            <span className="text-amber-400">
+              {unresolved.length} unresolved
+            </span>
+          </>
+        ) : null}
+        .
+      </p>
+
+      {hypotheses.length > 0 ? (
+        <ul className="mt-3 space-y-1.5">
+          {hypotheses.map((claim) => (
+            <li
+              key={claim.text}
+              className="flex items-start gap-2 text-xs leading-relaxed text-amber-200/90"
+            >
+              <span
+                aria-hidden
+                className="mt-0.5 shrink-0 rounded border border-amber-500/40 px-1 font-mono text-[10px] text-amber-400"
+              >
+                HYPOTHESIS
+              </span>
+              <span className="min-w-0 break-words">{claim.text}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {unresolved.length > 0 ? (
+        <p className="mt-3 text-xs text-amber-300/80">
+          Unresolved references (not verified citations):{" "}
+          <code className="font-mono">{unresolved.join(", ")}</code>
+        </p>
+      ) : null}
+
+      {grounding.warnings.length > 0 ? (
+        <ul className="mt-3 space-y-1">
+          {grounding.warnings.map((warning, index) => (
+            <li
+              key={`${warning.code}-${warning.evidence_id}-${index}`}
+              className="text-[11px] leading-relaxed text-muted-foreground"
+            >
+              <code className="font-mono text-amber-400/80">
+                {warning.code}
+              </code>{" "}
+              {warning.message}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+export function PlanPanel({
+  plan,
+  grounding,
+}: {
+  plan: Plan;
+  grounding?: GroundingReport | null;
+}) {
+  // Acceptance criteria are only ticked when the grounding verdict backs
+  // them. An unvalidated criterion is shown as unverified, never as met.
+  const supportedTexts = new Set(
+    (grounding?.claims ?? [])
+      .filter((claim) => claim.support_status === "supported")
+      .map((claim) => claim.text),
+  );
+  const hasGrounding = Boolean(grounding);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
@@ -68,23 +170,41 @@ export function PlanPanel({ plan }: { plan: Plan }) {
         <div>
           <SectionLabel>Acceptance criteria</SectionLabel>
           <ul className="space-y-1.5">
-            {plan.acceptance_criteria.map((criterion) => (
-              <li
-                key={criterion}
-                className="flex items-start gap-2 text-sm text-foreground/90"
-              >
-                <span
-                  aria-hidden
-                  className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border border-emerald-500/40 text-[10px] text-emerald-400"
+            {plan.acceptance_criteria.map((criterion) => {
+              const verified = supportedTexts.has(criterion);
+              const unverified = hasGrounding && !verified;
+              return (
+                <li
+                  key={criterion}
+                  className="flex items-start gap-2 text-sm text-foreground/90"
                 >
-                  ✓
-                </span>
-                {criterion}
-              </li>
-            ))}
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px]",
+                      verified
+                        ? "border-emerald-500/40 text-emerald-400"
+                        : "border-muted-foreground/40 text-muted-foreground",
+                    )}
+                  >
+                    {verified ? "✓" : "?"}
+                  </span>
+                  <span className={cn(unverified && "text-muted-foreground")}>
+                    {criterion}
+                    {unverified ? (
+                      <span className="ml-1.5 font-mono text-[10px] uppercase tracking-wide text-amber-400/80">
+                        unverified
+                      </span>
+                    ) : null}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}
+
+      {grounding ? <GroundingPanel grounding={grounding} /> : null}
 
       {plan.need_more_info && plan.questions.length > 0 ? (
         <div className="rounded-lg border border-sky-500/30 bg-sky-500/5 p-4">

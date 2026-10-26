@@ -1,0 +1,11 @@
+{
+  "case_workspace": "var/eval-real/cases/docs_tabulate_481_live",
+  "prepared_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "repo": "astanin/python-tabulate",
+  "upstream_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "base_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "planner_requested": "live",
+  "elapsed_seconds": 429.19,
+  "planner_observed": "model:openai/deepseek-v4.1",
+  "sandbox_backend": "bwrap"
+}

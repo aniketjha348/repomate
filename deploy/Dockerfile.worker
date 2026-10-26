@@ -4,12 +4,14 @@ FROM python:3.12-slim
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git build-essential \
+    && apt-get install -y --no-install-recommends git build-essential bubblewrap \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml README.md ./
 COPY packages ./packages
 COPY services ./services
+# Release gate run inside the deployed container (docs/deployment.md).
+COPY scripts/verify_egress.py ./scripts/
 
 RUN pip install --no-cache-dir ".[worker,api]"
 

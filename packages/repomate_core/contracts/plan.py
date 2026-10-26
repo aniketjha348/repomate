@@ -15,6 +15,19 @@ class PlannedChange(BaseModel):
     rationale: str
 
 
+class ProposedClaim(BaseModel):
+    """An assertion the model wants to make, with the evidence it cites.
+
+    Optional in the model contract: a model that supplies claims gets
+    claim-level grounding; one that does not has its plan's own assertions
+    (summary, acceptance criteria) bound to the flat ``evidence_ids`` list
+    instead. Either way the validator assigns ``support_status``.
+    """
+
+    text: str = Field(min_length=1, max_length=1000)
+    evidence_ids: list[str] = []
+
+
 class ProposedEdit(BaseModel):
     """A model-proposed search/replace edit, anchored to exact text.
 
@@ -39,6 +52,12 @@ class ContributionPlan(BaseModel):
     need_more_info: bool = False
     questions: list[str] = []
     planned_by: str = ""
+    # Claims the model chose to bind to specific evidence. Empty means the
+    # plan's own assertions are validated against ``evidence_ids`` instead.
+    proposed_claims: list[ProposedClaim] = []
+    # The model's original response, preserved verbatim so the raw output
+    # stays auditable alongside the validator's verdict.
+    raw_response: str = ""
     # Model-backed planners may carry the actual artifact content:
     content_draft: Optional[str] = Field(default=None, max_length=8000)
     proposed_edits: list[ProposedEdit] = []

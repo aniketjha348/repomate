@@ -14,14 +14,14 @@ from repomate_core.planning.model_planner import ModelPlanner
 
 class FakeProvider:
     name = "openai"
-    model_id = "deepseek-v4.1"
+    model_id = "gemma4:31b"
 
     def __init__(self, payload: dict) -> None:
         self._payload = payload
 
     def complete(self, **kwargs) -> ModelResult:
         return ModelResult(
-            text=json.dumps(self._payload), provider="openai", model="deepseek-v4.1"
+            text=json.dumps(self._payload), provider="openai", model="gemma4:31b"
         )
 
 

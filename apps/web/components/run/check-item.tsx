@@ -1,5 +1,6 @@
 import { StatusBadge } from "./status-badge";
 import type { VerificationCheck } from "@/lib/types";
+import { formatDuration } from "@/lib/utils";
 
 /** One verification check row with collapsible command output. */
 export function CheckItem({ check }: { check: VerificationCheck }) {
@@ -14,6 +15,11 @@ export function CheckItem({ check }: { check: VerificationCheck }) {
           <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
             exit {check.exit_code}
           </code>
+        ) : null}
+        {typeof check.duration_ms === "number" ? (
+          <span className="text-xs text-muted-foreground">
+            {formatDuration(check.duration_ms)}
+          </span>
         ) : null}
       </div>
 

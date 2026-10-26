@@ -54,6 +54,54 @@ class TestRunRecords:
         loaded = store.load_run("run_t1")
         assert loaded == record
 
+    def test_grounding_report_round_trips(self, store):
+        """The grounding verdict must survive persistence: a report read
+        back from the store must not lose its unresolved citations."""
+        from repomate_core.contracts import (
+            ContributionPlan,
+            GroundedClaim,
+            GroundingReport,
+            GroundingWarning,
+            SupportStatus,
+            TaskType,
+        )
+
+        record = _record()
+        record.plan = ContributionPlan(
+            task_type=TaskType.DOCUMENTATION,
+            summary="document the thing",
+            evidence_ids=["ev1", "ev99"],
+            planned_by="model:openai/gemma4:31b",
+        )
+        record.grounding = GroundingReport(
+            claims=[
+                GroundedClaim(
+                    text="document the thing",
+                    evidence_ids=["ev1", "ev99"],
+                    support_status=SupportStatus.HYPOTHESIS,
+                    matched_evidence_ids=["ev1"],
+                )
+            ],
+            warnings=[
+                GroundingWarning(
+                    code="UNKNOWN_EVIDENCE_ID",
+                    message="cited evidence 'ev99' does not exist",
+                    evidence_id="ev99",
+                )
+            ],
+            resolved_evidence_ids=["ev1"],
+            unresolved_evidence_ids=["ev99"],
+        )
+        store.save_run(record)
+        loaded = store.load_run("run_t1")
+
+        assert loaded.grounding is not None
+        assert loaded.grounding.unresolved_evidence_ids == ["ev99"]
+        assert loaded.grounding.resolved_evidence_ids == ["ev1"]
+        assert loaded.grounding.claims[0].support_status is SupportStatus.HYPOTHESIS
+        assert loaded.grounding.warnings[0].code == "UNKNOWN_EVIDENCE_ID"
+        assert loaded.plan.raw_response == ""
+
     def test_missing_run_returns_none(self, store):
         assert store.load_run("run_ghost") is None
 
@@ -75,6 +123,29 @@ class TestRunRecords:
         first.save_run(_record())
         second = SqlRunStore.sqlite(tmp_path / "runs.db", runs_root=tmp_path)
         assert second.load_run("run_t1") is not None
+
+    def test_count_active_runs_counts_pending_and_running(self, store):
+        for run_id, status in (
+            ("run_pending", RunStatus.PENDING),
+            ("run_running", RunStatus.RUNNING),
+            ("run_done", RunStatus.COMPLETED),
+            ("run_failed", RunStatus.FAILED),
+            ("run_partial", RunStatus.PARTIAL),
+            ("run_cancelled", RunStatus.CANCELLED),
+        ):
+            record = _record(run_id)
+            record.status = status
+            store.save_run(record)
+
+        assert store.count_active_runs() == 2
+
+        record = store.load_run("run_running")
+        record.status = RunStatus.COMPLETED
+        store.save_run(record)
+        assert store.count_active_runs() == 1
+
+    def test_count_active_runs_on_empty_store(self, store):
+        assert store.count_active_runs() == 0
 
 
 class TestEvents:

@@ -19,9 +19,21 @@ def best_window(
 ) -> tuple[Optional[str], Optional[int], Optional[int], list[str]]:
     """Returns (snippet, start_line, end_line, matched_keywords)."""
     try:
-        lines = ws.read_text(path, max_chars=250_000).splitlines()
+        text = ws.read_text(path, max_chars=250_000)
     except Exception:
         return None, None, None, []
+    return best_window_from_text(text, keywords)
+
+
+def best_window_from_text(
+    text: str, keywords: list[str]
+) -> tuple[Optional[str], Optional[int], Optional[int], list[str]]:
+    """Same as :func:`best_window` for content already in memory.
+
+    Retrieval reads each file once under its byte budget; snippet extraction
+    must not perform a second unbounded read.
+    """
+    lines = text.splitlines()
     if not lines:
         return None, None, None, []
 

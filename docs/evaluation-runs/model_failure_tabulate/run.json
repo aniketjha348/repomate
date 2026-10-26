@@ -1,0 +1,263 @@
+{
+  "run_id": "run_20261026-100401_u36cpdo0",
+  "status": "FAILED",
+  "input": {
+    "source": "REPO_TASK",
+    "issue_url": null,
+    "repo_url": "https://github.com/astanin/python-tabulate",
+    "task": "Document the width guard in the README."
+  },
+  "created_at": "2026-10-26T10:04:01.402766Z",
+  "updated_at": "2026-10-26T10:04:01.954626Z",
+  "snapshot": {
+    "owner": "astanin",
+    "name": "python-tabulate",
+    "url": "https://github.com/astanin/python-tabulate",
+    "default_branch": "master",
+    "commit_sha": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+    "license": {
+      "status": "RECOGNIZED",
+      "spdx_id": "MIT",
+      "file_path": "LICENSE",
+      "note": "recognized as MIT from license file content"
+    },
+    "languages": {
+      "py": 100.0
+    },
+    "file_count": 26,
+    "readme_path": "README.md",
+    "contributing_path": null,
+    "entry_points": [
+      {
+        "path": "pyproject.toml",
+        "kind": "manifest",
+        "detail": "pyproject.toml scripts: tabulate"
+      }
+    ],
+    "pinned_at": "2026-10-26T10:04:01.602480Z"
+  },
+  "issue": null,
+  "evidence": [
+    {
+      "id": "ev1",
+      "kind": "DOC",
+      "path": "README.md",
+      "start_line": 826,
+      "end_line": 837,
+      "snippet": "To properly align tables which contain wide characters (typically\nfullwidth glyphs from Chinese, Japanese or Korean languages), the user\nshould install `wcwidth` library. To install it together with\n`tabulate`:\n\n```shell\npip install tabulate[widechars]\n```\n\nWide character support is enabled automatically if `wcwidth` library is\nalready installed. To disable wide characters support without\nuninstalling `wcwidth`, set the global module-level flag",
+      "rationale": "matches task keywords: width"
+    },
+    {
+      "id": "ev2",
+      "kind": "TEST",
+      "path": "test/test_api.py",
+      "start_line": 50,
+      "end_line": 61,
+      "snippet": "(\"colalign\", None),\n        (\"preserve_whitespace\", False),\n        (\"maxcolwidths\", None),\n        (\"headersglobalalign\", None),\n        (\"headersalign\", None),\n        (\"rowalign\", None),\n        (\"maxheadercolwidths\", None),\n        (\"break_long_words\", True),\n        (\"break_on_hyphens\", True),\n    ]\n    _check_signature(tabulate, expected_sig)",
+      "rationale": "matches task keywords: width"
+    },
+    {
+      "id": "ev3",
+      "kind": "TEST",
+      "path": "test/test_grapheme_clusters.py",
+      "start_line": 10,
+      "end_line": 21,
+      "snippet": "import wcwidth\n\n    HAS_WCWIDTH = True\n    HAS_WCWIDTH_030 = hasattr(wcwidth, \"wrap\")\n    HAS_WCWIDTH_WIDTH = hasattr(wcwidth, \"width\")\nexcept ImportError:\n    wcwidth = None\n    HAS_WCWIDTH = False\n    HAS_WCWIDTH_030 = False\n    HAS_WCWIDTH_WIDTH = False\n\nrequires_wcwidth = pytest.mark.skipif(not HAS_WCWIDTH, reason=\"requires wcwidth\")",
+      "rationale": "matches task keywords: width"
+    },
+    {
+      "id": "ev4",
+      "kind": "TEST",
+      "path": "test/test_internal.py",
+      "start_line": 78,
+      "end_line": 89,
+      "snippet": "\"Internal: Aligning a single height cell is same regardless of alignment value\"\n    lines = [\"one line\"]\n    column_width = 8\n\n    top = T._align_cell_veritically(lines, 1, column_width, \"top\")\n    center = T._align_cell_veritically(lines, 1, column_width, \"center\")\n    bottom = T._align_cell_veritically(lines, 1, column_width, \"bottom\")\n    none = T._align_cell_veritically(lines, 1, column_width, None)\n\n    expected = [\"one line\"]\n    assert top == center == bottom == none == expected",
+      "rationale": "matches task keywords: width"
+    },
+    {
+      "id": "ev5",
+      "kind": "TEST",
+      "path": "test/test_output.py",
+      "start_line": 101,
+      "end_line": 112,
+      "snippet": "def test_plain_maxcolwidth_autowraps():\n    \"Output: maxcolwidth will result in autowrapping longer cells\"\n    table = [[\"hdr\", \"fold\"], [\"1\", \"very long data\"]]\n    expected = \"\\n\".join([\"  hdr  fold\", \"    1  very long\", \"       data\"])\n    result = tabulate(table, headers=\"firstrow\", tablefmt=\"plain\", maxcolwidths=[10, 10])\n    assert_equal(expected, result)\n\n\ndef test_plain_maxcolwidth_autowraps_with_sep():\n    \"Output: maxcolwidth will result in autowrapping longer cells and separating line\"",
+      "rationale": "matches task keywords: width"
+    },
+    {
+      "id": "ev6",
+      "kind": "TEST",
+      "path": "test/test_regression.py",
+      "start_line": 519,
+      "end_line": 530,
+      "snippet": ")\n    # test with maxcolwidths as a list\n    result = tabulate(table, tablefmt=\"grid\", maxcolwidths=[12, 8])\n    assert_equal(expected, result)\n    # test with maxcolwidths as a tuple\n    result = tabulate(table, tablefmt=\"grid\", maxcolwidths=(12, 8))\n    assert_equal(expected, result)\n\n\ndef test_exception_on_empty_data_with_maxcolwidths():\n    \"Regression: exception on empty data when using maxcolwidths (github issue #180)\"\n    result = tabulate([], maxcolwidths=5)",
+      "rationale": "matches task keywords: width"
+    },
+    {
+      "id": "ev7",
+      "kind": "TEST",
+      "path": "test/test_textwrapper.py",
+      "start_line": 341,
+      "end_line": 352,
+      "snippet": "for line in lines:\n            display_width = wcwidth.wcswidth(line)\n            assert display_width <= width, (\n                f\"Line {line!r} has display width {display_width} \"\n                f\"which exceeds requested column width {width}\"\n            )\n\n\ndef test_wrap_wide_char_narrower_than_char_width():\n    \"\"\"TextWrapper: column width smaller than a single wide char must not hang (issue #399).\n\n    When the requested width is 1 but every character is 2 display columns",
+      "rationale": "matches task keywords: width"
+    },
+    {
+      "id": "ev8",
+      "kind": "SOURCE",
+      "path": "benchmark/benchmark.py",
+      "start_line": 47,
+      "end_line": 58,
+      "snippet": "def run_tabulate(table, widechars=False):\n    tabulate.WIDE_CHARS_MODE = tabulate.wcwidth is not None and widechars\n    return tabulate.tabulate(table)\n\n\n\"\"\"\n\nmethods = [\n    (\"join with tabs and newlines\", \"join_table(table)\"),\n    (\"csv to StringIO\", \"csv_table(table)\"),\n    (f\"tabulate ({tabulate.__version__})\", \"run_tabulate(table)\"),",
+      "rationale": "matches task keywords: width"
+    }
+  ],
+  "retrieval": {
+    "status": "COMPLETE",
+    "limits": {
+      "max_files": 2000,
+      "max_bytes_per_file": 200000,
+      "max_total_bytes": 32000000,
+      "max_search_results": 200,
+      "max_seconds": 30.0
+    },
+    "files_total": 26,
+    "files_eligible": 18,
+    "files_examined": 18,
+    "bytes_read": 369616,
+    "search_results": 11,
+    "evidence_records": 8,
+    "elapsed_ms": 238,
+    "limit_hits": [],
+    "summary": "Retrieval is COMPLETE: examined 18 of 18 eligible file(s) from 26 tracked file(s), read 369616 byte(s), and retained 11 matching file(s). No retrieval limit was reached."
+  },
+  "orientation": {
+    "summary": "astanin/python-tabulate is a py-dominant repository (26 tracked files, default branch master). The README opens with: \"python-tabulate\" License: MIT (recognized). 8 evidence location(s) connect this task to the codebase.",
+    "key_paths": [
+      {
+        "path": "README.md",
+        "role": "project overview and quickstart"
+      }
+    ],
+    "languages": {
+      "py": 100.0
+    },
+    "entry_points": [
+      {
+        "path": "pyproject.toml",
+        "role": "manifest: pyproject.toml scripts: tabulate"
+      }
+    ],
+    "generated_by": "snapshot-v1"
+  },
+  "test_guidance": {
+    "run_command": "python -m pytest -q",
+    "focused_command": "python -m pytest -q test/test_api.py test/test_grapheme_clusters.py test/test_internal.py",
+    "relevant_tests": [
+      {
+        "path": "test/test_api.py",
+        "reason": "matches task keywords: width"
+      },
+      {
+        "path": "test/test_grapheme_clusters.py",
+        "reason": "matches task keywords: width"
+      },
+      {
+        "path": "test/test_internal.py",
+        "reason": "matches task keywords: width"
+      },
+      {
+        "path": "test/test_output.py",
+        "reason": "matches task keywords: width"
+      },
+      {
+        "path": "test/test_regression.py",
+        "reason": "matches task keywords: width"
+      }
+    ],
+    "note": "Selection is keyword-based — start with the files above, then run the full suite as the authoritative check. Whether the full suite actually executed is recorded in the verification receipt (python -m pytest -q)."
+  },
+  "tool_loop": null,
+  "model_usage": {
+    "limits": {
+      "max_calls": 10,
+      "max_tokens": 120000
+    },
+    "calls": 1,
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0,
+    "usage_source": "none",
+    "exhausted": false,
+    "reason": ""
+  },
+  "plan": null,
+  "grounding": null,
+  "artifact": null,
+  "documents": [],
+  "receipt": null,
+  "events": [
+    {
+      "seq": 1,
+      "stage": "VALIDATE_INPUT",
+      "status": "STARTED",
+      "message": "Validating task input",
+      "at": "2026-10-26T10:04:01.407597Z"
+    },
+    {
+      "seq": 2,
+      "stage": "VALIDATE_INPUT",
+      "status": "COMPLETED",
+      "message": "Input accepted: astanin/python-tabulate",
+      "at": "2026-10-26T10:04:01.418207Z"
+    },
+    {
+      "seq": 3,
+      "stage": "PIN_SNAPSHOT",
+      "status": "STARTED",
+      "message": "Cloning astanin/python-tabulate (shallow, pinned to HEAD)",
+      "at": "2026-10-26T10:04:01.431613Z"
+    },
+    {
+      "seq": 4,
+      "stage": "PIN_SNAPSHOT",
+      "status": "COMPLETED",
+      "message": "Pinned astanin/python-tabulate@268615a5c2 (license: RECOGNIZED, 26 files)",
+      "at": "2026-10-26T10:04:01.602523Z"
+    },
+    {
+      "seq": 5,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "STARTED",
+      "message": "Collecting issue and repository evidence",
+      "at": "2026-10-26T10:04:01.617078Z"
+    },
+    {
+      "seq": 6,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "COMPLETED",
+      "message": "Collected 8 evidence record(s)",
+      "at": "2026-10-26T10:04:01.866496Z"
+    },
+    {
+      "seq": 7,
+      "stage": "RETRIEVE_EVIDENCE",
+      "status": "STARTED",
+      "message": "Running bounded model tool loop for supplementary context",
+      "at": "2026-10-26T10:04:01.901668Z"
+    },
+    {
+      "seq": 8,
+      "stage": null,
+      "status": "FAILED",
+      "message": "MODEL_ERROR: model gateway unreachable: [Errno 111] Connection refused",
+      "at": "2026-10-26T10:04:01.943742Z"
+    }
+  ],
+  "error": {
+    "code": "MODEL_ERROR",
+    "message": "model gateway unreachable: [Errno 111] Connection refused",
+    "detail": ""
+  },
+  "planner": "model:openai/eval-unreachable",
+  "workspace_kept": false
+}

@@ -1,0 +1,14 @@
+{
+  "case_workspace": "var/eval-real/cases/network_tabulate_scripted",
+  "injected_files": [
+    "test/test_network_egress.py"
+  ],
+  "injection": "Committed a test that requires public HTTPS. A correctly enforcing sandbox must make it fail.",
+  "prepared_commit": "8d0ab6b20716cf69c03139c8ca15777723d89c1f",
+  "repo": "astanin/python-tabulate",
+  "upstream_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "base_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "elapsed_seconds": 15.47,
+  "planner_observed": "scripted-eval-v1",
+  "sandbox_backend": "bwrap"
+}

@@ -4,7 +4,7 @@
 #   ALB (health: GET /api/health) -> ECS "api" service (Fargate, 0.5 vCPU/1GB)
 #   ECS "worker" service (Celery)  <- ElastiCache Redis (provisioned below)
 #   API + worker share run storage on EFS
-#   Secrets (OPENAI_API_KEY, GITHUB_TOKEN) via AWS Secrets Manager — never in tfvars
+#   Secrets (OLLAMA_API_KEY, GITHUB_TOKEN) via AWS Secrets Manager — never in tfvars
 #
 # Self-healing comes from three cooperating mechanisms:
 #   1. ALB health checks fail -> ECS replaces the task
@@ -41,8 +41,8 @@ data "aws_subnets" "public" {
 
 # ---- secrets (create once, out-of-band; only references live here) ----
 
-data "aws_secretsmanager_secret" "openai_key" {
-  name = "${var.project}/openai-api-key"
+data "aws_secretsmanager_secret" "ollama_key" {
+  name = "${var.project}/ollama-api-key"
 }
 
 data "aws_secretsmanager_secret" "github_token" {
@@ -300,7 +300,7 @@ resource "aws_iam_role_policy" "execution_read_secrets" {
       Effect = "Allow"
       Action = ["secretsmanager:GetSecretValue"]
       Resource = [
-        data.aws_secretsmanager_secret.openai_key.arn,
+        data.aws_secretsmanager_secret.ollama_key.arn,
         data.aws_secretsmanager_secret.github_token.arn,
       ]
     }]
@@ -311,16 +311,16 @@ resource "aws_iam_role_policy" "execution_read_secrets" {
 
 locals {
   shared_env = [
-    { name = "OPENAI_BASE_URL", value = "https://vyceai.com/v1" },
-    { name = "OPENAI_MODEL", value = "deepseek-v4.1" },
-    { name = "OPENAI_TIMEOUT_SECONDS", value = "240" },
+    { name = "OLLAMA_BASE_URL", value = "https://ollama.com/v1" },
+    { name = "OLLAMA_MODELS", value = "gemma4:31b,gpt-oss:120b" },
+    { name = "OLLAMA_TIMEOUT_SECONDS", value = "240" },
     { name = "REPOMATE_SANDBOX_ENABLED", value = "1" },
     { name = "REPOMATE_MAX_RUN_SECONDS", value = "900" },
     { name = "REDIS_URL", value = "redis://${aws_elasticache_cluster.redis.cache_nodes[0].address}:6379/0" },
     { name = "ALLOWED_ORIGINS", value = var.allowed_origins },
   ]
   secrets = [
-    { name = "OPENAI_API_KEY", valueFrom = data.aws_secretsmanager_secret.openai_key.arn },
+    { name = "OLLAMA_API_KEY", valueFrom = data.aws_secretsmanager_secret.ollama_key.arn },
     { name = "GITHUB_TOKEN", valueFrom = data.aws_secretsmanager_secret.github_token.arn },
   ]
 }

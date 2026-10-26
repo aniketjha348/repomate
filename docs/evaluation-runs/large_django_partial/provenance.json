@@ -1,0 +1,11 @@
+{
+  "case_workspace": "var/eval-real/cases/large_django_partial",
+  "prepared_commit": "a2a0b4f2764f7b192bff4bb75ed56ce017931a71",
+  "repo": "django/django",
+  "upstream_commit": "a2a0b4f2764f7b192bff4bb75ed56ce017931a71",
+  "base_commit": "a2a0b4f2764f7b192bff4bb75ed56ce017931a71",
+  "planner_requested": "none",
+  "elapsed_seconds": 19.58,
+  "planner_observed": "none",
+  "sandbox_backend": "bwrap"
+}

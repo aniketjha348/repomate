@@ -1,0 +1,16 @@
+[
+  {
+    "name": "documentation.patch",
+    "kind": "DOCS_DIFF",
+    "media_type": "text/x-diff; charset=utf-8",
+    "size_bytes": 1393,
+    "download_url": "/api/runs/run_20261026-103949_gxr0b2xr/artifacts/patch"
+  },
+  {
+    "name": "CONTRIBUTION_PLAN.md",
+    "kind": "CONTRIBUTION_PLAN",
+    "media_type": "text/markdown; charset=utf-8",
+    "size_bytes": 9007,
+    "download_url": "/api/runs/run_20261026-103949_gxr0b2xr/artifacts/CONTRIBUTION_PLAN.md"
+  }
+]

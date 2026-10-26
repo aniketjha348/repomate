@@ -29,7 +29,7 @@ fresh demo stack is reachable), API service (2 tasks baseline, scales 1→8 on
 60% CPU and 500 req/target/min), Celery worker service (1–2 vCPU/2GB for the
 verification sandbox), ElastiCache Redis as the Celery broker, an encrypted EFS
 volume shared by the API and worker for run records/workspaces, CloudWatch logs
-(30-day retention), Secrets Manager references for `OPENAI_API_KEY` /
+(30-day retention), Secrets Manager references for `OLLAMA_API_KEY` /
 `GITHUB_TOKEN` (values never in code or tfvars), and IAM execution roles scoped
 to exactly those secrets.
 
@@ -48,8 +48,8 @@ Self-healing layers (deliberately redundant):
 cd deploy/aws
 
 # 1) Secrets (once) — values stay out of the repo
-aws secretsmanager create-secret --name repomate/openai-api-key \
-  --secret-string 'sk-...'
+aws secretsmanager create-secret --name repomate/ollama-api-key \
+  --secret-string 'your-ollama-key'
 aws secretsmanager create-secret --name repomate/github-token \
   --secret-string 'ghp_...'   # or an empty-string secret if unused
 

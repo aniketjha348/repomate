@@ -1,0 +1,11 @@
+{
+  "case_workspace": "var/eval-real/cases/model_failure_tabulate",
+  "prepared_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "repo": "astanin/python-tabulate",
+  "upstream_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "base_commit": "268615a5c27dc40e5c22454c07b44d5c50410da0",
+  "planner_requested": "failing-model",
+  "elapsed_seconds": 0.56,
+  "planner_observed": "model:openai/eval-unreachable",
+  "sandbox_backend": "bwrap"
+}

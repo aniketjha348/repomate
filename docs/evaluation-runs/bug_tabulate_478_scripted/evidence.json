@@ -1,0 +1,74 @@
+[
+  {
+    "id": "ev1",
+    "kind": "ISSUE",
+    "path": "issue#478",
+    "start_line": null,
+    "end_line": null,
+    "snippet": "_CustomTextWrap produces lines wider than `width` after the #399 fix (032dc0d)\n\nThe fix for #399 (032dc0d, on `master`, not in a release yet) stops the infinite loop, but it also makes some lines wider than the requested width. Before that commit, the same inputs wrapped correctly.\n\n### Minimal repro\n\n```python\n>>> import tabulate, wcwidth\n>>> out = tabulate._CustomTextWrap(width=3).wrap(\"a 글글\")\n>>> out, [wcwidth.wcswidth(x) for x in out]\n(['a 글', '글'], [4, 2])        # master @ 268615a: first line is 4 columns in a 3-column width\n```\n\nBefore 032dc0d (and on PyPI 0.10.0): `['a ', '글', '글']`, which fits.\n\nIn a table:\n\n```python\n>>> print(tabulate.tabulate([[\"a 글글\"]], maxcolwidths=[3], tablefmt=\"grid\"))\n+------+\n| a 글 |\n| 글   |\n+------+\n```\n\n### Cause\n\nIn `_handle_long_word`:\n\n```python\ni = max(i, 2)\n```\n\nThis forces at least one character onto the line even when `cur_line` already has content, so a wide character that doesn't fit in the remaining space gets squeezed onto a non-empty line. Forcing progress is only needed when the line is empty. Taking the character in that case still breaks the loop, and otherwise the chunk can move to the next line as before:\n\n```python\nif i == 1 and not cur_line and stripped_chunk:\n    i = 2\n```\n\n### How I found it\n\nI compared the pre-fix code and master on 6,910 random strings (a mix of ASCII, CJK, emoji, combining marks and ANSI codes, at widths 1/2/3/4/7). The pre-fix code hangs on 1,291 of them. Master fixes all of those hangs, but changes 201 outputs that previously terminated, and all 201 now have a line wider than",
+    "rationale": "the GitHub issue this contribution addresses"
+  },
+  {
+    "id": "ev2",
+    "kind": "DOC",
+    "path": "README.md",
+    "start_line": 1054,
+    "end_line": 1065,
+    "snippet": "Text is preferably wrapped on whitespaces and right after the hyphens in hyphenated words.\n\nbreak_long_words (default: True)  If true, then words longer than width will be broken in order to ensure that no lines are longer than width.\nIf it is false, long words will not be broken, and some lines may be longer than width.\n(Long words will be put on a line by themselves, in order to minimize the amount by which width is exceeded.)\n\nbreak_on_hyphens (default: True) If true, wrapping will occur preferably on whitespaces and right after hyphens in compound words, as it is customary in English.\nIf false, only whitespaces will be considered as potentially good places for line breaks.\n\n```pycon\n>>> print(tabulate([[\"John Smith\", \"Middle-Manager\"]], headers=[\"Name\", \"Title\"], tablefmt=\"grid\", maxcolwidths=[None, 5], break_long_words=False))\n+------------+---------+",
+    "rationale": "matches task keywords: lines, than, width, after"
+  },
+  {
+    "id": "ev3",
+    "kind": "SOURCE",
+    "path": "tabulate/__init__.py",
+    "start_line": 2561,
+    "end_line": 2572,
+    "snippet": "lines, padded_multiline_cells, padded_widths, colaligns, rowfmt, pad, rowalign=None\n):\n    colwidths = [w - 2 * pad for w in padded_widths]\n    cells_lines = [c.splitlines() for c in padded_multiline_cells]\n    nlines = max(map(len, cells_lines))  # number of lines in the row\n    # vertically pad cells where some lines are missing\n    # cells_lines = [\n    #     (cl + [\" \" * w] * (nlines - len(cl))) for cl, w in zip(cells_lines, colwidths)\n    # ]\n\n    cells_lines = [\n        _align_cell_veritically(cl, nlines, w, rowalign) for cl, w in zip(cells_lines, colwidths)",
+    "rationale": "matches task keywords: lines, width"
+  },
+  {
+    "id": "ev4",
+    "kind": "TEST",
+    "path": "test/test_textwrapper.py",
+    "start_line": 338,
+    "end_line": 349,
+    "snippet": "for width in [2, 3, 4, 5, 6]:\n        wrapper = CTW(width=width)\n        lines = wrapper.wrap(data)\n        for line in lines:\n            display_width = wcwidth.wcswidth(line)\n            assert display_width <= width, (\n                f\"Line {line!r} has display width {display_width} \"\n                f\"which exceeds requested column width {width}\"\n            )\n\n\ndef test_wrap_wide_char_narrower_than_char_width():",
+    "rationale": "matches task keywords: lines, than, width"
+  },
+  {
+    "id": "ev5",
+    "kind": "TEST",
+    "path": "test/test_cli.py",
+    "start_line": 170,
+    "end_line": 181,
+    "snippet": "print(\"got:     \", repr(out))\n            print(\"expected:\", repr(expected))\n            assert_equal(out.splitlines(), expected.splitlines())\n            # check that the output was written to file\n            output_file.seek(0)\n            out = output_file.file.read()\n            expected = SAMPLE_SIMPLE_FORMAT\n            print(\"got:     \", repr(out))\n            print(\"expected:\", repr(expected))\n            assert_equal(out.splitlines(), expected.splitlines())",
+    "rationale": "matches task keywords: lines"
+  },
+  {
+    "id": "ev6",
+    "kind": "TEST",
+    "path": "test/test_issue_478_regression.py",
+    "start_line": 1,
+    "end_line": 9,
+    "snippet": "import wcwidth\n\nfrom tabulate import _CustomTextWrap\n\n\ndef test_wrapped_wide_char_lines_fit_width():\n    lines = _CustomTextWrap(width=3).wrap(\"a 글글\")\n    widths = [wcwidth.wcswidth(line) for line in lines]\n    assert all(width <= 3 for width in widths), (lines, widths)",
+    "rationale": "matches task keywords: customtextwrap, lines, width"
+  },
+  {
+    "id": "ev7",
+    "kind": "TEST",
+    "path": "test/test_grapheme_clusters.py",
+    "start_line": 10,
+    "end_line": 21,
+    "snippet": "import wcwidth\n\n    HAS_WCWIDTH = True\n    HAS_WCWIDTH_030 = hasattr(wcwidth, \"wrap\")\n    HAS_WCWIDTH_WIDTH = hasattr(wcwidth, \"width\")\nexcept ImportError:\n    wcwidth = None\n    HAS_WCWIDTH = False\n    HAS_WCWIDTH_030 = False\n    HAS_WCWIDTH_WIDTH = False\n\nrequires_wcwidth = pytest.mark.skipif(not HAS_WCWIDTH, reason=\"requires wcwidth\")",
+    "rationale": "matches task keywords: width"
+  },
+  {
+    "id": "ev8",
+    "kind": "TEST",
+    "path": "test/test_internal.py",
+    "start_line": 77,
+    "end_line": 88,
+    "snippet": "def test_align_cell_veritically_one_line_only():\n    \"Internal: Aligning a single height cell is same regardless of alignment value\"\n    lines = [\"one line\"]\n    column_width = 8\n\n    top = T._align_cell_veritically(lines, 1, column_width, \"top\")\n    center = T._align_cell_veritically(lines, 1, column_width, \"center\")\n    bottom = T._align_cell_veritically(lines, 1, column_width, \"bottom\")\n    none = T._align_cell_veritically(lines, 1, column_width, None)\n\n    expected = [\"one line\"]\n    assert top == center == bottom == none == expected",
+    "rationale": "matches task keywords: lines, width"
+  }
+]

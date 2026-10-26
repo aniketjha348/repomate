@@ -1,0 +1,14 @@
+diff --git a/tabulate/__init__.py b/tabulate/__init__.py
+index 12a2950..a1d3909 100644
+--- a/tabulate/__init__.py
++++ b/tabulate/__init__.py
+@@ -2763,7 +2763,8 @@ class _CustomTextWrap(textwrap.TextWrapper):
+             # Always consume at least one character so _wrap_chunks makes
+             # progress even when the first character is wider than space_left
+             # (e.g. a 2-column CJK char in a 1-column-wide slot).
+-            i = max(i, 2)
++            if i == 1 and not cur_line and stripped_chunk:
++                i = 2
+             # Consider escape codes when breaking words up
+             total_escape_len = 0
+             last_group = 0

@@ -12,16 +12,24 @@ from pathlib import Path
 import pytest
 
 from repomate_core.contracts import (
+    ComparisonOutcome,
     ErrorCode,
     PlannedChange,
     ProposedEdit,
     RepositoryInput,
     RunStatus,
     TaskSource,
+    VerificationStatus,
 )
 from repomate_core.orchestration.pipeline import run_pipeline
 from repomate_core.orchestration.pipeline_config import PipelineConfig
 from repomate_core.repository.workspace import RepoWorkspace
+from repomate_core.verification.network_policy import EgressBackend, detect_egress_backend
+
+requires_backend = pytest.mark.skipif(
+    detect_egress_backend() is EgressBackend.NONE,
+    reason="repository suites only execute when the egress-enforcing backend exists",
+)
 
 BROKEN_TEST = """from fixture.core import slugify
 
@@ -50,7 +58,7 @@ def transform(item):
 class ModelLikePlanner:
     """Emulates a model planner proposing an anchored bug fix."""
 
-    name = "model:openai/deepseek-v4.1"
+    name = "model:openai/gemma4:31b"
 
     def __init__(self, edits):
         self._edits = edits
@@ -97,6 +105,7 @@ def buggy_repo(local_repo: Path) -> Path:
     return local_repo
 
 
+@requires_backend
 def test_bugfix_loop_fixes_suite(buggy_repo, tmp_path):
     planner = ModelLikePlanner([
         ProposedEdit(
@@ -124,6 +133,17 @@ def test_bugfix_loop_fixes_suite(buggy_repo, tmp_path):
     assert suite.status.value == "PASSED", suite.output_tail
     assert suite.exit_code == 0
 
+    # The same suite failed on the clean baseline commit, in a separate
+    # workspace. This is consistent improvement, not a "verified fix".
+    comparison = record.receipt.comparison
+    assert comparison is not None
+    assert comparison.outcome is ComparisonOutcome.CONSISTENT_IMPROVEMENT
+    assert comparison.baseline.status is VerificationStatus.FAILED
+    assert comparison.post_patch.status is VerificationStatus.PASSED
+    assert comparison.commands_match is True
+    assert record.receipt.base_commit == record.snapshot.commit_sha
+    assert "not final proof" in record.receipt.resolution_statement.lower()
+
 
 def test_unanchored_model_edit_is_typed_model_error(buggy_repo, tmp_path):
     planner = ModelLikePlanner([
@@ -147,7 +167,7 @@ def test_docs_task_uses_model_content_draft(local_repo, docs_task_input, tmp_pat
     from repomate_core.contracts import ContributionPlan, TaskType
 
     class DraftPlanner:
-        name = "model:openai/deepseek-v4.1"
+        name = "model:openai/gemma4:31b"
 
         def plan(self, task_text, snapshot, evidence):
             return ContributionPlan(

@@ -1,0 +1,6 @@
+﻿{
+    "status":  "ok",
+    "planner":  "heuristic-v1",
+    "model_configured":  false,
+    "env_file":  ""
+}

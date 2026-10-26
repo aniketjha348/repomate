@@ -41,6 +41,25 @@ def test_worker_app_includes_task_module():
     assert "services.worker.tasks" in (app.conf.include or ())
 
 
+def test_worker_app_enforces_run_time_limits_and_concurrency(monkeypatch):
+    monkeypatch.setenv("REPOMATE_MAX_RUN_SECONDS", "120")
+    monkeypatch.setenv("REPOMATE_WORKER_CONCURRENCY", "4")
+    import importlib
+
+    import services.worker.celery_app as celery_module
+
+    importlib.reload(celery_module)
+    try:
+        # The soft limit finalises the run honestly; the hard limit is a
+        # backstop for a genuinely wedged child.
+        assert celery_module.app.conf.task_soft_time_limit == 120.0
+        assert celery_module.app.conf.task_time_limit == 150.0
+        assert celery_module.app.conf.worker_concurrency == 4
+    finally:
+        monkeypatch.undo()
+        importlib.reload(celery_module)
+
+
 def test_celery_task_executes_pipeline(tmp_path, local_repo, eager_celery, monkeypatch):
     from repomate_core.orchestration import pipeline as pipeline_module
 
@@ -71,8 +90,7 @@ def test_celery_task_executes_pipeline(tmp_path, local_repo, eager_celery, monke
 def test_api_with_sqlite_store_and_metrics(tmp_path, local_repo, monkeypatch):
     monkeypatch.setenv("REPOMATE_RUNS_ROOT", str(tmp_path / "runs"))
     monkeypatch.setenv("REPOMATE_DATABASE_URL", f"sqlite:///{tmp_path}/api.db")
-    monkeypatch.setenv("OPENAI_API_KEY", "")
-    monkeypatch.setenv("VYCE_API_KEY", "")
+    monkeypatch.setenv("OLLAMA_API_KEY", "")
 
     from repomate_core.orchestration import pipeline as pipeline_module
     from services.api import main as api_module
@@ -106,6 +124,13 @@ def test_api_with_sqlite_store_and_metrics(tmp_path, local_repo, monkeypatch):
     assert metrics["runs_by_planner"].get("heuristic-v1") == 1
     assert metrics["execution"] == "inproc"
     assert metrics["sandbox_enabled"] is True
+    # The endpoint is unauthenticated in the default deployment; it must not
+    # leak filesystem paths or environment-file details.
+    assert "env_file" not in metrics
+    assert not any(
+        isinstance(value, str) and ("/" in value or "\\" in value)
+        for value in metrics.values()
+    )
 
 
 def test_api_dispatches_to_celery_when_configured(tmp_path, local_repo, monkeypatch):

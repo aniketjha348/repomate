@@ -1,0 +1,74 @@
+[
+  {
+    "id": "ev1",
+    "kind": "TEST",
+    "path": "test/test_regression.py",
+    "start_line": 6,
+    "end_line": 17,
+    "snippet": "def test_ansi_color_in_table_cells():\n    \"Regression: ANSI color in table cells (issue #5).\"\n    colortable = [(\"test\", \"\\x1b[31mtest\\x1b[0m\", \"\\x1b[32mtest\\x1b[0m\")]\n    colorlessheaders = (\"test\", \"test\", \"test\")\n    formatted = tabulate(colortable, colorlessheaders, \"pipe\")\n    expected = \"\\n\".join(\n        [\n            \"| test   | test   | test   |\",\n            \"|:-------|:-------|:-------|\",\n            \"| test   | \\x1b[31mtest\\x1b[0m   | \\x1b[32mtest\\x1b[0m   |\",",
+    "rationale": "matches task keywords: regression, test, expected"
+  },
+  {
+    "id": "ev2",
+    "kind": "TEST",
+    "path": "test/test_output.py",
+    "start_line": 2694,
+    "end_line": 2705,
+    "snippet": "def test_latex_raw():\n    \"Output: raw latex with headers\"\n    raw_test_table_headers = list(_test_table_headers)\n    raw_test_table_headers[-1] += \" ($N_0$)\"\n    raw_test_table = list(map(list, _test_table))\n    raw_test_table[0][0] += \"$_1$\"\n    raw_test_table[1][0] = \"\\\\emph{\" + raw_test_table[1][0] + \"}\"\n    print(raw_test_table)\n    result = tabulate(raw_test_table, raw_test_table_headers, tablefmt=\"latex_raw\")\n    expected = \"\\n\".join(",
+    "rationale": "matches task keywords: test, expected"
+  },
+  {
+    "id": "ev3",
+    "kind": "TEST",
+    "path": "test/test_textwrapper.py",
+    "start_line": 109,
+    "end_line": 120,
+    "snippet": "def test_wrap_full_line_color():\n    \"\"\"TextWrapper: Wrap a line when the full thing is enclosed in color tags\"\"\"\n    # This has both a text color and a background color\n    data = \"\\033[31m\\033[104mThis is a test string for testing TextWrap with colors\\033[0m\"\n\n    expected = [\n        \"\\033[31m\\033[104mThis is a test\\033[0m\",\n        \"\\033[31m\\033[104mstring for testing\\033[0m\",\n        \"\\033[31m\\033[104mTextWrap with colors\\033[0m\",\n    ]",
+    "rationale": "matches task keywords: test, expected"
+  },
+  {
+    "id": "ev4",
+    "kind": "TEST",
+    "path": "test/test_api.py",
+    "start_line": 27,
+    "end_line": 38,
+    "snippet": "print(f\"expected: {expected_sig}\\nactual: {actual_sig}\\n\")\n\n    assert len(actual_sig.parameters) == len(expected_sig)\n\n    for (e, ev), (a, av) in zip(expected_sig, actual_sig.parameters.items()):\n        assert e == a and ev == av.default\n\n\ndef test_tabulate_signature():\n    \"API: tabulate() type signature is unchanged\"\n    assert type(tabulate) is type(lambda: None)\n    expected_sig = [",
+    "rationale": "matches task keywords: test, expected"
+  },
+  {
+    "id": "ev5",
+    "kind": "TEST",
+    "path": "test/test_cli.py",
+    "start_line": 169,
+    "end_line": 180,
+    "snippet": "expected = \"\"\n            print(\"got:     \", repr(out))\n            print(\"expected:\", repr(expected))\n            assert_equal(out.splitlines(), expected.splitlines())\n            # check that the output was written to file\n            output_file.seek(0)\n            out = output_file.file.read()\n            expected = SAMPLE_SIMPLE_FORMAT\n            print(\"got:     \", repr(out))\n            print(\"expected:\", repr(expected))\n            assert_equal(out.splitlines(), expected.splitlines())",
+    "rationale": "matches task keywords: expected"
+  },
+  {
+    "id": "ev6",
+    "kind": "TEST",
+    "path": "test/test_input.py",
+    "start_line": 360,
+    "end_line": 371,
+    "snippet": "expected = \"\\n\".join([\"  foo    bar\", \"-----  -----\", \"    1      2\", \"    3      4\"])\n    result = tabulate(lt, headers=\"keys\")\n    assert_equal(expected, result)\n\n\ndef test_list_of_dicts():\n    \"Input: a list of dictionaries.\"\n    lod = [{\"foo\": 1, \"bar\": 2}, {\"foo\": 3, \"bar\": 4}]\n    expected1 = \"\\n\".join([\"-  -\", \"1  2\", \"3  4\", \"-  -\"])\n    expected2 = \"\\n\".join([\"-  -\", \"2  1\", \"4  3\", \"-  -\"])\n    result = tabulate(lod)\n    assert_in(result, [expected1, expected2])",
+    "rationale": "matches task keywords: test, expected"
+  },
+  {
+    "id": "ev7",
+    "kind": "TEST",
+    "path": "test/test_internal.py",
+    "start_line": 63,
+    "end_line": 74,
+    "snippet": "column = [\"123.4\", \"56.7890\"]\n    output = T._align_column(column, None)\n    expected = [\"123.4\", \"56.7890\"]\n    assert_equal(expected, output)\n\n\ndef test_align_column_multiline():\n    \"Internal: _align_column(..., is_multiline=True)\"\n    column = [\"1\", \"123\", \"12345\\n6\"]\n    output = T._align_column(column, \"center\", is_multiline=True)\n    expected = [\"  1  \", \" 123 \", \"12345\" + \"\\n\" + \"  6  \"]\n    assert_equal(expected, output)",
+    "rationale": "matches task keywords: test, expected"
+  },
+  {
+    "id": "ev8",
+    "kind": "TEST",
+    "path": "test/test_network_egress.py",
+    "start_line": 2,
+    "end_line": 6,
+    "snippet": "def test_public_https_is_reachable():\n    with urllib.request.urlopen(\"https://example.com\", timeout=5) as response:\n        assert response.status == 200",
+    "rationale": "matches task keywords: test"
+  }
+]

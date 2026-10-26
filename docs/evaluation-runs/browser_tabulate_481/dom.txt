@@ -1,0 +1,407 @@
+R
+RepoMate
+evidence-first contribution agent
+GitHub API health ↗
+COMPLETED
+planner: heuristic-v1
+offline heuristic planner — set VYCE_API_KEY for model planning
+run_20261026-100340_8a5rrl53
+copy
+created Oct 26, 2026, 03:33:40 PM
+updated Oct 26, 2026, 03:33:57 PM
+astanin/python-tabulate
+@268615a5c2
+license: MIT
+
+Snapshot pinned Oct 26, 2026, 03:33:42 PM
+
+default branch
+master
+files
+26
+readme
+README.md
+contributing
+—
+py
+100%
+
+Entry points
+
+pyproject.toml
+MANIFEST
+pyproject.toml scripts: tabulate
+Repository orientation
+
+Snapshot-derived map for newcomers — every entry traceable to the pinned commit (snapshot-v1).
+
+astanin/python-tabulate is a py-dominant repository (26 tracked files, default branch master). The README opens with: "python-tabulate" License: MIT (recognized). 8 evidence location(s) connect this task to the codebase.
+
+Key paths
+
+README.md
+project overview and quickstart
+tabulate/__init__.py
+relevant to this task (matches task keywords: option, current)
+
+Entry points
+
+pyproject.toml
+manifest: pyproject.toml scripts: tabulate
+Which tests to run
+
+Evidence-based pointers for this task — selection is keyword-based, the full suite remains the authoritative check.
+
+Full suite
+python -m pytest -q
+Start focused
+python -m pytest -q test/test_output.py test/test_cli.py test/test_regression.py
+test/test_output.py
+matches task keywords: longer
+test/test_cli.py
+matches task keywords: option
+test/test_regression.py
+matches task keywords: option
+test/test_textwrapper.py
+matches task keywords: option
+
+Selection is keyword-based — start with the files above, then run the full suite as the authoritative check. Whether the full suite actually executed is recorded in the verification receipt (python -m pytest -q).
+
+Events18
+show
+Retrieval scope
+COMPLETE
+Retrieval scope
+18/18 eligible files · 361.0 KB · 8 matches
+
+Retrieval is COMPLETE: examined 18 of 18 eligible file(s) from 26 tracked file(s), read 369616 byte(s), and retained 8 matching file(s). No retrieval limit was reached.
+
+limits: 2000 files · 195.3 KB/file · 30.5 MB total · 200 results · 30s · elapsed 350 ms
+
+Evidence (8)
+ISSUE
+issue#481
+
+the GitHub issue this contribution addresses
+
+README library-only installation option may no longer work with current packaging
+The README documents setting `TABULATE_INSTALL=lib-only` when installing `tabulate` so that only the Python library is installed. It gives commands for Unix-like systems and Windows.
+However, the repository's current `pyproject.toml` uses `flit_scm:buildapi` and declares a console entry point unconditionally:
+```toml
+[project.scripts]
+tabulate = "tabulate.cli:_main"
+```
+I could not find a corresponding setting in the current packaging configuration that uses `TABULATE_INSTALL` to disable this entry point. The README option may be left over from a previous build system.
+Relevant files:
+- https://github.com/astanin/python-tabulate/blob/master/README.md
+- https://github.com/astanin/python-tabulate/blob/master/pyproject.toml
+## Expected behavior
+Using the documented library-only installation option should omit the `tabulate` executable, or the README should clarify that the option is no longer supported.
+## Suggested verification
+In a fresh virtual environment, compare two installs built from the current source: one with the `TABULATE_INSTALL=lib-only` environment variable and one without it. Then inspect the generated console entry point, such as in the environment's `bin` or `Scripts` directory. This would confirm whether the environment variable changes what gets installed.
+## Suggested improvement
+If the setting is no longer supported, remove the library-only installation examples or explain the behavior supported by the current build system. If it is supported, it
+DOC
+README.md:26-37
+
+matches task keywords: installation, current, installing
+
+26The command line utility will be installed as `tabulate` to `bin` on
+27Linux (e.g. `/usr/bin`); or as `tabulate.exe` to `Scripts` in your
+28Python installation on Windows (e.g. `C:\Python39\Scripts\tabulate.exe`).
+29
+30You may consider installing the library only for the current user:
+31
+32```shell
+33pip install tabulate --user
+34```
+35
+36In this case the command line utility will be installed to
+37`~/.local/bin/tabulate` on Linux and to
+SOURCE
+tabulate/__init__.py:268-279
+
+matches task keywords: option, current
+
+268header_list = ['cols="' + (",".join(asciidoc_column_specifiers)) + '"']
+269
+270        # generate the list of options (currently only "header")
+271        options_list = []
+272
+273        if is_header:
+274            options_list.append("header")
+275
+276        if options_list:
+277            options_list = ",".join(options_list)
+278            header_list.append(f'options="{options_list}"')
+TEST
+test/test_output.py:102-113
+
+matches task keywords: longer
+
+102def test_plain_maxcolwidth_autowraps():
+103    "Output: maxcolwidth will result in autowrapping longer cells"
+104    table = [["hdr", "fold"], ["1", "very long data"]]
+105    expected = "\n".join(["  hdr  fold", "    1  very long", "       data"])
+106    result = tabulate(table, headers="firstrow", tablefmt="plain", maxcolwidths=[10, 10])
+107    assert_equal(expected, result)
+108
+109
+110def test_plain_maxcolwidth_autowraps_with_sep():
+111    "Output: maxcolwidth will result in autowrapping longer cells and separating line"
+112    table = [
+TEST
+test/test_cli.py:180-191
+
+matches task keywords: option
+
+180def test_script_header_option():
+181    """Command line utility: -1, --header option"""
+182    for option in ["-1", "--header"]:
+183        cmd = [sys.executable, "tabulate/cli.py", option]
+184        raw_table = sample_input(with_headers=True)
+185        out = run_and_capture_stdout(cmd, input=raw_table)
+186        expected = SAMPLE_SIMPLE_FORMAT_WITH_HEADERS
+187        print(out)
+188        print("got:     ", repr(out))
+189        print("expected:", repr(expected))
+TEST
+test/test_regression.py:586-597
+
+matches task keywords: option
+
+586"Regression: asciidoc format output must not generate trailing whitespace (issue #408)"
+587    result = tabulate([["foo"]], headers=("longheader",), tablefmt="asciidoc")
+588    expected = '[cols="<14",options="header"]\n|====\n| longheader\n| foo\n|===='
+589    assert_equal(expected, result)
+590
+591    result = tabulate([["longtext"]], headers=("bar",), tablefmt="asciidoc")
+592    expected = '[cols="<10",options="header"]\n|====\n| bar\n| longtext\n|===='
+593    assert_equal(expected, result)
+594
+595
+596def test_github_escape_pipe_character():
+597    "Regression: github format must escape pipe character with a backslash (issue #241)"
+TEST
+test/test_textwrapper.py:303-314
+
+matches task keywords: option
+
+303def test_wrap_optional_bool_strs():
+304    """TextWrapper: Show that str bools and None can be wrapped without crashing"""
+305    data = [
+306        ["First Entry", "True"],
+307        ["Second Entry", None],
+308    ]
+309    headers = ["Title", "When"]
+310    result = tabulate(data, headers=headers, tablefmt="grid", maxcolwidths=[7, 5])
+311
+312    expected = [
+SOURCE
+pyproject.toml:27-38
+
+matches task keywords: option
+
+27Homepage = "https://github.com/astanin/python-tabulate"
+28
+29[project.optional-dependencies]
+30widechars = ["wcwidth>=0.6.0"]
+31
+32[project.scripts]
+33tabulate = "tabulate.cli:_main"
+34
+35[tool.flit.sdist]
+36include = ["CHANGELOG", "test/", "tox.ini"]
+37
+38[tool.setuptools_scm]
+Contribution plan
+DOCUMENTATION
+planned by heuristic-v1
+
+Documentation change in README.md: README library-only installation option may no longer work with current packaging The README documents setting `TABULATE_INSTALL=lib-only` …
+
+PLANNED CHANGES
+
+MODIFY
+README.md
+existing documentation file matching the task keywords
+
+ACCEPTANCE CRITERIA
+
+?
+Patch applies cleanly to the pinned commitUNVERIFIED
+?
+Only paths permitted by the artifact policy are modifiedUNVERIFIED
+?
+The change addresses the stated taskUNVERIFIED
+?
+New content cites the evidence it was derived from (ev1, ev2, ev3)UNVERIFIED
+
+EVIDENCE GROUNDING
+
+5 claim(s): 0 supported, 5 hypothesis. 5 citation(s) resolved, 1 unresolved.
+
+HYPOTHESIS
+Documentation change in README.md: README library-only installation option may no longer work with current packaging The README documents setting `TABULATE_INSTALL=lib-only` …
+HYPOTHESIS
+Patch applies cleanly to the pinned commit
+HYPOTHESIS
+Only paths permitted by the artifact policy are modified
+HYPOTHESIS
+The change addresses the stated task
+HYPOTHESIS
+New content cites the evidence it was derived from (ev1, ev2, ev3)
+
+Unresolved references (not verified citations): ev1
+
+EVIDENCE_PATH_MISSING evidence 'ev1' cites 'issue#481', which is not in the pinned snapshot
+CLAIM_NOT_SUPPORTED_BY_EVIDENCE claim cites 'ev3' (tabulate/__init__.py), but that evidence shares no distinctive vocabulary with the claim
+CLAIM_NOT_SUPPORTED_BY_EVIDENCE claim cites 'ev4' (test/test_output.py), but that evidence shares no distinctive vocabulary with the claim
+CLAIM_NOT_SUPPORTED_BY_EVIDENCE claim cites 'ev5' (test/test_cli.py), but that evidence shares no distinctive vocabulary with the claim
+CLAIM_NOT_SUPPORTED_BY_EVIDENCE claim cites 'ev6' (test/test_regression.py), but that evidence shares no distinctive vocabulary with the claim
+CLAIM_NOT_SUPPORTED_BY_EVIDENCE claim cites 'ev2' (README.md), but that evidence shares no distinctive vocabulary with the claim
+
+LIMITATIONS
+
+Plan produced by the deterministic heuristic planner (no model provider configured).
+Scope and wording should be reviewed against the project's contributor guidelines.
+Artifacts
+
+documentation.patch
+
+DOCS_DIFF · 1.4 KB
+
+Download
+
+CONTRIBUTION_PLAN.md
+
+CONTRIBUTION_PLAN · 8.8 KB
+
+Download
+
+generated by heuristic-v1 · based on 268615a5c2
+
+README.md
+Download patch
+
+based on 268615a5c2 · generated by heuristic-v1
+
+README.md
+
++26 −0
+
+index 0283a0c..a146c2f 100644
+--- a/README.md
++++ b/README.md
+@@ -1297,3 +1297,29 @@ Dan Nicholson, Frederik Scheerer, cdar07 (cdar), Racerroar888,
+1297
+1297
+ Perry Kundert, Hnasar, Jun Koo, Jo2234, Bjorn Olsen, George Schizas,
+1298
+1298
+ Kadir Can Ozden, Jeff Quast, Mayukha Vadari, Rebecca Jean Herman,
+1299
+1299
+ Ján Jančár (J08nY).
+1300
++
+1301
++## README library-only installation option may no longer work with…
+1302
++
+1303
++This section addresses the following contribution task:
+1304
++
+1305
++- README library-only installation option may no longer work with current packaging
+1306
++
+1307
++The README documents setting `TABULATE_INSTALL=lib-only` when installing `tabulate` so that only the Python library is installed.
+1308
++- It gives commands for Unix-like systems and Windows.
+1309
++- However, the repository's current `pyproject.toml` uses `flit_scm:buildapi` and declares a console entry point unconditionally:
+1310
++
+1311
++```toml
+1312
++[project.scripts]
+1313
++tabulate = "tabulate.cli:_main"
+1314
++```
+1315
++
+1316
++I could not find a corresponding setting in the current packaging configuration that uses `TABULATE_INSTALL` to disable this entry point.
+1317
++- The README option may be left over from a previous build system.
+1318
++
+1319
++Sources consulted while writing this section:
+1320
++
+1321
++- README.md, lines 26-37
+1322
++- tabulate/__init__.py, lines 268-279
+1323
++- test/test_output.py, lines 102-113
+1324
++
+1325
++<!-- Generated by RepoMate; verify wording against project conventions. -->
+ 
+Verification
+PASSED
+4/4 checks passed · Oct 26, 2026, 03:33:57 PM
+Baseline vs post-patch
+NO REGRESSION DETECTED
+
+the selected check passed before and after the patch; no regression was detected in the selected check
+
+PASSED
+Clean baseline
+exit 0
+5.8 s
+$ python -m pytest -q
+Output summary
+PASSED
+Patched workspace
+exit 0
+5.7 s
+$ python -m pytest -q
+Output summary
+
+base commit: 268615a5c27d · patch sha256: d784d10ccc03
+
+Selected checks passed before and after the patch; no regression was detected in those checks, but issue resolution is not fully established.
+
+PASSED
+patch-path-policy
+$ internal:patch-policy
+PASSED
+patch-applies-on-pinned-commit
+exit 0
+$ git apply --check
+PASSED
+sandbox-egress-isolation
+$ internal:egress-probe
+Output tail
+PASSED
+repository-test-suite
+exit 0
+5.7 s
+$ python -m pytest -q
+Output tail
+
+environment: process sandbox (wall-time, CPU and memory limits, scrubbed env; network egress denied (bwrap)) on Linux/x86_64
+
+The sandbox uses an unprivileged bwrap namespace: egress is denied, host socket directories are masked, the process table is private, and the repository's .git directory is read-only. It is not a full VM; the host kernel is shared.
+Repository tests run with RepoMate's interpreter and installed dependencies; a repo-specific virtualenv is not created, so missing dependencies are reported NOT_RUN (they cannot be downloaded without network access).
+RepoMate — evidence-first open-source contribution agent
+backend health

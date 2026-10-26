@@ -1,0 +1,10 @@
+{
+  "case_workspace": "var/eval-real/cases/missing_license_spoon_knife",
+  "prepared_commit": "d0dd1f61b33d64e29d8bc1372a94ef6a2fee76a9",
+  "repo": "octocat/Spoon-Knife",
+  "upstream_commit": "d0dd1f61b33d64e29d8bc1372a94ef6a2fee76a9",
+  "base_commit": "d0dd1f61b33d64e29d8bc1372a94ef6a2fee76a9",
+  "elapsed_seconds": 1.42,
+  "planner_observed": "scripted-eval-v1",
+  "sandbox_backend": "bwrap"
+}

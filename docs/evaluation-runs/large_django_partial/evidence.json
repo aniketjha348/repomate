@@ -1,0 +1,74 @@
+[
+  {
+    "id": "ev1",
+    "kind": "DOC",
+    "path": "README.rst",
+    "start_line": 38,
+    "end_line": 49,
+    "snippet": "To contribute to Django:\n\n* Check out https://docs.djangoproject.com/en/dev/internals/contributing/ for\n  information about getting involved.\n\nTo run Django's test suite:\n\n* Follow the instructions in the \"Unit tests\" section of\n  ``docs/internals/contributing/writing-code/unit-tests.txt``, published online at\n  https://docs.djangoproject.com/en/dev/internals/contributing/writing-code/unit-tests/#running-the-unit-tests\n\nSupporting the Development of Django",
+    "rationale": "matches task keywords: about, running, test, suite, contributing"
+  },
+  {
+    "id": "ev2",
+    "kind": "TEST",
+    "path": "django/core/management/commands/testserver.py",
+    "start_line": 40,
+    "end_line": 51,
+    "snippet": "interactive = options[\"interactive\"]\n\n        # Create a test database.\n        db_name = connection.creation.create_test_db(\n            verbosity=verbosity, autoclobber=not interactive\n        )\n\n        # Import the fixture data into the test database.\n        call_command(\"loaddata\", *fixture_labels, verbosity=verbosity)\n\n        # Run the development server. Turn off auto-reloading because it causes\n        # a strange error -- it causes this handle() method to be called",
+    "rationale": "matches task keywords: test"
+  },
+  {
+    "id": "ev3",
+    "kind": "SOURCE",
+    "path": "django/conf/global_settings.py",
+    "start_line": 614,
+    "end_line": 625,
+    "snippet": "###########\n# TESTING #\n###########\n\n# The name of the class to use to run the test suite\nTEST_RUNNER = \"django.test.runner.DiscoverRunner\"\n\n# Apps that don't need to be serialized at test database creation time\n# (only apps with migrations are to start with)\nTEST_NON_SERIALIZED_APPS = []",
+    "rationale": "matches task keywords: test, suite"
+  },
+  {
+    "id": "ev4",
+    "kind": "SOURCE",
+    "path": "django/core/cache/backends/db.py",
+    "start_line": 143,
+    "end_line": 154,
+    "snippet": "b64encoded = base64.b64encode(pickled).decode(\"latin1\")\n            try:\n                # Note: typecasting for datetimes is needed by some 3rd party\n                # database backends. All core backends work without\n                # typecasting, so be careful about changes here - test suite\n                # will NOT pick regressions.\n                with transaction.atomic(using=db):\n                    cursor.execute(\n                        \"SELECT %s, %s FROM %s WHERE %s = %%s\"\n                        % (\n                            quote_name(\"cache_key\"),\n                            quote_name(\"expires\"),",
+    "rationale": "matches task keywords: note, about, test, suite"
+  },
+  {
+    "id": "ev5",
+    "kind": "SOURCE",
+    "path": "django/db/backends/base/features.py",
+    "start_line": 437,
+    "end_line": 448,
+    "snippet": "pattern_lookup_needs_param_pattern = True\n\n    # A set of dotted paths to tests in Django's test suite that are expected\n    # to fail on this database.\n    django_test_expected_failures = set()\n    # A map of reasons to sets of dotted paths to tests in Django's test suite\n    # that should be skipped for this database.\n    django_test_skips = {}\n\n    # DatabaseWrapper methods that should raise an error if accessed in\n    # django.test.SimpleTestCase.\n    disallowed_simple_test_case_connection_methods = [",
+    "rationale": "matches task keywords: test, suite"
+  },
+  {
+    "id": "ev6",
+    "kind": "SOURCE",
+    "path": "django/db/models/query.py",
+    "start_line": 1237,
+    "end_line": 1248,
+    "snippet": "def latest(self, *fields):\n        \"\"\"\n        Return the latest object according to fields (if given) or by the\n        model's Meta.get_latest_by.\n        \"\"\"\n        if self.query.is_sliced:\n            raise TypeError(\"Cannot change a query once a slice has been taken.\")\n        return self.reverse()._earliest(*fields)\n\n    async def alatest(self, *fields):\n        return await sync_to_async(self.latest)(*fields)",
+    "rationale": "matches task keywords: test"
+  },
+  {
+    "id": "ev7",
+    "kind": "SOURCE",
+    "path": "django/middleware/csrf.py",
+    "start_line": 79,
+    "end_line": 90,
+    "snippet": "chars = CSRF_ALLOWED_CHARS\n    pairs = zip((chars.index(x) for x in token), (chars.index(x) for x in mask))\n    return \"\".join(chars[x - y] for x, y in pairs)  # Note negative values are ok\n\n\ndef _add_new_csrf_cookie(request):\n    \"\"\"Generate a new random CSRF_COOKIE value, and add it to request.META.\"\"\"\n    csrf_secret = _get_new_csrf_string()\n    request.META.update(\n        {\n            \"CSRF_COOKIE\": csrf_secret,\n            \"CSRF_COOKIE_NEEDS_UPDATE\": True,",
+    "rationale": "matches task keywords: note"
+  },
+  {
+    "id": "ev8",
+    "kind": "SOURCE",
+    "path": "django/apps/registry.py",
+    "start_line": 79,
+    "end_line": 90,
+    "snippet": "# compare and set operation below is atomic.\n            if self.loading:\n                # Prevent reentrant calls to avoid running AppConfig.ready()\n                # methods twice.\n                raise RuntimeError(\"populate() isn't reentrant\")\n            self.loading = True\n\n            # Phase 1: initialize app configs and import app modules.\n            for entry in installed_apps:\n                if isinstance(entry, AppConfig):\n                    app_config = entry\n                else:",
+    "rationale": "matches task keywords: running"
+  }
+]

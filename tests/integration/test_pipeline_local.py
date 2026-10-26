@@ -9,10 +9,23 @@ from pathlib import Path
 
 import pytest
 
-from repomate_core.contracts import ErrorCode, RepositoryInput, RunStatus, TaskSource
+from repomate_core.contracts import (
+    ComparisonOutcome,
+    ErrorCode,
+    RepositoryInput,
+    RunStatus,
+    TaskSource,
+    VerificationStatus,
+)
 from repomate_core.orchestration.pipeline import PipelineConfig, run_pipeline
 from repomate_core.orchestration.store import RunStore
 from repomate_core.repository.workspace import RepoWorkspace
+from repomate_core.verification.network_policy import EgressBackend, detect_egress_backend
+
+requires_backend = pytest.mark.skipif(
+    detect_egress_backend() is EgressBackend.NONE,
+    reason="repository suites only execute when the egress-enforcing backend exists",
+)
 
 
 def _factory(local_repo: Path):
@@ -25,6 +38,7 @@ def _config(tmp_path: Path) -> PipelineConfig:
     return PipelineConfig(runs_root=tmp_path / "runs", keep_workspace=False)
 
 
+@requires_backend
 def test_docs_task_completes_end_to_end(tmp_path, local_repo, docs_task_input):
     events = []
     record = run_pipeline(
@@ -59,6 +73,17 @@ def test_docs_task_completes_end_to_end(tmp_path, local_repo, docs_task_input):
     assert suite.status.value == "PASSED"
     assert suite.exit_code == 0
     assert "pytest" in suite.command
+
+    # Baseline and patched runs are separate, equivalent checkouts and the
+    # comparison is deterministic. A passing post-patch check alone is never
+    # presented as proof that the issue is resolved.
+    comparison = record.receipt.comparison
+    assert comparison is not None
+    assert comparison.outcome is ComparisonOutcome.NO_REGRESSION_DETECTED
+    assert comparison.baseline.status is VerificationStatus.PASSED
+    assert comparison.post_patch.status is VerificationStatus.PASSED
+    assert comparison.commands_match is True
+    assert "issue resolution is not fully established" in record.receipt.resolution_statement
 
     stages = [e.stage.value for e in events if e.status == "COMPLETED"]
     assert stages == [
@@ -163,8 +188,15 @@ def test_sandbox_disabled_reports_honest_not_run(tmp_path, local_repo, docs_task
     )
     assert suite.status.value == "NOT_RUN"
     assert "disabled" in suite.reason
+    comparison = record.receipt.comparison
+    assert comparison is not None
+    assert comparison.outcome is ComparisonOutcome.BASELINE_INCOMPLETE
+    assert comparison.baseline.status is VerificationStatus.NOT_RUN
+    assert comparison.post_patch.status is VerificationStatus.NOT_RUN
+    assert "post-patch results alone" in record.receipt.resolution_statement
 
 
+@requires_backend
 def test_failing_repo_suite_completes_run_with_honest_receipt(
     tmp_path, local_repo, docs_task_input
 ):
@@ -195,6 +227,11 @@ def test_failing_repo_suite_completes_run_with_honest_receipt(
     assert suite.status.value == "FAILED"
     assert suite.exit_code not in (0, None)
     assert record.error is None
+    comparison = record.receipt.comparison
+    assert comparison is not None
+    assert comparison.outcome is ComparisonOutcome.UNRESOLVED
+    assert comparison.baseline.status is VerificationStatus.FAILED
+    assert comparison.post_patch.status is VerificationStatus.FAILED
 
 
 def test_artifact_rejection_fails_run(tmp_path, local_repo, docs_task_input, monkeypatch):
@@ -210,3 +247,7 @@ def test_artifact_rejection_fails_run(tmp_path, local_repo, docs_task_input, mon
     )
     assert record.status is RunStatus.FAILED
     assert record.error is not None
+    comparison = record.receipt.comparison
+    assert comparison is not None
+    assert comparison.post_patch.status is VerificationStatus.NOT_RUN
+    assert "did not apply" in comparison.post_patch.reason

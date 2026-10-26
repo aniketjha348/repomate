@@ -1,0 +1,13 @@
+{
+  "case": "bug_tabulate_478_scripted",
+  "title": "Reproducible bug with a relevant regression test",
+  "repository": "astanin/python-tabulate",
+  "input": {
+    "source": "GITHUB_ISSUE",
+    "issue_url": "https://github.com/astanin/python-tabulate/issues/478",
+    "repo_url": null,
+    "task": null
+  },
+  "expected": "COMPLETED, PATCH_DIFF, plan + repro checklist, CONSISTENT_IMPROVEMENT",
+  "notes": "A regression test for issue #478 is committed on top of upstream 268615a. Baseline fails on the test; the scripted patch restores the width guard and post-patch passes."
+}

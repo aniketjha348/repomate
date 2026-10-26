@@ -9,8 +9,7 @@ from repomate_core.repository.workspace import RepoWorkspace
 
 def _client(tmp_path: Path, local_repo: Path, monkeypatch):
     monkeypatch.setenv("REPOMATE_RUNS_ROOT", str(tmp_path / "runs"))
-    monkeypatch.setenv("OPENAI_API_KEY", "")   # heuristic planner, honestly labelled
-    monkeypatch.setenv("VYCE_API_KEY", "")     # legacy name cleared too
+    monkeypatch.setenv("OLLAMA_API_KEY", "")   # heuristic planner, honestly labelled
 
     from repomate_core.orchestration import pipeline as pipeline_module
     from services.api import main as api_module
@@ -30,6 +29,32 @@ def test_health_reports_honest_planner(tmp_path, local_repo, monkeypatch):
     body = response.json()
     assert body["planner"] == "heuristic-v1"
     assert body["model_configured"] is False
+
+
+def test_run_record_exposes_grounding_verdict(tmp_path, local_repo, monkeypatch):
+    """The grounding verdict must reach the API surface, not stop at the
+    pipeline: a client must be able to see which citations resolved."""
+    client = _client(tmp_path, local_repo, monkeypatch)
+
+    created = client.post(
+        "/api/runs",
+        json={
+            "repo_url": "https://github.com/acme/fixture-project",
+            "task": "Add documentation for the timeout option to the README quickstart",
+        },
+    )
+    assert created.status_code == 202, created.text
+    record = client.get(f"/api/runs/{created.json()['run_id']}").json()
+
+    assert record["grounding"] is not None
+    grounding = record["grounding"]
+    assert grounding["claims"], "every plan must carry validated claims"
+    assert grounding["unresolved_evidence_ids"] == []
+    # The heuristic planner cites the evidence it actually retrieved.
+    assert grounding["resolved_evidence_ids"]
+    for claim in grounding["claims"]:
+        assert claim["support_status"] in ("supported", "hypothesis")
+        assert set(claim["matched_evidence_ids"]) <= set(grounding["resolved_evidence_ids"])
 
 
 def test_create_and_fetch_run(tmp_path, local_repo, monkeypatch):
@@ -76,6 +101,25 @@ def test_incomplete_payload_is_422(tmp_path, local_repo, monkeypatch):
     client = _client(tmp_path, local_repo, monkeypatch)
     response = client.post("/api/runs", json={"repo_url": "https://github.com/a/b"})
     assert response.status_code == 422
+
+
+def test_network_override_is_rejected(tmp_path, local_repo, monkeypatch):
+    """A caller cannot ask the sandbox to enable networking."""
+    client = _client(tmp_path, local_repo, monkeypatch)
+    for field in (
+        {"network": "host"},
+        {"sandbox_network": "host"},
+        {"egress": "allowed"},
+    ):
+        response = client.post(
+            "/api/runs",
+            json={
+                "repo_url": "https://github.com/acme/fixture-project",
+                "task": "Add documentation for the timeout option",
+                **field,
+            },
+        )
+        assert response.status_code == 422, (field, response.text)
 
 
 def test_unknown_run_is_404(tmp_path, local_repo, monkeypatch):

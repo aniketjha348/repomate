@@ -7,10 +7,16 @@ Network-dependent tests live in ``tests/e2e`` and are opt-in (``-m network``).
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
 import pytest
+
+# Set before any test imports an entry point: a developer's local ``.env``
+# must never change a test outcome. Tests that exercise the loader itself
+# re-enable it explicitly.
+os.environ["REPOMATE_SKIP_DOTENV"] = "1"
 
 from repomate_core.contracts import RepositoryInput, TaskSource
 from repomate_core.repository.workspace import RepoWorkspace
@@ -84,6 +90,28 @@ def _git(cwd: Path, *args: str) -> None:
         encoding="utf-8", env=env_full,
     )
     assert result.returncode == 0, f"git {args} failed: {result.stderr}"
+
+
+@pytest.fixture(autouse=True)
+def _isolate_model_environment(monkeypatch):
+    """Prevent an operator's exported Ollama credentials from changing a run."""
+    for key in (
+        "OLLAMA_API_KEY",
+        "OLLAMA_BASE_URL",
+        "OLLAMA_MODEL",
+        "OLLAMA_MODELS",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+
+@pytest.fixture(autouse=True)
+def _reset_fair_use_state():
+    """Keep per-IP windows and counters independent between tests."""
+    from services.api import fair_use
+
+    fair_use.reset_state()
+    yield
+    fair_use.reset_state()
 
 
 @pytest.fixture

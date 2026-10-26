@@ -9,6 +9,7 @@ from pathlib import Path
 from repomate_core.contracts import (
     RepositoryInput,
     RunRecord,
+    RunStatus,
     TaskSource,
 )
 from repomate_core.orchestration.store import RunStore
@@ -23,6 +24,33 @@ def _record(run_id: str = "run_t1") -> RunRecord:
             task="document the thing",
         ),
     )
+
+
+def test_count_active_runs_counts_pending_and_running(tmp_path: Path):
+    store = RunStore(tmp_path / "runs")
+    for run_id, status in (
+        ("run_pending", RunStatus.PENDING),
+        ("run_running", RunStatus.RUNNING),
+        ("run_done", RunStatus.COMPLETED),
+        ("run_failed", RunStatus.FAILED),
+        ("run_partial", RunStatus.PARTIAL),
+        ("run_cancelled", RunStatus.CANCELLED),
+    ):
+        record = _record(run_id)
+        record.status = status
+        store.save_run(record)
+
+    assert store.count_active_runs() == 2
+
+    # A terminal transition releases the slot.
+    record = store.load_run("run_running")
+    record.status = RunStatus.COMPLETED
+    store.save_run(record)
+    assert store.count_active_runs() == 1
+
+
+def test_count_active_runs_on_empty_store(tmp_path: Path):
+    assert RunStore(tmp_path / "runs").count_active_runs() == 0
 
 
 def test_sweep_stale_workspaces_removes_old_workspace(tmp_path: Path):

@@ -1,0 +1,84 @@
+{
+  "checks": [
+    {
+      "name": "patch-path-policy",
+      "command": "internal:patch-policy",
+      "status": "PASSED",
+      "exit_code": null,
+      "duration_ms": null,
+      "output_tail": "",
+      "reason": ""
+    },
+    {
+      "name": "patch-applies-on-pinned-commit",
+      "command": "git apply --check",
+      "status": "PASSED",
+      "exit_code": 0,
+      "duration_ms": null,
+      "output_tail": "",
+      "reason": ""
+    },
+    {
+      "name": "sandbox-egress-isolation",
+      "command": "internal:egress-probe",
+      "status": "PASSED",
+      "exit_code": null,
+      "duration_ms": null,
+      "output_tail": "{\n  \"public_http\": \"blocked:OSError\",\n  \"cloud_metadata\": \"blocked:OSError\",\n  \"cloud_metadata_ipv6\": \"blocked:OSError\",\n  \"private_rfc1918_10\": \"blocked:OSError\",\n  \"private_rfc1918_172\": \"blocked:OSError\",\n  \"private_rfc1918_192\": \"blocked:OSError\",\n  \"loopback_postgres\": \"blocked:ConnectionRefusedError\",\n  \"loopback_redis\": \"blocked:ConnectionRefusedError\",\n  \"loopback_api\": \"blocked:ConnectionRefusedError\",\n  \"public_https\": \"blocked:gaierror\",\n  \"dns\": \"blocked:gaierror\"\n}",
+      "reason": "every egress attempt from inside the sandbox was refused"
+    },
+    {
+      "name": "repository-test-suite",
+      "command": "python -m pytest -q",
+      "status": "FAILED",
+      "exit_code": 1,
+      "duration_ms": 12872,
+      "output_tail": ":test_alignment_of_link_text_cells - Assertion...\nFAILED test/test_regression.py::test_datetime_values - AssertionError\nFAILED test/test_regression.py::test_simple_separated_format - AssertionError\nFAILED test/test_regression.py::test_88_256_ANSI_color_codes - AssertionError\nFAILED test/test_regression.py::test_column_with_mixed_value_types - Assertio...\nFAILED test/test_regression.py::test_latex_escape_special_chars - AssertionError\nFAILED test/test_regression.py::test_isconvertible_on_set_values - AssertionE...\nFAILED test/test_regression.py::test_ansi_color_for_decimal_numbers - Asserti...\nFAILED test/test_regression.py::test_alignment_of_decimal_numbers_with_commas\nFAILED test/test_regression.py::test_mix_normal_and_wide_characters - Asserti...\nFAILED test/test_regression.py::test_multiline_with_wide_characters - Asserti...\nFAILED test/test_regression.py::test_boolean_columns - AssertionError\nFAILED test/test_regression.py::test_escape_empty_cell_in_first_column_in_rst\nFAILED test/test_regression.py::test_empty_pipe_table_with_columns - Assertio...\nFAILED test/test_regression.py::test_custom_tablefmt - AssertionError\nFAILED test/test_regression.py::test_preserve_line_breaks_with_maxcolwidths\nFAILED test/test_regression.py::test_maxcolwidths_accepts_list_or_tuple - Ass...\nFAILED test/test_regression.py::test_empty_table_with_colalign - AssertionError\nFAILED test/test_regression.py::test_empty_table_with_maxheadercolwidths - As...\nFAILED test/test_regression.py::test_asciidoc_without_trailing_whitespace - A...\nFAILED test/test_regression.py::test_github_escape_pipe_character - Assertion...\nFAILED test/test_textwrapper.py::test_wrap_datetime - AssertionError\nFAILED test/test_textwrapper.py::test_wrap_none_value - AssertionError\nFAILED test/test_textwrapper.py::test_wrap_none_value_with_missingval - Asser...\nFAILED test/test_textwrapper.py::test_wrap_optional_bool_strs - AssertionError\n================= 216 failed, 151 passed, 17 skipped in 11.37s =================",
+      "reason": ""
+    }
+  ],
+  "overall": "FAILED",
+  "environment": "process sandbox (wall-time, CPU and memory limits, scrubbed env; network egress denied (bwrap)) on Linux/x86_64",
+  "limitations": [
+    "The sandbox uses an unprivileged bwrap namespace: egress is denied, host socket directories are masked, the process table is private, and the repository's .git directory is read-only. It is not a full VM; the host kernel is shared.",
+    "Repository tests run with RepoMate's interpreter and installed dependencies; a repo-specific virtualenv is not created, so missing dependencies are reported NOT_RUN (they cannot be downloaded without network access)."
+  ],
+  "sandbox": {
+    "network_mode": "disabled",
+    "backend": "bwrap",
+    "policy_enforced": true,
+    "egress_validation": "PASSED",
+    "egress_detail": "every egress attempt from inside the sandbox was refused"
+  },
+  "base_commit": "be57b71b53a4278d80159e5ed68bd33343bb51ec",
+  "patch_sha256": "1c8e51fdb11226592217f4d506784d28a83dc2ba84afaac42acd79fec298e93b",
+  "comparison": {
+    "base_commit": "be57b71b53a4278d80159e5ed68bd33343bb51ec",
+    "patch_sha256": "1c8e51fdb11226592217f4d506784d28a83dc2ba84afaac42acd79fec298e93b",
+    "baseline": {
+      "phase": "baseline",
+      "commit_sha": "be57b71b53a4278d80159e5ed68bd33343bb51ec",
+      "command": "python -m pytest -q",
+      "status": "PASSED",
+      "exit_code": 0,
+      "duration_ms": 4546,
+      "output_summary": "============================= test session starts ==============================\nplatform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.7.0\nrootdir: /tmp/repomate-verify-g5b8srml/baseline\nconfigfile: pyproject.toml\nplugins: anyio-4.15.1\ncollected 384 items\n\nREADME.md .                                                              [  0%]\ntabulate/__init__.py ................                                    [  4%]\ntest/test_api.py ...                                                     [  5%]\ntest/test_cli.py .............................                           [ 12%]\ntest/test_grapheme_clusters.py .................                         [ 17%]\ntest/test_input.py .......sssssssss.................                     [ 25%]\ntest/test_internal.py ......................                             [ 31%]\ntest/test_output.py .................................................... [ 45%]\n........................................................................ [ 63%]\n..........................................s..................ssss....... [ 82%]\n.....                                                                    [ 83%]\ntest/test_padding_contract.py .                                          [ 84%]\ntest/test_regression.py ......................s.........s...s.....       [ 95%]\ntest/test_textwrapper.py ...................                             [100%]\n\n======================= 367 passed, 17 skipped in 3.27s ========================",
+      "reason": ""
+    },
+    "post_patch": {
+      "phase": "post_patch",
+      "commit_sha": "be57b71b53a4278d80159e5ed68bd33343bb51ec",
+      "command": "python -m pytest -q",
+      "status": "FAILED",
+      "exit_code": 1,
+      "duration_ms": 12872,
+      "output_summary": ":test_alignment_of_link_text_cells - Assertion...\nFAILED test/test_regression.py::test_datetime_values - AssertionError\nFAILED test/test_regression.py::test_simple_separated_format - AssertionError\nFAILED test/test_regression.py::test_88_256_ANSI_color_codes - AssertionError\nFAILED test/test_regression.py::test_column_with_mixed_value_types - Assertio...\nFAILED test/test_regression.py::test_latex_escape_special_chars - AssertionError\nFAILED test/test_regression.py::test_isconvertible_on_set_values - AssertionE...\nFAILED test/test_regression.py::test_ansi_color_for_decimal_numbers - Asserti...\nFAILED test/test_regression.py::test_alignment_of_decimal_numbers_with_commas\nFAILED test/test_regression.py::test_mix_normal_and_wide_characters - Asserti...\nFAILED test/test_regression.py::test_multiline_with_wide_characters - Asserti...\nFAILED test/test_regression.py::test_boolean_columns - AssertionError\nFAILED test/test_regression.py::test_escape_empty_cell_in_first_column_in_rst\nFAILED test/test_regression.py::test_empty_pipe_table_with_columns - Assertio...\nFAILED test/test_regression.py::test_custom_tablefmt - AssertionError\nFAILED test/test_regression.py::test_preserve_line_breaks_with_maxcolwidths\nFAILED test/test_regression.py::test_maxcolwidths_accepts_list_or_tuple - Ass...\nFAILED test/test_regression.py::test_empty_table_with_colalign - AssertionError\nFAILED test/test_regression.py::test_empty_table_with_maxheadercolwidths - As...\nFAILED test/test_regression.py::test_asciidoc_without_trailing_whitespace - A...\nFAILED test/test_regression.py::test_github_escape_pipe_character - Assertion...\nFAILED test/test_textwrapper.py::test_wrap_datetime - AssertionError\nFAILED test/test_textwrapper.py::test_wrap_none_value - AssertionError\nFAILED test/test_textwrapper.py::test_wrap_none_value_with_missingval - Asser...\nFAILED test/test_textwrapper.py::test_wrap_optional_bool_strs - AssertionError\n================= 216 failed, 151 passed, 17 skipped in 11.37s =================",
+      "reason": ""
+    },
+    "outcome": "POTENTIAL_REGRESSION",
+    "interpretation": "the selected check passed before the patch and failed after it; a potential regression is present",
+    "commands_match": true
+  },
+  "resolution_statement": "Selected checks passed before the patch and failed after it; a potential regression is present. One or more verification checks failed.",
+  "created_at": "2026-10-26T10:04:23.240239Z"
+}

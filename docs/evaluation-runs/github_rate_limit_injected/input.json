@@ -1,0 +1,13 @@
+{
+  "case": "github_rate_limit_injected",
+  "title": "GitHub throttling maps to a typed RATE_LIMITED error",
+  "repository": "astanin/python-tabulate",
+  "input": {
+    "source": "GITHUB_ISSUE",
+    "issue_url": "https://github.com/astanin/python-tabulate/issues/481",
+    "repo_url": null,
+    "task": null
+  },
+  "expected": "FAILED with ErrorCode.RATE_LIMITED and no artifact",
+  "notes": "The GitHub issue fetch is replaced with a RateLimitedError. The repository clone and snapshot are real; the quota exhaustion is an explicit fault injection."
+}

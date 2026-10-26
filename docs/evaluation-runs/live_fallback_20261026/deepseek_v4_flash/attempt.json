@@ -1,0 +1,17 @@
+{
+  "attempt_model": "deepseek-v4-flash",
+  "attempt_base_url": "https://vyceai.com/v1",
+  "attempt_key_name": "OPENAI_API_KEY",
+  "planner_observed": "model:openai/deepseek-v4-flash",
+  "status": "NEED_MORE_INFO",
+  "error": null,
+  "artifact_kind": null,
+  "documents": [
+    "CONTRIBUTION_PLAN.md"
+  ],
+  "passed": false,
+  "explanation": "expected COMPLETED; observed status=NEED_MORE_INFO",
+  "elapsed_seconds": 186.22,
+  "case_dir": "D:\\repomate\\docs\\evaluation-runs\\live_fallback_20261026\\deepseek_v4_flash\\docs_tabulate_481_live",
+  "run_id": "run_20261026-110101_qu9gaorp"
+}
