@@ -73,7 +73,13 @@ jobs:
 
       - name: Verify fail-closed behaviour where no backend is usable
         if: steps.probe.outputs.usable != 'true'
-        run: pytest -q tests/unit/test_sandbox.py
+        # detect_egress_backend() keys off the bwrap binary, so a binary that
+        # cannot create namespaces makes the suite assert a sandbox that the host
+        # cannot provide. Removing it puts the host in the state the fail-closed
+        # tests describe: no enforcing backend, untrusted code refused.
+        run: |
+          sudo rm -f "$(command -v bwrap)"
+          pytest -q tests/unit/test_sandbox.py
 
   frontend:
     name: Frontend build
