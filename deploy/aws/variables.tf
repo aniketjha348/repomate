@@ -55,3 +55,9 @@ variable "certificate_arn" {
   type        = string
   default     = ""
 }
+
+variable "github_token_secret_name" {
+  description = "Secrets Manager name holding a GitHub token (empty = unauthenticated clones, which is enough for public repositories)"
+  type        = string
+  default     = ""
+}

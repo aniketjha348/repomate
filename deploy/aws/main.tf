@@ -46,7 +46,8 @@ data "aws_secretsmanager_secret" "ollama_key" {
 }
 
 data "aws_secretsmanager_secret" "github_token" {
-  name = "${var.project}/github-token"
+  count = var.github_token_secret_name == "" ? 0 : 1
+  name  = var.github_token_secret_name
 }
 
 # ---- cluster --------------------------------------------------------------
@@ -299,10 +300,10 @@ resource "aws_iam_role_policy" "execution_read_secrets" {
     Statement = [{
       Effect = "Allow"
       Action = ["secretsmanager:GetSecretValue"]
-      Resource = [
-        data.aws_secretsmanager_secret.ollama_key.arn,
-        data.aws_secretsmanager_secret.github_token.arn,
-      ]
+      Resource = concat(
+        [data.aws_secretsmanager_secret.ollama_key.arn],
+        var.github_token_secret_name == "" ? [] : [data.aws_secretsmanager_secret.github_token[0].arn],
+      )
     }]
   })
 }
@@ -319,10 +320,14 @@ locals {
     { name = "REDIS_URL", value = "redis://${aws_elasticache_cluster.redis.cache_nodes[0].address}:6379/0" },
     { name = "ALLOWED_ORIGINS", value = var.allowed_origins },
   ]
-  secrets = [
-    { name = "OLLAMA_API_KEY", valueFrom = data.aws_secretsmanager_secret.ollama_key.arn },
-    { name = "GITHUB_TOKEN", valueFrom = data.aws_secretsmanager_secret.github_token.arn },
-  ]
+  secrets = concat(
+    [{ name = "OLLAMA_API_KEY", valueFrom = data.aws_secretsmanager_secret.ollama_key.arn }],
+    # Unauthenticated clones are all public repositories need, so an absent
+    # token is a supported configuration rather than a missing secret.
+    var.github_token_secret_name == "" ? [] : [
+      { name = "GITHUB_TOKEN", valueFrom = data.aws_secretsmanager_secret.github_token[0].arn },
+    ],
+  )
 }
 
 # ---- API service: task definition, service, autoscaling ---------------------
@@ -451,7 +456,8 @@ resource "aws_appautoscaling_policy" "api_requests" {
 
     predefined_metric_specification {
       predefined_metric_type = "ALBRequestCountPerTarget"
-      resource_label         = "${aws_lb.api.arn}/${aws_lb_target_group.api.arn}"
+      # AWS wants the ARN suffixes joined with "/", not the full ARNs.
+      resource_label = "${aws_lb.api.arn_suffix}/${aws_lb_target_group.api.arn_suffix}"
     }
   }
 }

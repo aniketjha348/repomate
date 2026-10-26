@@ -1,0 +1,212 @@
+name: Deploy AWS backend
+
+# Backend deploy chain: CI -> ECR images -> Terraform apply -> health gate ->
+# hand the new API URL to the Vercel workflow.
+#
+# Authentication is OIDC: the workflow assumes the role created in AWS and trusts
+# only this repository's `production` environment, so no long-lived AWS key
+# lives in GitHub.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - packages/**
+      - services/**
+      - scripts/**
+      - deploy/**
+      - pyproject.toml
+      - .github/workflows/ci.yml
+      - .github/workflows/deploy-aws.yml
+
+# Pull requests are gated by ci.yml instead: a plan needs the environment's
+# variables and an image to plan against, neither of which a fork run has.
+
+concurrency:
+  group: deploy-aws
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-south-1
+  TF_VERSION: "1.16.6"
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  images:
+    name: Build and push images
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      api: ${{ steps.push-api.outputs.image }}
+      worker: ${{ steps.push-worker.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      # provenance=false on purpose: buildkit otherwise pushes an OCI index with
+      # attestation entries, and ECS image pulling through that index has burned
+      # us before. A plain single-manifest image is what Fargate expects.
+      - name: Build and push api
+        id: push-api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.api
+          push: true
+          provenance: false
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+          tags: ${{ steps.ecr.outputs.registry }}/repomate/api:${{ github.sha }}
+
+      - name: Build and push worker
+        id: push-worker
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.worker
+          push: true
+          provenance: false
+          cache-from: type=gha,scope=worker
+          cache-to: type=gha,scope=worker,mode=max
+          tags: ${{ steps.ecr.outputs.registry }}/repomate/worker:${{ github.sha }}
+
+  infrastructure:
+    name: Plan and apply
+    needs: images
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+      variables: write
+      actions: write
+    outputs:
+      api_url: ${{ steps.apply.outputs.api_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require configuration
+        run: |
+          missing=0
+          for name in AWS_DEPLOY_ROLE_ARN ALLOWED_ORIGINS; do
+            if [ -z "${!name}" ]; then
+              echo "::error::${name} is not set (Settings -> Secrets and variables -> Actions -> Variables)."
+              missing=1
+            fi
+          done
+          exit $missing
+        env:
+          AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform init
+        working-directory: deploy/aws
+        run: terraform init -input=false -no-color
+
+      - name: Terraform plan
+        id: plan
+        working-directory: deploy/aws
+        run: |
+          terraform plan -input=false -no-color \
+            -var "image_api=${{ needs.images.outputs.api }}" \
+            -var "image_worker=${{ needs.images.outputs.worker }}" \
+            -var "allowed_origins=${{ vars.ALLOWED_ORIGINS }}" \
+            -out tfplan | tee plan.log
+          {
+            echo '### Terraform plan'
+            echo '```'
+            tail -n 40 plan.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # A pull request only proves the change plans cleanly; main applies it.
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main'
+        id: apply
+        working-directory: deploy/aws
+        run: |
+          terraform apply -input=false -no-color tfplan
+          url=$(terraform output -raw api_url)
+          echo "api_url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployed API: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Wait for the services to settle
+        if: github.ref == 'refs/heads/main'
+        run: |
+          aws ecs wait services-stable --cluster repomate-cluster \
+            --services repomate-api repomate-worker
+
+      - name: Gate on the deployed API reporting healthy
+        if: github.ref == 'refs/heads/main'
+        env:
+          API_URL: ${{ steps.apply.outputs.api_url }}
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "::error::terraform did not emit an api_url output"
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error --retry 40 --retry-delay 10 \
+            --retry-connrefused "$API_URL/api/health" | tee /tmp/health.json
+          echo '### Health' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/health.json >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # NEXT_PUBLIC_* is baked into the bundle at build time, so the frontend
+      # only sees a new API URL after a rebuild. Publish the URL, then trigger
+      # the Vercel workflow.
+      - name: Hand the API URL to the frontend pipeline
+        if: github.ref == 'refs/heads/main'
+        env:
+          API_URL: ${{ steps.apply.outputs.api_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          patch=$(curl -sS -o /dev/null -w '%{http_code}' -X PATCH \
+            -H "authorization: Bearer $GITHUB_TOKEN" \
+            -H 'accept: application/vnd.github+json' \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/variables/NEXT_PUBLIC_API_URL" \
+            --data "{\"value\":\"$API_URL\"}")
+          if [ "$patch" = '404' ]; then
+            curl -fsS -X POST \
+              -H "authorization: Bearer $GITHUB_TOKEN" \
+              -H 'accept: application/vnd.github+json' \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/variables" \
+              --data "{\"name\":\"NEXT_PUBLIC_API_URL\",\"value\":\"$API_URL\"}"
+          elif [ "$patch" != '204' ] && [ "$patch" != '200' ]; then
+            echo "::error::could not set NEXT_PUBLIC_API_URL (HTTP $patch)"
+            exit 1
+          fi
+          curl -fsS -X POST \
+            -H "authorization: Bearer $GITHUB_TOKEN" \
+            -H 'accept: application/vnd.github+json' \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/deploy-vercel.yml/dispatches" \
+            --data '{"ref":"main"}'

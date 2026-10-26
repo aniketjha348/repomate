@@ -9,8 +9,9 @@
 #        secret   VERCEL_TOKEN        = the API token
 #        secret   VERCEL_ORG_ID       = the Team ID
 #        secret   VERCEL_PROJECT_ID   = the Project ID
-#        variable NEXT_PUBLIC_API_URL = https://<render-service>.onrender.com
-#           (a variable, not a secret: it is inlined into the client bundle)
+#        variable NEXT_PUBLIC_API_URL = https://<deployed API origin>
+#           (a variable, not a secret: it is inlined into the client bundle;
+#            deploy-aws.yml writes it after each backend apply)
 #
 # If the backend origin changes, this workflow must re-run: NEXT_PUBLIC_*
 # values are baked in at build time, not read at request time.

@@ -9,18 +9,10 @@
 name: Deploy backend (Render)
 
 on:
+  # Manual only since the backend moved to AWS ECS (see deploy-aws.yml): this
+  # fires on every backend push otherwise, and Render is no longer the origin
+  # the frontend is built against.
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "packages/**"
-      - "services/**"
-      - "scripts/**"
-      - "deploy/**"
-      - "pyproject.toml"
-      - "render.yaml"
-      - ".github/workflows/ci.yml"
-      - ".github/workflows/deploy-render.yml"
 
 permissions:
   contents: read
